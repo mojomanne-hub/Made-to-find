@@ -1,6 +1,5 @@
 "use client";
 
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -163,7 +162,6 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
                   </button>
                 </div>
               ))}
-<NotificationBell />
               {/* Trennlinie + Geteilter Zugriff */}
               <div style={{ borderTop: "1px solid #2d3f55" }}>
                 <button
