@@ -1,5 +1,6 @@
 "use client";
 
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,6 +15,7 @@ import { useGroup, GroupProvider, type Group } from "@/lib/context/GroupContext"
 import { ROUTES } from "@/lib/constants";
 import type { User } from "@supabase/supabase-js";
 import { SharedAccessModal } from "@/components/groups/SharedAccessModal";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
@@ -161,7 +163,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
                   </button>
                 </div>
               ))}
-
+<NotificationBell />
               {/* Trennlinie + Geteilter Zugriff */}
               <div style={{ borderTop: "1px solid #2d3f55" }}>
                 <button
@@ -217,6 +219,9 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
             <Settings className="h-4 w-4 flex-shrink-0" />
             Einstellungen
           </Link>
+
+{/* Benachrichtigungen */}
+<NotificationBell />
 
           {/* Geteilter Zugriff Button */}
           <button
