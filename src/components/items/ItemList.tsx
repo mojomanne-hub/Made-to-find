@@ -23,6 +23,7 @@ interface ItemWithLocation {
   updated_at:  string;
   icon?:       string | null;
   image_url?:  string | null;
+  color?:      string | null;   // ← NEU
   locations?:  { id: string; name: string; color: string | null } | null;
 }
 
@@ -58,17 +59,18 @@ export function ItemList({ items, showLocation = false }: ItemListProps) {
           <Card hoverable>
             <div className="flex items-center gap-3">
               {/* Icon oder Foto */}
-              <div className="h-10 w-10 rounded-xl bg-slate-700/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {item.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <DynIcon
-                    name={item.icon ?? null}
-                    className="h-[18px] w-[18px] text-slate-400"
-                  />
-                )}
-              </div>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+  style={{ backgroundColor: item.color ? item.color + "30" : "#334155" }}
+>
+  {item.image_url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+  ) : (
+    <span style={{ color: item.color ?? "#94a3b8" }}>
+      <DynIcon name={item.icon ?? null} className="h-[18px] w-[18px]" />
+    </span>
+  )}
+</div>
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-100 truncate">{item.name}</p>
