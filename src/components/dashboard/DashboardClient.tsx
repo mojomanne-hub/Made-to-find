@@ -171,31 +171,32 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
         )}
       </div>
 
-      {/* ── Schnellaktionen ── */}
+       {/* ── Schnellaktionen ── */}
       <div className="grid grid-cols-2 gap-3">
         <Link href={groupId ? `${ROUTES.locationNew}?group=${groupId}` : ROUTES.locationNew}>
-          <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-700 hover:border-brand-500/50 hover:bg-slate-800/50 transition-all cursor-pointer">
-            <div className="h-11 w-11 rounded-xl bg-brand-600 flex items-center justify-center flex-shrink-0">
-              <LucideIcons.MapPin className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2 p-3 rounded-2xl border border-slate-700 hover:border-brand-500/50 hover:bg-slate-800/50 transition-all cursor-pointer h-16">
+            <div className="h-9 w-9 rounded-xl bg-brand-600 flex items-center justify-center flex-shrink-0">
+              <LucideIcons.MapPin className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-100">Neuer Ablageort</p>
-              <p className="text-xs text-slate-500 mt-0.5">Erstelle einen neuen Ablageort</p>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-100 leading-tight">Neuer Ablageort</p>
+              <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">Ablageort erstellen</p>
             </div>
           </div>
         </Link>
         <Link href={groupId ? `${ROUTES.itemNew}?group=${groupId}` : ROUTES.itemNew}>
-          <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-700 hover:border-brand-500/50 hover:bg-slate-800/50 transition-all cursor-pointer">
-            <div className="h-11 w-11 rounded-xl bg-slate-600 flex items-center justify-center flex-shrink-0">
-              <LucideIcons.Package className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2 p-3 rounded-2xl border border-slate-700 hover:border-brand-500/50 hover:bg-slate-800/50 transition-all cursor-pointer h-16">
+            <div className="h-9 w-9 rounded-xl bg-slate-600 flex items-center justify-center flex-shrink-0">
+              <LucideIcons.Package className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-100">Neuer Gegenstand</p>
-              <p className="text-xs text-slate-500 mt-0.5">Füge einen neuen Gegenstand hinzu</p>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-100 leading-tight">Neuer Gegenstand</p>
+              <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">Gegenstand hinzufügen</p>
             </div>
           </div>
         </Link>
       </div>
+
 
       {/* ── Statistiken ── */}
       <div className="grid grid-cols-2 gap-3">

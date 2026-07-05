@@ -161,29 +161,29 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
           )}
         </div>
 
-        {/* Logo */}
-        <div className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
-          <Image
-            src="/icons/icon-192x192.png"
-            alt="MaDe to find"
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-          />
+        {/* Logo + Glocke – immer ganz rechts */}
+        <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+          <div className="h-9 w-9 rounded-xl overflow-hidden">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="MaDe to find"
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <button
+            onClick={handleBellClick}
+            className="relative h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+          >
+            <Bell className={cn("h-5 w-5", showNotifs && "text-brand-400")} />
+            {unread > 0 && (
+              <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-danger-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </button>
         </div>
-
-        {/* Glocke – ganz rechts */}
-        <button
-          onClick={handleBellClick}
-          className="relative h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
-        >
-          <Bell className={cn("h-5 w-5", showNotifs && "text-brand-400")} />
-          {unread > 0 && (
-            <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-danger-500 text-white text-[9px] font-bold flex items-center justify-center">
-              {unread > 9 ? "9+" : unread}
-            </span>
-          )}
-        </button>
       </header>
 
       {/* Benachrichtigungen Dropdown */}
