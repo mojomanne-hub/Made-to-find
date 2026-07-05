@@ -1,69 +1,119 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { ChevronLeft, Edit, MapPin, Hash } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
-import { getActiveGroupId }   from "@/lib/utils/group";
-import { PageHeader }         from "@/components/layout/PageHeader";
-import { Button }             from "@/components/ui/Button";
-import { ItemsGrid }          from "@/components/items/ItemsGrid";
-import { ROUTES }             from "@/lib/constants";
+import { Badge }           from "@/components/ui/Badge";
+import { Card }            from "@/components/ui/Card";
+import { ItemDeleteButton } from "@/components/items/ItemDeleteButton";
+import { ROUTES }          from "@/lib/constants";
 
-export const metadata: Metadata = { title: "Gegenstände" };
+interface Props { params: Promise<{ id: string }> }
 
-export default async function ItemsPage() {
+function DynIcon({ name, className }: { name: string | null; className?: string }) {
+  const Icon = name
+    ? (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name]
+    : null;
+  const Comp = Icon ?? LucideIcons.Box;
+  return <Comp className={className} />;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
   const supabase = await createServerClient();
-  const groupId  = await getActiveGroupId();
+  const { data } = await supabase.from("items").select("name").eq("id", id).returns<{ name: string }[]>().maybeSingle();
+  return { title: data?.name ?? "Gegenstand" };
+}
+
+export default async function ItemDetailPage({ params }: Props) {
+  const { id } = await params;
+  const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
 
-  // Items
-  let itemQuery = supabase
+  type ItemRow = {
+    id: string; name: string; description: string | null;
+    quantity: number; updated_at: string; location_id: string;
+    image_url: string | null; icon: string | null; color: string | null;
+    locations: { id: string; name: string; color: string | null } | null;
+  };
+
+  const { data: item } = await supabase
     .from("items")
     .select("*, locations(id, name, color)")
+    .eq("id", id)
     .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
+    .returns<ItemRow[]>()
+    .maybeSingle();
 
-  if (groupId) {
-    itemQuery = itemQuery.eq("group_id", groupId);
-  } else {
-    itemQuery = itemQuery.eq("user_id", user.id).is("group_id", null);
-  }
+  if (!item) notFound();
 
-  // Ablageorte für Filter-Dropdown (nur passende)
-  let locQuery = supabase
-    .from("locations")
-    .select("id, name")
-    .is("deleted_at", null)
-    .order("name");
-
-  if (groupId) {
-    locQuery = locQuery.eq("group_id", groupId);
-  } else {
-    locQuery = locQuery.eq("user_id", user.id).is("group_id", null);
-  }
-
-  const [{ data: items }, { data: locations }] = await Promise.all([itemQuery, locQuery]);
-
-  const newItemHref = groupId
-    ? `${ROUTES.itemNew}?group=${groupId}`
-    : ROUTES.itemNew;
+  const location = item.locations;
+  const color    = item.color ?? location?.color ?? "#6b7280";
 
   return (
     <>
-      <PageHeader
-        title="Gegenstände"
-        description={groupId ? "Gegenstände der Gruppe" : "Deine persönlichen Gegenstände"}
-        action={
-          <Link href={newItemHref}>
-            <Button size="sm"><Plus className="h-4 w-4" /> Neuer Gegenstand</Button>
+      {/* Zurück */}
+      <Link
+        href={ROUTES.items}
+        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4 transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" /> Alle Gegenstände
+      </Link>
+
+      {/* Hero Banner */}
+      <div className="rounded-2xl overflow-hidden mb-5" style={{ backgroundColor: color }}>
+        {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.image_url} alt={item.name} className="w-full h-36 object-cover" />
+        ) : (
+          <div className="h-36 flex items-center justify-center">
+            <DynIcon name={item.icon} className="h-16 w-16 text-white/70" />
+          </div>
+        )}
+      </div>
+
+      {/* Name + Aktionen */}
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100">{item.name}</h1>
+          {location && (
+            <Link
+              href={ROUTES.locationDetail(location.id)}
+              className="flex items-center gap-1 mt-1 text-sm text-brand-400 hover:text-brand-300 transition-colors"
+            >
+              <MapPin className="h-3.5 w-3.5" style={{ color: location.color ?? "#3b82f6" }} />
+              {location.name}
+            </Link>
+          )}
+          <div className="mt-2">
+            <Badge variant={item.quantity === 0 ? "danger" : "default"}>
+              {item.quantity}×
+            </Badge>
+          </div>
+        </div>
+
+        {/* Icon-Buttons */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <ItemDeleteButton itemId={id} itemName={item.name} />
+          <Link href={ROUTES.itemEdit(id)}>
+            <button className="h-9 w-9 rounded-xl border border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-all">
+              <Edit className="h-4 w-4" />
+            </button>
           </Link>
-        }
-      />
-      <ItemsGrid
-        items={(items ?? []) as Parameters<typeof ItemsGrid>[0]["items"]}
-        locations={locations ?? []}
-      />
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="space-y-3 max-w-lg">
+        {item.description && (
+          <Card padding="sm">
+            <p className="text-xs text-slate-500 mb-1.5">Beschreibung</p>
+            <p className="text-sm text-slate-300 whitespace-pre-wrap">{item.description}</p>
+          </Card>
+        )}
+      </div>
     </>
   );
 }
