@@ -105,7 +105,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
         </button>
 
         {/* Gruppen-Dropdown */}
-        <div className="relative flex-1">
+        <div className="relative" style={{ width: "140px" }}>
           <button
             onClick={() => { setDropdownOpen((v) => !v); setShowNotifs(false); }}
             className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors w-full"
