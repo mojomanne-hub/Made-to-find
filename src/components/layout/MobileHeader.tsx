@@ -108,7 +108,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
         <div className="relative flex-1">
           <button
             onClick={() => { setDropdownOpen((v) => !v); setShowNotifs(false); }}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors w-full"
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors w-full"
             style={{ backgroundColor: "#1a2535" }}
           >
             <div
@@ -117,7 +117,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
             >
               {activeGroup ? activeGroup.name[0].toUpperCase() : (displayName[0]?.toUpperCase() ?? "M")}
             </div>
-            <span className="flex-1 text-left text-sm font-medium text-slate-200 truncate">
+            <span className="flex-1 text-left text-xs font-medium text-slate-200 truncate">
               {contextLabel}
             </span>
             <ChevronDown className={cn("h-4 w-4 text-slate-500 transition-transform flex-shrink-0", dropdownOpen && "rotate-180")} />
@@ -161,7 +161,18 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
           )}
         </div>
 
-        {/* Glocke */}
+        {/* Logo */}
+        <div className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
+          <Image
+            src="/icons/icon-192x192.png"
+            alt="MaDe to find"
+            width={36}
+            height={36}
+            className="h-full w-full object-cover"
+          />
+        </div>
+
+        {/* Glocke – ganz rechts */}
         <button
           onClick={handleBellClick}
           className="relative h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
@@ -173,17 +184,6 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
             </span>
           )}
         </button>
-
-        {/* Logo */}
-        <div className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
-          <Image
-            src="/icons/icon-192x192.png"
-            alt="MaDe to find"
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-          />
-        </div>
       </header>
 
       {/* Benachrichtigungen Dropdown */}
