@@ -15,6 +15,7 @@ import { Alert }     from "@/components/ui/Alert";
 import { cn }        from "@/lib/utils";
 import type { Item } from "@/lib/types";
 import { compressImage } from "@/lib/utils/compress-image";
+import { ImageCropper } from "@/components/ui/ImageCropper";
 
 // Dynamisches Icon-Rendering
 function DynIcon({ name, className }: { name: string; className?: string }) {
@@ -60,29 +61,44 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [isLoading,   setIsLoading]   = useState(false);
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
+const [cropSrc,     setCropSrc]     = useState<string | null>(null);
+const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const [tempItemId] = useState(item?.id ?? crypto.randomUUID());
 
   // Foto-Upload
 async function handlePhotoUpload(file: File) {
-    if (file.size > MAX_SIZE_B) { setServerError("Bild zu groß (max. 2 MB)."); return; }
-    setIsUploading(true);
-    try {
-      // Bild komprimieren vor Upload
-      const compressed = await compressImage(file);
-      file = compressed;
-      const supabase = createBrowserClient();
-      const ext  = file.name.split(".").pop() ?? "jpg";
-      const path = `${userId}/${tempItemId}.${ext}`;
-      await supabase.storage.from(BUCKET).remove([path]);
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      setImageUrl(`${data.publicUrl}?t=${Date.now()}`);
-    } catch { setServerError("Upload fehlgeschlagen."); }
-    finally   { setIsUploading(false); }
-  }
+  if (file.size > MAX_SIZE_B * 5) { setServerError("Bild zu groß (max. 10 MB)."); return; }
+  // Cropper öffnen statt direkt hochladen
+  const objectUrl = URL.createObjectURL(file);
+  setPendingFile(file);
+  setCropSrc(objectUrl);
+}
 
+async function handleCropDone(blob: Blob) {
+  if (cropSrc) URL.revokeObjectURL(cropSrc);
+  setCropSrc(null);
+  setPendingFile(null);
+  setIsUploading(true);
+  try {
+    const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+    const compressed = await compressImage(file);
+    const supabase = createBrowserClient();
+    const path = `${userId}/${tempItemId}.jpg`;
+    await supabase.storage.from(BUCKET).remove([path]);
+    const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, { upsert: true });
+    if (error) throw error;
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    setImageUrl(`${data.publicUrl}?t=${Date.now()}`);
+  } catch { setServerError("Upload fehlgeschlagen."); }
+  finally   { setIsUploading(false); }
+}
+
+function handleCropCancel() {
+  if (cropSrc) URL.revokeObjectURL(cropSrc);
+  setCropSrc(null);
+  setPendingFile(null);
+}
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
@@ -133,8 +149,18 @@ async function handlePhotoUpload(file: File) {
     }
   }
 
-  return (
-    <Card>
+ return (
+    <>
+      {cropSrc && (
+        <ImageCropper
+          imageSrc={cropSrc}
+          onCrop={handleCropDone}
+          onCancel={handleCropCancel}
+          aspect={4 / 3}
+        />
+      )}
+      <Card>
+
       <form onSubmit={handleSubmit} className="space-y-5">
         {serverError && <Alert variant="error">{serverError}</Alert>}
 
@@ -335,5 +361,6 @@ async function handlePhotoUpload(file: File) {
         </div>
       </form>
     </Card>
+</>
   );
 }

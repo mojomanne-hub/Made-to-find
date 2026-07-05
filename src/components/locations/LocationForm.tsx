@@ -18,6 +18,7 @@ import { Card }      from "@/components/ui/Card";
 import { Alert }     from "@/components/ui/Alert";
 import { cn }        from "@/lib/utils";
 import type { Location } from "@/lib/types";
+import { compressImage } from "@/lib/utils/compress-image";
 
 // Dynamisches Icon-Rendering aus Lucide
 function DynIcon({ name, className }: { name: string; className?: string }) {
@@ -35,7 +36,7 @@ interface LocationFormProps {
 }
 
 const BUCKET = "location-images";
-const MAX_SIZE_B = 5 * 1024 * 1024;
+const MAX_SIZE_B = 2 * 1024 * 1024;
 
 export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const isEditing = !!location;
@@ -53,21 +54,14 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   // Foto-Upload Handler
-  async function handlePhotoUpload(file: File) {
-    if (file.size > MAX_SIZE_B) { setServerError("Bild zu groß (max. 5 MB)."); return; }
+ async function handlePhotoUpload(file: File) {
+    if (file.size > MAX_SIZE_B) { setServerError("Bild zu groß (max. 2 MB)."); return; }
     setIsUploading(true);
     try {
+      // Bild komprimieren vor Upload
+      const compressed = await compressImage(file);
+      file = compressed;
       const supabase = createBrowserClient();
-      const ext  = file.name.split(".").pop() ?? "jpg";
-      const path = `${userId}/loc-${location?.id ?? "new"}.${ext}`;
-      await supabase.storage.from(BUCKET).remove([path]);
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
-      if (error) throw error;
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      setImageUrl(`${data.publicUrl}?t=${Date.now()}`);
-    } catch { setServerError("Upload fehlgeschlagen."); }
-    finally   { setIsUploading(false); }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,7 +111,16 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   }
 
   return (
-    <Card>
+    <>
+      {cropSrc && (
+        <ImageCropper
+          imageSrc={cropSrc}
+          onCrop={handleCropDone}
+          onCancel={handleCropCancel}
+          aspect={4 / 3}
+        />
+      )}
+      <Card>
       <form onSubmit={handleSubmit} className="space-y-5">
         {serverError && <Alert variant="error">{serverError}</Alert>}
 
@@ -226,7 +229,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                 )}>
                   {isUploading
                     ? <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird hochgeladen…</span></>
-                    : <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 5 MB</span></>
+                    : <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 2 MB</span></>
                   }
                   <input type="file" accept="image/*" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); }} />
@@ -266,5 +269,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
         </div>
       </form>
     </Card>
+</>
   );
 }
