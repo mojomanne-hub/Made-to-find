@@ -93,7 +93,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
   return (
     <>
       <header
-        className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center px-3 h-14 relative"
+        className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-3 h-14"
         style={{ backgroundColor: "#0f1729", borderBottom: "1px solid #1e2d4a" }}
       >
         {/* Hamburger */}
@@ -161,21 +161,23 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
           )}
         </div>
 
-        {/* Logo – absolut zentriert */}
-        <div className="absolute left-1/2 -translate-x-1/2 h-9 w-9 rounded-xl overflow-hidden pointer-events-none">
-          <Image
-            src="/icons/icon-192x192.png"
-            alt="MaDe to find"
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-          />
+        {/* Spacer + Logo zentriert */}
+        <div className="flex-1 flex justify-center">
+          <div className="h-9 w-9 rounded-xl overflow-hidden">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="MaDe to find"
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
+          </div>
         </div>
 
         {/* Glocke – ganz rechts */}
         <button
           onClick={handleBellClick}
-          className="relative h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors ml-auto flex-shrink-0"
+          className="relative h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
         >
           <Bell className={cn("h-5 w-5", showNotifs && "text-brand-400")} />
           {unread > 0 && (
