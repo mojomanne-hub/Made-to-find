@@ -14,6 +14,7 @@ import { Card }      from "@/components/ui/Card";
 import { Alert }     from "@/components/ui/Alert";
 import { cn }        from "@/lib/utils";
 import type { Item } from "@/lib/types";
+import { compressImage } from "@/lib/utils/compress-image";
 
 // Dynamisches Icon-Rendering
 function DynIcon({ name, className }: { name: string; className?: string }) {
@@ -39,7 +40,7 @@ interface ItemFormProps {
 }
 
 const BUCKET     = "item-images";
-const MAX_SIZE_B = 5 * 1024 * 1024;
+const MAX_SIZE_B = 2 * 1024 * 1024;
 
 export function ItemForm({ item, locations, preselectedLocationId, userId, groupId }: ItemFormProps) {
   const isEditing = !!item;
@@ -63,10 +64,13 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [tempItemId] = useState(item?.id ?? crypto.randomUUID());
 
   // Foto-Upload
-  async function handlePhotoUpload(file: File) {
-    if (file.size > MAX_SIZE_B) { setServerError("Bild zu groß (max. 5 MB)."); return; }
+async function handlePhotoUpload(file: File) {
+    if (file.size > MAX_SIZE_B) { setServerError("Bild zu groß (max. 2 MB)."); return; }
     setIsUploading(true);
     try {
+      // Bild komprimieren vor Upload
+      const compressed = await compressImage(file);
+      file = compressed;
       const supabase = createBrowserClient();
       const ext  = file.name.split(".").pop() ?? "jpg";
       const path = `${userId}/${tempItemId}.${ext}`;
