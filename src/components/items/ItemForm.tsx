@@ -68,13 +68,15 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
 
   // Foto ausgewählt → Cropper öffnen
   function handlePhotoSelect(file: File) {
-    if (file.size > MAX_SIZE_B) {
-      setServerError("Bild zu groß (max. 10 MB).");
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    setCropSrc(objectUrl);
+  console.log("handlePhotoSelect aufgerufen", file.name);
+  if (file.size > MAX_SIZE_B) {
+    setServerError("Bild zu groß (max. 10 MB).");
+    return;
   }
+  const objectUrl = URL.createObjectURL(file);
+  console.log("cropSrc gesetzt:", objectUrl);
+  setCropSrc(objectUrl);
+}
 
   // Nach Crop → komprimieren + hochladen
   async function handleCropDone(blob: Blob) {
