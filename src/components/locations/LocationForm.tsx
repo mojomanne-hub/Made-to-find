@@ -1,26 +1,21 @@
 "use client";
 
-/**
- * LocationForm – Ablageort erstellen/bearbeiten.
- * Tab-Wechsel zwischen Icon-Auswahl und Foto-Upload (wie im Screenshot).
- */
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { createBrowserClient }          from "@/lib/supabase/client";
 import { locationSchema }               from "@/lib/validations";
 import { ROUTES, LOCATION_COLORS, LOCATION_ICONS } from "@/lib/constants";
-import { Button }    from "@/components/ui/Button";
-import { Input }     from "@/components/ui/Input";
-import { Textarea }  from "@/components/ui/Textarea";
-import { Card }      from "@/components/ui/Card";
-import { Alert }     from "@/components/ui/Alert";
-import { cn }        from "@/lib/utils";
+import { compressImage }               from "@/lib/utils/compress-image";
+import { Button }        from "@/components/ui/Button";
+import { Input }         from "@/components/ui/Input";
+import { Textarea }      from "@/components/ui/Textarea";
+import { Card }          from "@/components/ui/Card";
+import { Alert }         from "@/components/ui/Alert";
+import { ImageCropper }  from "@/components/ui/ImageCropper";
+import { cn }            from "@/lib/utils";
 import type { Location } from "@/lib/types";
-import { compressImage } from "@/lib/utils/compress-image";
 
-// Dynamisches Icon-Rendering aus Lucide
 function DynIcon({ name, className }: { name: string; className?: string }) {
   const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
   if (!Icon) return <LucideIcons.Box className={className} />;
@@ -35,8 +30,8 @@ interface LocationFormProps {
   groupId:   string | null;
 }
 
-const BUCKET = "location-images";
-const MAX_SIZE_B = 2 * 1024 * 1024;
+const BUCKET     = "location-images";
+const MAX_SIZE_B = 10 * 1024 * 1024;
 
 export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const isEditing = !!location;
@@ -53,15 +48,49 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Foto-Upload Handler
- async function handlePhotoUpload(file: File) {
-    if (file.size > MAX_SIZE_B) { setServerError("Bild zu groß (max. 2 MB)."); return; }
+  // Cropper State
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
+  const [tempLocId] = useState(location?.id ?? crypto.randomUUID());
+
+  // Foto ausgewählt → Cropper öffnen
+  function handlePhotoSelect(file: File) {
+    if (file.size > MAX_SIZE_B) {
+      setServerError("Bild zu groß (max. 10 MB).");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setCropSrc(objectUrl);
+  }
+
+  // Nach Crop → komprimieren + hochladen
+  async function handleCropDone(blob: Blob) {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
     setIsUploading(true);
     try {
-      // Bild komprimieren vor Upload
+      const file       = new File([blob], "image.jpg", { type: "image/jpeg" });
       const compressed = await compressImage(file);
-      file = compressed;
-      const supabase = createBrowserClient();
+      const supabase   = createBrowserClient();
+      const path       = `${userId}/${tempLocId}.jpg`;
+      await supabase.storage.from(BUCKET).remove([path]);
+      const { error } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
+      if (error) throw error;
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      setImageUrl(`${data.publicUrl}?t=${Date.now()}`);
+    } catch {
+      setServerError("Upload fehlgeschlagen.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  function handleCropCancel() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,7 +115,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
         name:        result.data.name,
         description: result.data.description ?? null,
         color:       result.data.color,
-        icon:        mediaTab === "icon" ? icon : null,
+        icon:        mediaTab === "icon"  ? icon     : null,
         image_url:   mediaTab === "photo" ? imageUrl : null,
       };
 
@@ -112,7 +141,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
 
   return (
     <>
-<Card>
+      {/* Cropper Modal */}
       {cropSrc && (
         <ImageCropper
           imageSrc={cropSrc}
@@ -121,155 +150,173 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
           aspect={4 / 3}
         />
       )}
+
       <Card>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {serverError && <Alert variant="error">{serverError}</Alert>}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {serverError && <Alert variant="error">{serverError}</Alert>}
 
-        <Input
-          label="Name"
-          placeholder="z.B. Keller, Garage, Dachboden..."
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          error={errors.name}
-          required
-          autoFocus
-          maxLength={100}
-        />
+          <Input
+            label="Name"
+            placeholder="z.B. Keller, Garage, Dachboden..."
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            error={errors.name}
+            required
+            autoFocus
+            maxLength={100}
+          />
 
-        <Textarea
-          label="Beschreibung"
-          placeholder="Optionale Beschreibung des Ablageortes..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          maxLength={500}
-          hint="Optional – hilft beim Wiederfinden"
-        />
+          <Textarea
+            label="Beschreibung"
+            placeholder="Optionale Beschreibung des Ablageortes..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            maxLength={500}
+            hint="Optional – hilft beim Wiederfinden"
+          />
 
-        {/* Tab-Wechsel: Icon / Foto */}
-        <div className="flex flex-col gap-3">
-          <div className="flex rounded-xl overflow-hidden border border-slate-600">
-            <button
-              type="button"
-              onClick={() => setMediaTab("icon")}
-              className={cn(
-                "flex-1 py-2.5 text-sm font-medium transition-colors",
-                mediaTab === "icon"
-                  ? "bg-brand-600 text-white"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
-              )}
-            >
-              Icon auswählen
-            </button>
-            <button
-              type="button"
-              onClick={() => setMediaTab("photo")}
-              className={cn(
-                "flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                mediaTab === "photo"
-                  ? "bg-brand-600 text-white"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
-              )}
-            >
-              <LucideIcons.Camera className="h-3.5 w-3.5" />
-              Foto hochladen
-            </button>
-          </div>
-
-          {/* Icon-Auswahl */}
-          {mediaTab === "icon" && (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-slate-400">Icon auswählen</p>
-              <div className="grid grid-cols-8 gap-1.5">
-                {LOCATION_ICONS.map((ic) => (
-                  <button
-                    key={ic.name}
-                    type="button"
-                    onClick={() => setIcon(ic.name)}
-                    title={ic.label}
-                    className={cn(
-                      "h-10 w-full rounded-xl flex items-center justify-center transition-all",
-                      icon === ic.name
-                        ? "bg-brand-600 border-2 border-brand-400"
-                        : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
-                    )}
-                  >
-                    <DynIcon
-                      name={ic.name}
-                      className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Foto-Upload */}
-          {mediaTab === "photo" && (
-            <div>
-              {imageUrl ? (
-                <div className="relative rounded-xl overflow-hidden border border-slate-600">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="Vorschau" className="w-full h-40 object-cover" />
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <label className="h-8 px-3 rounded-lg bg-black/50 text-white text-xs font-medium hover:bg-black/70 cursor-pointer flex items-center gap-1.5">
-                      <LucideIcons.Upload className="h-3.5 w-3.5" /> Ersetzen
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); }} />
-                    </label>
-                    <button type="button" onClick={() => setImageUrl(null)}
-                      className="h-8 w-8 rounded-lg bg-black/50 text-white hover:bg-danger-600/80 flex items-center justify-center">
-                      <LucideIcons.X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <label className={cn(
-                  "flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors",
-                  isUploading ? "border-brand-500 bg-brand-900/20" : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/30"
-                )}>
-                  {isUploading
-                    ? <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird hochgeladen…</span></>
-                    : <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 2 MB</span></>
-                  }
-                  <input type="file" accept="image/*" className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); }} />
-                </label>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Farbauswahl */}
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
-          <div className="flex flex-wrap gap-2">
-            {LOCATION_COLORS.map((c) => (
+          {/* Tab: Icon / Foto */}
+          <div className="flex flex-col gap-3">
+            <div className="flex rounded-xl overflow-hidden border border-slate-600">
               <button
-                key={c.value}
                 type="button"
-                onClick={() => setColor(c.value)}
-                title={c.label}
+                onClick={() => setMediaTab("icon")}
                 className={cn(
-                  "h-9 w-9 rounded-xl transition-all duration-150",
-                  color === c.value ? "ring-2 ring-offset-2 ring-white scale-110" : "hover:scale-105"
+                  "flex-1 py-2.5 text-sm font-medium transition-colors",
+                  mediaTab === "icon" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
                 )}
-                style={{ backgroundColor: c.value }}
-              />
-            ))}
-          </div>
-        </div>
+              >
+                Icon auswählen
+              </button>
+              <button
+                type="button"
+                onClick={() => setMediaTab("photo")}
+                className={cn(
+                  "flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                  mediaTab === "photo" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                )}
+              >
+                <LucideIcons.Camera className="h-3.5 w-3.5" />
+                Foto hochladen
+              </button>
+            </div>
 
-        <div className="flex gap-3 pt-1">
-          <Button type="button" variant="secondary" onClick={() => router.back()} disabled={isLoading}>
-            Abbrechen
-          </Button>
-          <Button type="submit" isLoading={isLoading}>
-            {isEditing ? "Speichern" : "Erstellen"}
-          </Button>
-        </div>
-      </form>
-    </Card>
-</>
+            {/* Icon-Auswahl */}
+            {mediaTab === "icon" && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-slate-400">Icon auswählen</p>
+                <div className="grid grid-cols-8 gap-1.5">
+                  {LOCATION_ICONS.map((ic) => (
+                    <button
+                      key={ic.name}
+                      type="button"
+                      onClick={() => setIcon(ic.name)}
+                      title={ic.label}
+                      className={cn(
+                        "h-10 w-full rounded-xl flex items-center justify-center transition-all",
+                        icon === ic.name
+                          ? "bg-brand-600 border-2 border-brand-400"
+                          : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
+                      )}
+                    >
+                      <DynIcon
+                        name={ic.name}
+                        className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Foto-Upload mit Cropper */}
+            {mediaTab === "photo" && (
+              <div>
+                {imageUrl ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-600">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageUrl} alt="Vorschau" className="w-full h-40 object-cover" />
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <LucideIcons.Loader2 className="h-8 w-8 text-white animate-spin" />
+                      </div>
+                    )}
+                    {!isUploading && (
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <label className="h-8 px-3 rounded-lg bg-black/50 text-white text-xs font-medium hover:bg-black/70 cursor-pointer flex items-center gap-1.5">
+                          <LucideIcons.Upload className="h-3.5 w-3.5" /> Ersetzen
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setImageUrl(null)}
+                          className="h-8 w-8 rounded-lg bg-black/50 text-white hover:bg-danger-600/80 flex items-center justify-center"
+                        >
+                          <LucideIcons.X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label className={cn(
+                    "flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors",
+                    isUploading
+                      ? "border-brand-500 bg-brand-900/20"
+                      : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/30"
+                  )}>
+                    {isUploading ? (
+                      <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird hochgeladen…</span></>
+                    ) : (
+                      <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · dann zuschneiden</span></>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Farbauswahl */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
+            <div className="flex flex-wrap gap-2">
+              {LOCATION_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setColor(c.value)}
+                  title={c.label}
+                  className={cn(
+                    "h-9 w-9 rounded-xl transition-all duration-150",
+                    color === c.value ? "ring-2 ring-offset-2 ring-white scale-110" : "hover:scale-105"
+                  )}
+                  style={{ backgroundColor: c.value }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button type="button" variant="secondary" onClick={() => router.back()} disabled={isLoading}>
+              Abbrechen
+            </Button>
+            <Button type="submit" isLoading={isLoading}>
+              {isEditing ? "Speichern" : "Erstellen"}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </>
   );
 }
