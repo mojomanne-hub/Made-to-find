@@ -112,6 +112,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
 
   return (
     <>
+<Card>
       {cropSrc && (
         <ImageCropper
           imageSrc={cropSrc}
