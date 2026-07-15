@@ -1,53 +1,37 @@
 "use client";
 
-/**
- * ImageCropper – Bild zuschneiden vor dem Upload.
- * Nutzt react-easy-crop für Touch/Mouse Support.
- * Öffnet sich als Modal nach Bildauswahl.
- */
-
 import { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
 import { Check, X, ZoomIn, ZoomOut } from "lucide-react";
 
 interface ImageCropperProps {
-  imageSrc:  string;          // Objekt-URL des ausgewählten Bildes
+  imageSrc:  string;
   onCrop:    (blob: Blob) => void;
   onCancel:  () => void;
-  aspect?:   number;          // Standard: 16/9
+  aspect?:   number; // optional – ohne = freies Zuschneiden
 }
 
-/** Canvas-basiertes Zuschneiden */
 async function getCroppedImage(imageSrc: string, pixelCrop: Area): Promise<Blob> {
-  const image = await createImageBitmap(await fetch(imageSrc).then((r) => r.blob()));
-  const canvas  = document.createElement("canvas");
+  const image  = await createImageBitmap(await fetch(imageSrc).then((r) => r.blob()));
+  const canvas = document.createElement("canvas");
   canvas.width  = pixelCrop.width;
   canvas.height = pixelCrop.height;
   const ctx = canvas.getContext("2d")!;
-
-  ctx.drawImage(
-    image,
-    pixelCrop.x, pixelCrop.y,
-    pixelCrop.width, pixelCrop.height,
-    0, 0,
-    pixelCrop.width, pixelCrop.height
-  );
-
+  ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new Error("Canvas toBlob failed")),
-      "image/jpeg",
-      0.85
+      (blob) => blob ? resolve(blob) : reject(new Error("toBlob failed")),
+      "image/jpeg", 0.85
     );
   });
 }
 
-export function ImageCropper({ imageSrc, onCrop, onCancel, aspect = 16 / 9 }: ImageCropperProps) {
-  const [crop,       setCrop]       = useState<Point>({ x: 0, y: 0 });
-  const [zoom,       setZoom]       = useState(1);
+export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCropperProps) {
+  const [crop,        setCrop]        = useState<Point>({ x: 0, y: 0 });
+  const [zoom,        setZoom]        = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
-  const [isLoading,  setIsLoading]  = useState(false);
+  const [isLoading,   setIsLoading]   = useState(false);
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -68,14 +52,13 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect = 16 / 9 }: Im
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "#000" }}>
-
-      {/* Cropper-Bereich */}
+      {/* Cropper */}
       <div className="relative flex-1">
         <Cropper
           image={imageSrc}
           crop={crop}
           zoom={zoom}
-          aspect={aspect}
+          aspect={aspect ?? undefined}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onCropComplete={onCropComplete}
@@ -88,7 +71,6 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect = 16 / 9 }: Im
 
       {/* Controls */}
       <div style={{ backgroundColor: "#0f1729", borderTop: "1px solid #1e2d4a" }}>
-        {/* Zoom-Slider */}
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => setZoom(Math.max(1, zoom - 0.1))}
@@ -98,9 +80,7 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect = 16 / 9 }: Im
           </button>
           <input
             type="range"
-            min={1}
-            max={3}
-            step={0.05}
+            min={1} max={3} step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             className="flex-1 accent-brand-500"
@@ -113,8 +93,7 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect = 16 / 9 }: Im
           </button>
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3 px-4 pb-4">
+        <div className="flex gap-3 px-4 pb-6">
           <button
             onClick={onCancel}
             className="flex-1 h-11 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"

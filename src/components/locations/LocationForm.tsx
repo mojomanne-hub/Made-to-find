@@ -147,7 +147,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
           imageSrc={cropSrc}
           onCrop={handleCropDone}
           onCancel={handleCropCancel}
-          aspect={4 / 3}
+          
         />
       )}
 
@@ -236,7 +236,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                 {imageUrl ? (
                   <div className="relative rounded-xl overflow-hidden border border-slate-600">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Vorschau" className="w-full h-40 object-cover" />
+                    <img src={imageUrl} alt="Vorschau" className="w-full h-52 object-cover" />
                     {isUploading && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <LucideIcons.Loader2 className="h-8 w-8 text-white animate-spin" />
