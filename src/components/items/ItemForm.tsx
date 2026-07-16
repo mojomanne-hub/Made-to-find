@@ -182,17 +182,19 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
 
         {/* Icon-Auswahl */}
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-300">Icon auswählen</label>
-            {/* Foto-Upload — demnächst verfügbar */}
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 cursor-not-allowed">
-              <LucideIcons.Camera className="h-3.5 w-3.5 text-amber-400" />
-              <span className="text-xs font-medium text-amber-400">Foto</span>
-              <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded-full">
+          {/* Tab-Style wie bei Ablageorten */}
+          <div className="flex rounded-xl overflow-hidden border border-slate-600">
+            <div className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center bg-brand-600 text-white">
+              Icon auswählen
+            </div>
+            <div className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 text-slate-500 cursor-not-allowed border-l border-slate-600">
+              <LucideIcons.Camera className="h-3.5 w-3.5 text-amber-400/60" />
+              <span>Foto hochladen</span>
+              <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
                 <LucideIcons.Sparkles className="h-2.5 w-2.5" />
                 Bald
               </span>
-            </span>
+            </div>
           </div>
           <div className="grid grid-cols-8 gap-1.5">
             {ITEM_ICONS.map((ic) => (
