@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, Edit, MapPin, Hash } from "lucide-react";
+import { ChevronLeft, Edit, MapPin } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
-import { Badge }           from "@/components/ui/Badge";
-import { Card }            from "@/components/ui/Card";
+import { Badge }            from "@/components/ui/Badge";
+import { Card }             from "@/components/ui/Card";
 import { ItemDeleteButton } from "@/components/items/ItemDeleteButton";
-import { ROUTES }          from "@/lib/constants";
+import { ROUTES }           from "@/lib/constants";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -62,14 +62,21 @@ export default async function ItemDetailPage({ params }: Props) {
         <ChevronLeft className="h-4 w-4" /> Alle Gegenstände
       </Link>
 
-      {/* Hero Banner */}
-      <div className="rounded-2xl overflow-hidden mb-5" style={{ backgroundColor: color }}>
+      {/* Hero Banner – 16:9 */}
+      <div
+        className="rounded-2xl overflow-hidden mb-5 w-full"
+        style={{ aspectRatio: "16/9", backgroundColor: color }}
+      >
         {item.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image_url} alt={item.name} className="w-full h-36 object-cover" />
+          <img
+            src={item.image_url}
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
         ) : (
-          <div className="h-36 flex items-center justify-center">
-            <DynIcon name={item.icon} className="h-16 w-16 text-white/70" />
+          <div className="w-full h-full flex items-center justify-center">
+            <DynIcon name={item.icon} className="h-20 w-20 text-white/70" />
           </div>
         )}
       </div>
@@ -105,15 +112,15 @@ export default async function ItemDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Details */}
-      <div className="space-y-3 max-w-lg">
-        {item.description && (
+      {/* Beschreibung */}
+      {item.description && (
+        <div className="max-w-lg">
           <Card padding="sm">
             <p className="text-xs text-slate-500 mb-1.5">Beschreibung</p>
             <p className="text-sm text-slate-300 whitespace-pre-wrap">{item.description}</p>
           </Card>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }

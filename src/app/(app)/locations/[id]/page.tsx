@@ -4,11 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, Edit, Plus } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { createServerClient }   from "@/lib/supabase/server";
-import { Button }               from "@/components/ui/Button";
 import { Badge }                from "@/components/ui/Badge";
 import { ItemList }             from "@/components/items/ItemList";
 import { LocationDeleteButton } from "@/components/locations/LocationDeleteButton";
 import { ROUTES }               from "@/lib/constants";
+import { Button }               from "@/components/ui/Button";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -64,14 +64,21 @@ export default async function LocationDetailPage({ params }: Props) {
         <ChevronLeft className="h-4 w-4" /> Alle Ablageorte
       </Link>
 
-      {/* Hero Banner */}
-      <div className="rounded-2xl overflow-hidden mb-5" style={{ backgroundColor: color }}>
+      {/* Hero Banner – 16:9 */}
+      <div
+        className="rounded-2xl overflow-hidden mb-5 w-full"
+        style={{ aspectRatio: "16/9", backgroundColor: color }}
+      >
         {location.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={location.image_url} alt={location.name} className="w-full h-36 object-cover" />
+          <img
+            src={location.image_url}
+            alt={location.name}
+            className="w-full h-full object-cover"
+          />
         ) : (
-          <div className="h-36 flex items-center justify-center">
-            <DynIcon name={location.icon} className="h-16 w-16 text-white/70" />
+          <div className="w-full h-full flex items-center justify-center">
+            <DynIcon name={location.icon} className="h-20 w-20 text-white/70" />
           </div>
         )}
       </div>
