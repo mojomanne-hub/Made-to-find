@@ -262,17 +262,16 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
               </button>
               <button
                 type="button"
-                onClick={() => setMediaTab("photo")}
-                className={cn(
-                  "flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                  mediaTab === "photo" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
-                )}
+                type="button"
+disabled
+className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 text-slate-600 cursor-not-allowed"
+)}
               >
                 <LucideIcons.Camera className="h-3.5 w-3.5" />
                 Foto hochladen
               </button>
             </div>
-
+<span className="ml-1 text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-full">Bald</span>
             {/* Icon-Raster */}
             {mediaTab === "icon" && (
               <div className="flex flex-col gap-2">
@@ -307,7 +306,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
                 {imageUrl ? (
                   <div className="relative rounded-xl overflow-hidden border border-slate-600">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Vorschau" className="w-full object-cover" style={{ aspectRatio: "16/9" }} />
+                    <img src={imageUrl} alt="Vorschau" className="w-full h-52 object-cover" />
                     {isUploading && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <LucideIcons.Loader2 className="h-8 w-8 text-white animate-spin" />
