@@ -192,11 +192,14 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
               <button
                 type="button"
                 disabled
-                className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 text-slate-600 cursor-not-allowed relative"
+                className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 cursor-not-allowed border-l border-slate-600 text-slate-500"
               >
-                <LucideIcons.Camera className="h-3.5 w-3.5" />
-                Foto hochladen
-                <span className="ml-1 text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded-full">Bald</span>
+                <LucideIcons.Camera className="h-3.5 w-3.5 text-amber-400/60" />
+                <span className="text-slate-500">Foto hochladen</span>
+                <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
+                  <LucideIcons.Sparkles className="h-2.5 w-2.5" />
+                  Bald
+                </span>
               </button>
             </div>
 

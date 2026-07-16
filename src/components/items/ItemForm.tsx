@@ -185,10 +185,13 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-slate-300">Icon auswählen</label>
             {/* Foto-Upload — demnächst verfügbar */}
-            <span className="flex items-center gap-1.5 text-xs text-slate-600 cursor-not-allowed">
-              <LucideIcons.Camera className="h-3.5 w-3.5" />
-              Foto hochladen
-              <span className="text-[9px] bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded-full">Bald</span>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 cursor-not-allowed">
+              <LucideIcons.Camera className="h-3.5 w-3.5 text-amber-400" />
+              <span className="text-xs font-medium text-amber-400">Foto</span>
+              <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded-full">
+                <LucideIcons.Sparkles className="h-2.5 w-2.5" />
+                Bald
+              </span>
             </span>
           </div>
           <div className="grid grid-cols-8 gap-1.5">
