@@ -1,5 +1,3 @@
-import Link from "next/link";
-import Image from "next/image";
 import { ROUTES } from "@/lib/constants";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -15,23 +13,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           background: "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(37,99,235,0.15) 0%, transparent 70%)",
         }}
       />
-
-      {/* Header */}
-      <header className="relative px-6 pt-7">
-        <Link href={ROUTES.home} className="inline-flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg shadow-brand-900/50">
-            <Image src="/icons/icon-192x192.png" alt="MaDe to find" width={40} height={40} />
-          </div>
-          <div className="leading-tight">
-            <span className="block text-base font-bold text-white tracking-tight">
-              MaDe to find
-            </span>
-            <span className="block text-[11px] tracking-widest uppercase font-medium" style={{ color: "#64748b" }}>
-              Alles im Blick
-            </span>
-          </div>
-        </Link>
-      </header>
 
       {/* Hauptinhalt */}
       <main className="relative flex-1 flex items-center justify-center px-4 py-10">
