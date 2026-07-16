@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Suspense } from "react";
 import { ROUTES } from "@/lib/constants";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -13,13 +14,25 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-white tracking-tight">
-          Willkommen zurück
-        </h1>
-        <p className="text-sm" style={{ color: "#94a3b8" }}>
-          Melde dich an, um deine Ablageorte zu verwalten
-        </p>
+      {/* Logo zentriert */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl shadow-brand-900/50">
+          <Image
+            src="/icons/icon-512x512.png"
+            alt="MaDe to find"
+            width={80}
+            height={80}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Willkommen zurück
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>
+            Melde dich an, um deine Ablageorte zu verwalten
+          </p>
+        </div>
       </div>
 
       <Suspense>
