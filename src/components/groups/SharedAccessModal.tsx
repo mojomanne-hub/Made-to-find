@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   X, ChevronLeft, Users, Plus, LogIn,
-  Share2, Mail, Copy, Check, Loader2, Edit2, Trash2,
+  Share2, Copy, Check, Loader2, Edit2, Trash2,
 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -35,15 +35,13 @@ export function SharedAccessModal({
   const [manageGroup, setManageGroup] = useState<Group | null>(initialManageGroup ?? null);
   const [groupName,   setGroupName]   = useState("");
   const [joinLink,    setJoinLink]    = useState("");
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [editName,    setEditName]    = useState(initialManageGroup?.name ?? "");
+    const [editName,    setEditName]    = useState(initialManageGroup?.name ?? "");
   const [isLoading,   setIsLoading]   = useState(false);
   const [isDeleting,  setIsDeleting]  = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [success,     setSuccess]     = useState<string | null>(null);
   const [copied,      setCopied]      = useState(false);
-  const [emailFailed, setEmailFailed] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -317,48 +315,10 @@ export function SharedAccessModal({
                 <span className="text-sm font-medium text-slate-200">{shareGroup.name}</span>
               </div>
 
-              {/* E-Mail einladen */}
+              {/* Einladungslink */}
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-medium text-slate-300 flex items-center gap-1.5">
-                  <Mail className="h-4 w-4" /> Per E-Mail einladen
-                </p>
-                <div className="flex gap-2">
-                  <input type="email" placeholder="email@beispiel.de" value={inviteEmail}
-                    onChange={(e) => { setInviteEmail(e.target.value); setEmailFailed(false); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleInviteByEmail()}
-                    className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
-                  <button onClick={handleInviteByEmail} disabled={isLoading || !inviteEmail.trim()}
-                    className="px-4 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium transition-colors">
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Senden"}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500">Die Person erhält eine E-Mail und muss die Einladung bestätigen.</p>
-                <p className="text-xs text-slate-600 flex items-center gap-1">
-                  <span className="text-emerald-500">✓</span> Funktioniert für registrierte und neue Benutzer.
-                </p>
-                {success && <p className="text-xs text-emerald-400">{success}</p>}
-
-                {/* Freundliche Fehlermeldung */}
-                {emailFailed && (
-                  <div className="rounded-xl p-3 text-xs space-y-1"
-                    style={{ backgroundColor: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)" }}>
-                    <p className="font-semibold text-amber-300">⚠ E-Mail konnte nicht gesendet werden</p>
-                    <p className="text-amber-400/80">Bitte teile den Link unten direkt per WhatsApp oder E-Mail-App.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-slate-700" />
-                <span className="text-xs text-slate-500">ODER</span>
-                <div className="flex-1 h-px bg-slate-700" />
-              </div>
-
-              {/* Link teilen */}
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-medium text-slate-300 flex items-center gap-1.5">
-                  <Share2 className="h-4 w-4" /> Link teilen
+                  <Share2 className="h-4 w-4" /> Einladungslink
                 </p>
                 <div className="flex gap-2">
                   <input readOnly value={inviteLink}
@@ -370,17 +330,28 @@ export function SharedAccessModal({
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500 mb-3">
-                  Teile diesen Link per WhatsApp oder E-Mail. Nicht registrierte Personen werden aufgefordert, sich zu registrieren und treten danach automatisch der Gruppe bei.
+                <p className="text-xs text-slate-500">
+                  Nicht registrierte Personen werden aufgefordert sich zu registrieren und treten danach automatisch bei.
                 </p>
+              </div>
+
+              {/* Teilen-Buttons */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Direkt teilen</p>
                 <div className="flex gap-2">
-                  <a href={`https://wa.me/?text=${encodeURIComponent("Du wurdest eingeladen, der Gruppe \u201e" + shareGroup.name + "\u201c beizutreten: " + inviteLink)}`}
+                  <a href={`https://wa.me/?text=${encodeURIComponent("Du wurdest eingeladen, der Gruppe „" + shareGroup.name + "“ beizutreten: " + inviteLink)}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex-1 h-9 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5 bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/50 border border-emerald-800">
+                    className="flex-1 h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/50 border border-emerald-800">
                     <span>📱</span> WhatsApp
                   </a>
-                  <a href={`mailto:?subject=${encodeURIComponent("Einladung: " + shareGroup.name)}&body=${encodeURIComponent("Hallo,\n\ndu wurdest eingeladen, der Gruppe \u201e" + shareGroup.name + "\u201c beizutreten:\n\n" + inviteLink + "\n\nBis bald!")}`}
-                    className="flex-1 h-9 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5 bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600">
+                  <a href={`mailto:?subject=${encodeURIComponent("Einladung: " + shareGroup.name)}&body=${encodeURIComponent("Hallo,
+
+du wurdest eingeladen, der Gruppe „" + shareGroup.name + "“ beizutreten:
+
+" + inviteLink + "
+
+Bis bald!")}`}
+                    className="flex-1 h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-brand-700/30 text-brand-400 hover:bg-brand-700/50 border border-brand-800">
                     <span>✉️</span> E-Mail
                   </a>
                 </div>
