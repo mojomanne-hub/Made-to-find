@@ -167,7 +167,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
           imageSrc={cropSrc}
           onCrop={handleCropDone}
           onCancel={handleCropCancel}
-      
+          aspect={16 / 9}
         />
       )}
 
@@ -307,7 +307,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
                 {imageUrl ? (
                   <div className="relative rounded-xl overflow-hidden border border-slate-600">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Vorschau" className="w-full h-52 object-cover" />
+                    <img src={imageUrl} alt="Vorschau" className="w-full object-cover" style={{ aspectRatio: "16/9" }} />
                     {isUploading && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <LucideIcons.Loader2 className="h-8 w-8 text-white animate-spin" />
