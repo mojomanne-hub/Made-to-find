@@ -1,33 +1,14 @@
 "use client";
 
-/**
- * LoginForm – E-Mail + Passwort, Zod-Validierung, Supabase Auth.
- *
- * LoginFormInner liest useSearchParams() – muss daher in Suspense
- * eingebettet sein (Next.js 15 Requirement für statisches Rendering).
- * Der Export `LoginForm` liefert die bereits gewrappte Version.
- */
-
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { createBrowserClient }  from "@/lib/supabase/client";
-import { joinPendingGroup }       from "@/lib/utils/invite-token";
-import { loginSchema } from "@/lib/validations";
-import { getAuthError } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
-import { Button }    from "@/components/ui/Button";
-import { Input }     from "@/components/ui/Input";
-import { Alert }     from "@/components/ui/Alert";
-import { Card }      from "@/components/ui/Card";
-import { Spinner }   from "@/components/ui/Badge";
+import { joinPendingGroup }      from "@/lib/utils/invite-token";
+import { getAuthError }          from "@/lib/utils";
+import { ROUTES }                from "@/lib/constants";
 
-type FormErrors = Partial<Record<"email" | "password" | "root", string>>;
-
-// ---- Innere Komponente (liest searchParams) ----------------
-
-function LoginFormInner() {
+export function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const redirectTo   = searchParams.get("redirect") ?? ROUTES.dashboard;
@@ -36,134 +17,134 @@ function LoginFormInner() {
   const [password,  setPassword]  = useState("");
   const [showPwd,   setShowPwd]   = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors,    setErrors]    = useState<FormErrors>({});
+  const [error,     setError]     = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErrors({});
-
-    const result = loginSchema.safeParse({ email, password });
-    if (!result.success) {
-      const fieldErrors: FormErrors = {};
-      for (const err of result.error.errors) {
-        const field = err.path[0] as keyof FormErrors;
-        if (!fieldErrors[field]) fieldErrors[field] = err.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-
+    setError(null);
     setIsLoading(true);
+
     try {
       const supabase = createBrowserClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email:    result.data.email,
-        password: result.data.password,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email:    email.trim(),
+        password,
       });
 
-      if (error) {
-        setErrors({ root: getAuthError(error.message) });
+      if (signInError) {
+        setError(getAuthError(signInError.message));
         return;
       }
 
       // Ausstehende Gruppeneinladung annehmen
-      const supabaseForJoin = createBrowserClient();
-      const groupId = await joinPendingGroup(supabaseForJoin);
+      const groupId = await joinPendingGroup(supabase);
       if (groupId) {
         document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
       }
+
       router.push(redirectTo);
       router.refresh();
     } catch {
-      setErrors({ root: "Ein unerwarteter Fehler ist aufgetreten." });
+      setError("Ein Fehler ist aufgetreten. Bitte versuche es erneut.");
     } finally {
       setIsLoading(false);
     }
   }
 
+  const inputCls = "w-full h-11 rounded-xl px-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50";
+  const inputStyle = {
+    backgroundColor: "#0f1929",
+    border: "1px solid #2d3f55",
+    color: "#e2e8f0",
+  };
+
   return (
-    <Card>
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {errors.root && <Alert variant="error">{errors.root}</Alert>}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Fehler */}
+      {error && (
+        <div className="flex items-start gap-2.5 rounded-xl p-3 text-sm"
+          style={{ backgroundColor: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.3)", color: "#fda4af" }}>
+          <span>⚠</span>
+          <span>{error}</span>
+        </div>
+      )}
 
-        {/* E-Mail */}
-        <Input
-          type="email"
-          name="email"
-          label="E-Mail"
-          placeholder="name@beispiel.de"
-          autoComplete="email"
-          autoFocus
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={errors.email}
-          leftIcon={<Mail className="h-4 w-4" />}
-        />
-
-        {/* Passwort */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor="input-password"
-              className="text-sm font-medium text-neutral-700"
-            >
-              Passwort
-            </label>
-            <Link
-              href={ROUTES.forgotPassword}
-              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
-              tabIndex={-1}
-            >
-              Vergessen?
-            </Link>
+      {/* E-Mail */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium" style={{ color: "#94a3b8" }}>
+          E-Mail <span style={{ color: "#f43f5e" }}>*</span>
+        </label>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#475569" }}>
+            <Mail className="h-4 w-4" />
           </div>
-          <Input
-            type={showPwd ? "text" : "password"}
-            name="password"
-            id="input-password"
-            placeholder="••••••••"
-            autoComplete="current-password"
+          <input
+            type="email"
+            placeholder="deine@email.de"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={errors.password}
-            leftIcon={<Lock className="h-4 w-4" />}
-            rightSlot={
-              <button
-                type="button"
-                onClick={() => setShowPwd((v) => !v)}
-                className="p-1.5 text-neutral-400 hover:text-neutral-600 transition-colors rounded-lg"
-                aria-label={showPwd ? "Passwort verbergen" : "Passwort anzeigen"}
-              >
-                {showPwd
-                  ? <EyeOff className="h-4 w-4" />
-                  : <Eye    className="h-4 w-4" />}
-              </button>
-            }
+            autoComplete="email"
+            className={`${inputCls} pl-10`}
+            style={inputStyle}
           />
         </div>
+      </div>
 
-        <Button type="submit" fullWidth isLoading={isLoading} className="mt-2">
-          Anmelden
-        </Button>
-      </form>
-    </Card>
-  );
-}
+      {/* Passwort */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium" style={{ color: "#94a3b8" }}>
+            Passwort <span style={{ color: "#f43f5e" }}>*</span>
+          </label>
+          <a href={ROUTES.forgotPassword} className="text-xs transition-colors"
+            style={{ color: "#60a5fa" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#93c5fd")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#60a5fa")}
+          >
+            Vergessen?
+          </a>
+        </div>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#475569" }}>
+            <Lock className="h-4 w-4" />
+          </div>
+          <input
+            type={showPwd ? "text" : "password"}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className={`${inputCls} pl-10 pr-10`}
+            style={inputStyle}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPwd((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+            style={{ color: "#475569" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+          >
+            {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
 
-// ---- Öffentlicher Export (mit Suspense-Wrapper) ------------
-
-export function LoginForm() {
-  return (
-    <Suspense
-      fallback={
-        <Card className="flex items-center justify-center py-10">
-          <Spinner />
-        </Card>
-      }
-    >
-      <LoginFormInner />
-    </Suspense>
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full h-11 rounded-xl text-sm font-semibold text-white transition-all mt-2 flex items-center justify-center gap-2 disabled:opacity-60"
+        style={{ backgroundColor: "#2563eb" }}
+        onMouseEnter={(e) => !isLoading && (e.currentTarget.style.backgroundColor = "#1d4ed8")}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#2563eb")}
+      >
+        {isLoading ? (
+          <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Anmelden…</>
+        ) : "Anmelden"}
+      </button>
+    </form>
   );
 }

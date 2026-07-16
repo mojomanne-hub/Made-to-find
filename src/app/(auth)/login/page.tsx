@@ -1,13 +1,3 @@
-/**
- * Login-Seite
- *
- * Was diese Seite tut:
- * - Zeigt das LoginForm (E-Mail + Passwort mit Supabase Auth)
- * - Link zu "Passwort vergessen"
- * - Link zu "Registrieren"
- * - Zeigt nach Redirect einen Info-Hinweis (z.B. nach Registrierung)
- */
-
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
@@ -22,34 +12,40 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="space-y-6">
-      {/* Seitenüberschrift */}
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight mb-1.5">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-white tracking-tight">
           Willkommen zurück
         </h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm" style={{ color: "#94a3b8" }}>
           Melde dich an, um deine Ablageorte zu verwalten
         </p>
       </div>
 
-      {/* Kontextueller Hinweis (z.B. "Bitte melde dich an") */}
       <LoginPageHint />
 
-      {/* Formular */}
-      <LoginForm />
-
-      {/* Weiterführende Links */}
-      <div className="space-y-3 text-center">
-        <p className="text-sm text-neutral-500">
-          Noch kein Konto?{" "}
-          <Link
-            href={ROUTES.register}
-            className="text-brand-600 font-semibold hover:text-brand-700 transition-colors"
-          >
-            Kostenlos registrieren
-          </Link>
-        </p>
+      {/* Formular-Card */}
+      <div
+        className="rounded-2xl p-6"
+        style={{
+          backgroundColor: "#1a2535",
+          border: "1px solid #2d3f55",
+          boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
+        }}
+      >
+        <LoginForm />
       </div>
+
+      {/* Register Link */}
+      <p className="text-center text-sm" style={{ color: "#94a3b8" }}>
+        Noch kein Konto?{" "}
+        <Link
+          href={ROUTES.register}
+          className="text-brand-400 font-semibold hover:text-brand-300 transition-colors"
+        >
+          Kostenlos registrieren
+        </Link>
+      </p>
     </div>
   );
 }
