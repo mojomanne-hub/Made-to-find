@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ROUTES } from "@/lib/constants";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { LoginPageHint } from "@/components/auth/LoginPageHint";
@@ -12,7 +13,6 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-white tracking-tight">
           Willkommen zurück
@@ -22,9 +22,10 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <LoginPageHint />
+      <Suspense>
+        <LoginPageHint />
+      </Suspense>
 
-      {/* Formular-Card */}
       <div
         className="rounded-2xl p-6"
         style={{
@@ -33,10 +34,11 @@ export default function LoginPage() {
           boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
         }}
       >
-        <LoginForm />
+        <Suspense fallback={<div className="h-40" />}>
+          <LoginForm />
+        </Suspense>
       </div>
 
-      {/* Register Link */}
       <p className="text-center text-sm" style={{ color: "#94a3b8" }}>
         Noch kein Konto?{" "}
         <Link
