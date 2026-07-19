@@ -57,7 +57,6 @@ export function SharedAccessModal({
     }
     setError(null);
     setSuccess(null);
-    setEmailFailed(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialManageGroup, initialGroup]);
 
