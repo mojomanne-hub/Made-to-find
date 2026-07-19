@@ -339,20 +339,16 @@ export function SharedAccessModal({
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Direkt teilen</p>
                 <div className="flex gap-2">
-                  <a href={`https://wa.me/?text=${encodeURIComponent("Du wurdest eingeladen, der Gruppe „" + shareGroup.name + "“ beizutreten: " + inviteLink)}`}
+                  <a
+                    href={"https://wa.me/?text=" + encodeURIComponent("Du wurdest eingeladen, der Gruppe " + shareGroup.name + " beizutreten: " + inviteLink)}
                     target="_blank" rel="noopener noreferrer"
                     className="flex-1 h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/50 border border-emerald-800">
-                    <span>WhatsApp</span>
+                    WhatsApp
                   </a>
-                  <a href={`mailto:?subject=${encodeURIComponent("Einladung: " + shareGroup.name)}&body=${encodeURIComponent("Hallo,
-
-du wurdest eingeladen, der Gruppe „" + shareGroup.name + "“ beizutreten:
-
-" + inviteLink + "
-
-Bis bald!")}`}
+                  <a
+                    href={"mailto:?subject=" + encodeURIComponent("Einladung: " + shareGroup.name) + "&body=" + encodeURIComponent("Hallo, du wurdest eingeladen der Gruppe " + shareGroup.name + " beizutreten: " + inviteLink)}
                     className="flex-1 h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-brand-700/30 text-brand-400 hover:bg-brand-700/50 border border-brand-800">
-                    <span>E-Mail</span>
+                    E-Mail
                   </a>
                 </div>
               </div>
