@@ -67,8 +67,8 @@ export function SharedAccessModal({
     setShareGroup(initialGroup);
     setManageGroup(initialManageGroup ?? null);
     setEditName(initialManageGroup?.name ?? "");
-    setGroupName(""); setJoinLink(""); setInviteEmail("");
-    setError(null); setSuccess(null); setEmailFailed(false);
+    setGroupName(""); setJoinLink("");
+    setError(null); setSuccess(null);
     onClose();
   }
 
@@ -116,9 +116,10 @@ export function SharedAccessModal({
     } finally { setIsLoading(false); }
   }
 
-  async function handleInviteByEmail() {
+  // handleInviteByEmail removed
+  async function handleInviteByEmail_disabled() {
     if (!inviteEmail.trim() || !shareGroup) return;
-    setIsLoading(true); setError(null); setSuccess(null); setEmailFailed(false);
+    setIsLoading(true); setError(null); setSuccess(null);
     try {
       const supabase = createBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -137,7 +138,7 @@ export function SharedAccessModal({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Fehler");
       setSuccess(`Einladung wurde an ${inviteEmail} verschickt.`);
-      setInviteEmail("");
+     
     } catch {
       setEmailFailed(true);
     } finally { setIsLoading(false); }
@@ -204,7 +205,7 @@ export function SharedAccessModal({
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid #2d3f55" }}>
           {screen !== "menu" && (
-            <button onClick={() => { setScreen("menu"); setError(null); setSuccess(null); setEmailFailed(false); }}
+            <button onClick={() => { setScreen("menu"); setError(null); setSuccess(null); }}
               className="text-slate-400 hover:text-slate-200 transition-colors">
               <ChevronLeft className="h-5 w-5" />
             </button>
