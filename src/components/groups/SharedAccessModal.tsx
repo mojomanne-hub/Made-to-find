@@ -7,8 +7,8 @@ import {
   Share2, Copy, Check, Loader2, Edit2, Trash2,
 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/Alert";
+import { cn } from "@/lib/utils";
 import type { Group } from "@/lib/context/GroupContext";
 
 type Screen = "menu" | "create" | "join" | "share" | "manage";
@@ -35,7 +35,7 @@ export function SharedAccessModal({
   const [manageGroup, setManageGroup] = useState<Group | null>(initialManageGroup ?? null);
   const [groupName,   setGroupName]   = useState("");
   const [joinLink,    setJoinLink]    = useState("");
-    const [editName,    setEditName]    = useState(initialManageGroup?.name ?? "");
+  const [editName,    setEditName]    = useState(initialManageGroup?.name ?? "");
   const [isLoading,   setIsLoading]   = useState(false);
   const [isDeleting,  setIsDeleting]  = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -67,13 +67,15 @@ export function SharedAccessModal({
     setShareGroup(initialGroup);
     setManageGroup(initialManageGroup ?? null);
     setEditName(initialManageGroup?.name ?? "");
-    setGroupName(""); setJoinLink("");
-    setError(null); setSuccess(null);
+    setGroupName("");
+    setJoinLink("");
+    setError(null);
+    setSuccess(null);
     onClose();
   }
 
   function buildInviteLink(token: string) {
-    return `${window.location.origin}/join/${token}`;
+    return window.location.origin + "/join/" + token;
   }
 
   async function handleCopy(text: string) {
@@ -116,34 +118,6 @@ export function SharedAccessModal({
     } finally { setIsLoading(false); }
   }
 
-  // handleInviteByEmail removed
-  async function handleInviteByEmail_disabled() {
-    if (!inviteEmail.trim() || !shareGroup) return;
-    setIsLoading(true); setError(null); setSuccess(null);
-    try {
-      const supabase = createBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl
-        ?? "https://scewmbvnwyxnuiedtwhz.supabase.co";
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/invite-to-group`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token ?? ""}`,
-        },
-        body: JSON.stringify({ email: inviteEmail.trim().toLowerCase(), group_id: shareGroup.id }),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Fehler");
-      setSuccess(`Einladung wurde an ${inviteEmail} verschickt.`);
-     
-    } catch {
-      setEmailFailed(true);
-    } finally { setIsLoading(false); }
-  }
-
   async function handleRenameGroup() {
     if (!manageGroup || !editName.trim()) return;
     setEditLoading(true); setError(null);
@@ -180,7 +154,7 @@ export function SharedAccessModal({
 
   async function handleDeleteGroup() {
     if (!manageGroup) return;
-    if (!confirm(`Gruppe "${manageGroup.name}" wirklich löschen?`)) return;
+    if (!confirm("Gruppe \"" + manageGroup.name + "\" wirklich loeschen?")) return;
     setIsDeleting(true); setError(null);
     try {
       const supabase = createBrowserClient();
@@ -219,7 +193,7 @@ export function SharedAccessModal({
 
         <div className="p-5">
 
-          {/* ── Hauptmenü ── */}
+          {/* Hauptmenu */}
           {screen === "menu" && (
             <div className="space-y-3">
               <p className="text-sm text-slate-400 mb-4">Teile deine Gegenstände und Ablageorte mit deiner Gruppe.</p>
@@ -254,13 +228,12 @@ export function SharedAccessModal({
                       <Share2 className="h-4 w-4 text-slate-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-200">„{group.name}" teilen</p>
+                      <p className="text-sm font-semibold text-slate-200">"{group.name}" teilen</p>
                       <p className="text-xs text-slate-500">Link teilen oder einladen</p>
                     </div>
                   </button>
                   <button onClick={() => { setManageGroup(group); setEditName(group.name); setScreen("manage"); setError(null); setSuccess(null); }}
-                    className="px-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-slate-400 hover:text-slate-200"
-                    title="Gruppe bearbeiten">
+                    className="px-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-slate-400 hover:text-slate-200">
                     <Edit2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -268,7 +241,7 @@ export function SharedAccessModal({
             </div>
           )}
 
-          {/* ── Gruppe erstellen ── */}
+          {/* Gruppe erstellen */}
           {screen === "create" && (
             <div className="space-y-4">
               <div className="flex flex-col gap-1.5">
@@ -283,12 +256,12 @@ export function SharedAccessModal({
               {error && <p className="text-xs text-danger-400">{error}</p>}
               <button onClick={handleCreateGroup} disabled={isLoading || !groupName.trim()}
                 className="w-full h-10 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Erstelle…</> : "Gruppe erstellen & Mitglieder einladen"}
+                {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Erstelle...</> : "Gruppe erstellen & Mitglieder einladen"}
               </button>
             </div>
           )}
 
-          {/* ── Gruppe beitreten ── */}
+          {/* Gruppe beitreten */}
           {screen === "join" && (
             <div className="space-y-4">
               <div className="flex flex-col gap-1.5">
@@ -301,15 +274,14 @@ export function SharedAccessModal({
               {error && <p className="text-xs text-danger-400">{error}</p>}
               <button onClick={handleJoinGroup} disabled={isLoading || !joinLink.trim()}
                 className="w-full h-10 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Beitreten…</> : <><LogIn className="h-4 w-4" /> Beitreten</>}
+                {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Beitreten...</> : <><LogIn className="h-4 w-4" /> Beitreten</>}
               </button>
             </div>
           )}
 
-          {/* ── Gruppe teilen ── */}
+          {/* Gruppe teilen */}
           {screen === "share" && shareGroup && (
             <div className="space-y-5">
-              {/* Gruppenname */}
               <div className="px-3 py-2.5 rounded-xl border border-slate-700 flex items-center gap-2.5">
                 <div className="h-5 w-5 rounded-full flex-shrink-0" style={{ backgroundColor: "#3b82f6" }} />
                 <span className="text-sm font-medium text-slate-200">{shareGroup.name}</span>
@@ -325,8 +297,7 @@ export function SharedAccessModal({
                     className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-900 px-3 text-xs text-slate-400 focus:outline-none truncate" />
                   <button onClick={() => handleCopy(inviteLink)}
                     className={cn("h-10 w-10 rounded-xl flex items-center justify-center transition-colors flex-shrink-0",
-                      copied ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600")}
-                    title="Link kopieren">
+                      copied ? "bg-emerald-600 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600")}>
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </button>
                 </div>
@@ -339,15 +310,13 @@ export function SharedAccessModal({
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Direkt teilen</p>
                 <div className="flex gap-2">
-                  <a
-                    href={"https://wa.me/?text=" + encodeURIComponent("Du wurdest eingeladen, der Gruppe " + shareGroup.name + " beizutreten: " + inviteLink)}
+                  <a href={"https://wa.me/?text=" + encodeURIComponent("Du wurdest eingeladen, der Gruppe " + shareGroup.name + " beizutreten: " + inviteLink)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex-1 h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/50 border border-emerald-800">
+                    className="flex-1 h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 bg-emerald-700/30 text-emerald-400 hover:bg-emerald-700/50 border border-emerald-800 transition-colors">
                     WhatsApp
                   </a>
-                  <a
-                    href={"mailto:?subject=" + encodeURIComponent("Einladung: " + shareGroup.name) + "&body=" + encodeURIComponent("Hallo, du wurdest eingeladen der Gruppe " + shareGroup.name + " beizutreten: " + inviteLink)}
-                    className="flex-1 h-11 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-brand-700/30 text-brand-400 hover:bg-brand-700/50 border border-brand-800">
+                  <a href={"mailto:?subject=" + encodeURIComponent("Einladung: " + shareGroup.name) + "&body=" + encodeURIComponent("Hallo, du wurdest eingeladen der Gruppe " + shareGroup.name + " beizutreten: " + inviteLink)}
+                    className="flex-1 h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 bg-brand-700/30 text-brand-400 hover:bg-brand-700/50 border border-brand-800 transition-colors">
                     E-Mail
                   </a>
                 </div>
@@ -355,7 +324,7 @@ export function SharedAccessModal({
             </div>
           )}
 
-          {/* ── Gruppe verwalten ── */}
+          {/* Gruppe verwalten */}
           {screen === "manage" && manageGroup && (
             <div className="space-y-4">
               {error   && <Alert variant="error">{error}</Alert>}
@@ -366,7 +335,7 @@ export function SharedAccessModal({
                 <div className="flex gap-2">
                   <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleRenameGroup()} maxLength={100}
-                    className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+                    className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500" />
                   <button onClick={handleRenameGroup} disabled={editLoading || !editName.trim()}
                     className="px-4 h-10 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium transition-colors">
                     {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
