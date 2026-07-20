@@ -76,9 +76,9 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
         {/* Logo */}
         <div className="px-4 py-5" style={{ borderBottom: "1px solid #1e2d4a" }}>
           <Link href={ROUTES.dashboard} className="flex items-center gap-3 group">
-            <div className="h-9 w-9 rounded-xl bg-brand-600 flex items-center justify-center shadow-md">
-              <Search className="h-[18px] w-[18px] text-white" />
-            </div>
+            <div className="h-9 w-9 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+  <img src="/icons/icon-192x192.png" alt="MaDe to find" className="h-full w-full object-cover" />
+</div>
             <div>
               <span className="block text-sm font-bold text-white tracking-tight">MaDe to find</span>
               <span className="block text-[10px] tracking-widest uppercase" style={{ color: "#64748b" }}>
