@@ -29,7 +29,7 @@ export default function PrivacyPage() {
               <p style={{ color: "#94a3b8" }}>
                 Diese App wird privat betrieben. Bei Fragen zum Datenschutz:<br /><br />
                 <strong style={{ color: "#e2e8f0" }}>MaDe to find</strong><br />
-                E-Mail: <a href="mailto:mojomanne@web.de" style={{ color: "#60a5fa" }}>mojomanne@web.de</a>
+                E-Mail: <a href="mailto:madetofind@web.de" style={{ color: "#60a5fa" }}>madetofind@web.de</a>
               </p>
             )
           },
@@ -101,7 +101,7 @@ export default function PrivacyPage() {
             content: (
               <p style={{ color: "#94a3b8" }}>
                 Bei Fragen zum Datenschutz:{" "}
-                <a href="mailto:mojomanne@web.de" style={{ color: "#60a5fa" }}>mojomanne@web.de</a>
+                <a href="mailto:madetofind@web.de" style={{ color: "#60a5fa" }}>madetofind@web.de</a>
               </p>
             )
           },

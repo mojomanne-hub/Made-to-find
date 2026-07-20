@@ -193,6 +193,20 @@ export function SettingsForm({ userEmail, displayName: initialDisplayName }: Set
         </CardContent>
       </Card>
 
+{/* ── Datenschutz ── */}
+<Card>
+  <CardHeader><h2 className="text-sm font-semibold text-slate-100">Rechtliches</h2></CardHeader>
+  <CardContent>
+    
+      href="/privacy"
+      target="_blank"
+      className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+    >
+      Datenschutzerklärung →
+    </a>
+  </CardContent>
+</Card>
+
       {/* ── Abmelden ── */}
       <Card>
         <CardHeader><h2 className="text-sm font-semibold text-slate-100">Sitzung</h2></CardHeader>
