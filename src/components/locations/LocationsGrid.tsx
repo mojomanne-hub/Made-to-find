@@ -1,17 +1,14 @@
 "use client";
 
-/**
- * LocationsGrid – Kachel-Ansicht für Ablageorte.
- * Gleiche Struktur wie ItemsGrid – Suchleiste + große Farbkacheln.
- */
-
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
+import { createBrowserClient } from "@/lib/supabase/client";
 
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
   const Icon = name
@@ -41,8 +38,11 @@ const DEFAULT_COLORS = [
   "#ef4444", "#ec4899", "#6b7280",
 ];
 
-export function LocationsGrid({ locations }: LocationsGridProps) {
-  const [search, setSearch] = useState("");
+export function LocationsGrid({ locations: initialLocations }: LocationsGridProps) {
+  const [search,    setSearch]    = useState("");
+  const [locations, setLocations] = useState(initialLocations);
+  const [deleting,  setDeleting]  = useState<string | null>(null);
+  const router = useRouter();
 
   const filtered = useMemo(() =>
     locations.filter((loc) =>
@@ -52,6 +52,27 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
     ),
     [locations, search]
   );
+
+  async function handleDelete(e: React.MouseEvent, loc: LocationWithCount) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`"${loc.name}" wirklich löschen?`)) return;
+    setDeleting(loc.id);
+    try {
+      const supabase = createBrowserClient();
+      await supabase.from("locations").update({ deleted_at: new Date().toISOString() }).eq("id", loc.id);
+      setLocations((prev) => prev.filter((l) => l.id !== loc.id));
+      router.refresh();
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  function handleEdit(e: React.MouseEvent, locId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(ROUTES.locationEdit(locId));
+  }
 
   return (
     <div className="space-y-4">
@@ -75,11 +96,7 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
           <EmptyState
             icon={<LucideIcons.MapPin />}
             title={search ? "Keine Ergebnisse" : "Noch keine Ablageorte"}
-            description={
-              search
-                ? "Versuche einen anderen Suchbegriff."
-                : "Erstelle deinen ersten Ablageort."
-            }
+            description={search ? "Versuche einen anderen Suchbegriff." : "Erstelle deinen ersten Ablageort."}
             action={
               !search ? (
                 <Link href={ROUTES.locationNew}>
@@ -100,18 +117,11 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
             return (
               <Link key={loc.id} href={ROUTES.locationDetail(loc.id)}>
                 <div className="rounded-2xl overflow-hidden border border-slate-700 hover:border-slate-500 hover:scale-[1.02] transition-all duration-150 cursor-pointer">
-                  {/* Farb-Banner mit Icon */}
-                  <div
-                    className="h-28 flex items-center justify-center relative"
-                    style={{ backgroundColor: color }}
-                  >
+                  {/* Farb-Banner */}
+                  <div className="h-28 flex items-center justify-center relative" style={{ backgroundColor: color }}>
                     {loc.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={loc.image_url}
-                        alt={loc.name}
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={loc.image_url} alt={loc.name} className="h-full w-full object-cover" />
                     ) : (
                       <DynIcon name={loc.icon} className="h-12 w-12 text-white/80" />
                     )}
@@ -122,12 +132,35 @@ export function LocationsGrid({ locations }: LocationsGridProps) {
                     </div>
                   </div>
 
-                  {/* Info */}
-                  <div className="p-3" style={{ backgroundColor: "#1e2a3a" }}>
-                    <p className="text-sm font-semibold text-slate-100 truncate">{loc.name}</p>
-                    {loc.description && (
-                      <p className="text-xs text-slate-500 truncate mt-0.5">{loc.description}</p>
-                    )}
+                  {/* Info + Buttons */}
+                  <div className="p-3 flex items-center justify-between gap-2" style={{ backgroundColor: "#1e2a3a" }}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-100 truncate">{loc.name}</p>
+                      {loc.description && (
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{loc.description}</p>
+                      )}
+                    </div>
+                    {/* Bearbeiten + Löschen */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={(e) => handleEdit(e, loc.id)}
+                        className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+                        title="Bearbeiten"
+                      >
+                        <LucideIcons.Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, loc)}
+                        disabled={deleting === loc.id}
+                        className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-danger-400 hover:bg-danger-900/30 transition-colors"
+                        title="Löschen"
+                      >
+                        {deleting === loc.id
+                          ? <LucideIcons.Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <LucideIcons.Trash2 className="h-3.5 w-3.5" />
+                        }
+                      </button>
+                    </div>
                   </div>
                 </div>
               </Link>
