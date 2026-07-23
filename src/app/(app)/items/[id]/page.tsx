@@ -65,7 +65,7 @@ export default async function ItemDetailPage({ params }: Props) {
       {/* Hero Banner – 16:9 */}
       <div
         className="rounded-2xl overflow-hidden mb-5 w-full"
-        style={{ aspectRatio: "16/9", backgroundColor: color }}
+        style={{ backgroundColor: color, maxHeight: "280px", aspectRatio: "16/9" }}
       >
         {item.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
