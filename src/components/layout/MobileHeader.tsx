@@ -14,6 +14,7 @@ import { useGroup, type Group } from "@/lib/context/GroupContext";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const GROUP_COLORS = [
   "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
@@ -171,7 +172,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
               height={36}
               className="h-full w-full object-cover"
             />
-          </div>
+          </Link>
         </div>
 
         {/* Glocke – ganz rechts */}
