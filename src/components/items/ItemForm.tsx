@@ -28,7 +28,7 @@ interface LocationOption {
 }
 
 interface ItemFormProps {
-  item?:                  Item & { icon?: string | null; image_url?: string | null; color?: string | null };
+  item?:                  Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null };
   locations:              LocationOption[];
   preselectedLocationId?: string;
   userId:                 string;
@@ -47,6 +47,8 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   );
   const [icon,        setIcon]        = useState(item?.icon  ?? ITEM_ICONS[0].name);
   const [color,       setColor]       = useState(item?.color ?? LOCATION_COLORS[0].value);
+  const [hasExpiry,   setHasExpiry]   = useState(!!item?.expires_at);
+  const [expiresAt,   setExpiresAt]   = useState(item?.expires_at ?? "");
   const [isLoading,   setIsLoading]   = useState(false);
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
@@ -81,6 +83,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
         icon:        icon,
         image_url:   null,
         color:       color,
+        expires_at:  hasExpiry && expiresAt ? expiresAt : null,
       };
 
       if (isEditing) {
@@ -146,26 +149,17 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-slate-300">Menge</label>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setQuantity(Math.max(0, quantity - 1))}
-              className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition-colors"
-            >
+            <button type="button" onClick={() => setQuantity(Math.max(0, quantity - 1))}
+              className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition-colors">
               <Minus className="h-4 w-4 text-slate-400" />
             </button>
             <input
-              type="number"
-              value={quantity}
-              min={0}
-              max={9999}
+              type="number" value={quantity} min={0} max={9999}
               onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
               className="w-20 h-10 rounded-xl border border-slate-600 bg-slate-800 text-center text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
-            <button
-              type="button"
-              onClick={() => setQuantity(quantity + 1)}
-              className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition-colors"
-            >
+            <button type="button" onClick={() => setQuantity(quantity + 1)}
+              className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition-colors">
               <Plus className="h-4 w-4 text-slate-400" />
             </button>
           </div>
@@ -180,9 +174,55 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
           maxLength={1000}
         />
 
+        {/* Ablaufdatum */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setHasExpiry((v) => !v)}
+              className={cn(
+                "relative h-6 w-11 rounded-full transition-colors flex-shrink-0",
+                hasExpiry ? "bg-brand-600" : "bg-slate-700"
+              )}
+            >
+              <span className={cn(
+                "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                hasExpiry ? "translate-x-5" : "translate-x-0.5"
+              )} />
+            </button>
+            <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+              <LucideIcons.Calendar className="h-4 w-4 text-slate-400" />
+              Ablaufdatum
+            </span>
+          </div>
+
+          {hasExpiry ? (
+            <div className="flex flex-col gap-1.5">
+              <input
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                style={{ colorScheme: "dark" }}
+              />
+              <p className="text-xs text-slate-500">
+                Du erhältst eine Benachrichtigung wenn das Datum abläuft.
+              </p>
+              {expiresAt && new Date(expiresAt) < new Date() && (
+                <p className="text-xs text-amber-400 flex items-center gap-1">
+                  <LucideIcons.AlertTriangle className="h-3.5 w-3.5" />
+                  Dieses Datum liegt in der Vergangenheit.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-600">Toggle aktivieren um ein Ablaufdatum festzulegen.</p>
+          )}
+        </div>
+
         {/* Icon-Auswahl */}
         <div className="flex flex-col gap-2">
-          {/* Tab-Style wie bei Ablageorten */}
           <div className="flex rounded-xl overflow-hidden border border-slate-600">
             <div className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center bg-brand-600 text-white">
               Icon auswählen
@@ -198,22 +238,12 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
           </div>
           <div className="grid grid-cols-8 gap-1.5">
             {ITEM_ICONS.map((ic) => (
-              <button
-                key={ic.name}
-                type="button"
-                onClick={() => setIcon(ic.name)}
-                title={ic.label}
+              <button key={ic.name} type="button" onClick={() => setIcon(ic.name)} title={ic.label}
                 className={cn(
                   "h-10 w-full rounded-xl flex items-center justify-center transition-all",
-                  icon === ic.name
-                    ? "bg-brand-600 border-2 border-brand-400"
-                    : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
-                )}
-              >
-                <DynIcon
-                  name={ic.name}
-                  className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")}
-                />
+                  icon === ic.name ? "bg-brand-600 border-2 border-brand-400" : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
+                )}>
+                <DynIcon name={ic.name} className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")} />
               </button>
             ))}
           </div>
@@ -224,17 +254,10 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
           <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
           <div className="flex flex-wrap gap-2">
             {LOCATION_COLORS.map((col) => (
-              <button
-                key={col.value}
-                type="button"
-                onClick={() => setColor(col.value)}
-                title={col.label}
-                className={cn(
-                  "h-9 w-9 rounded-xl transition-all duration-150",
-                  color === col.value ? "ring-2 ring-offset-2 ring-white scale-110" : "hover:scale-105"
-                )}
-                style={{ backgroundColor: col.value }}
-              />
+              <button key={col.value} type="button" onClick={() => setColor(col.value)} title={col.label}
+                className={cn("h-9 w-9 rounded-xl transition-all duration-150",
+                  color === col.value ? "ring-2 ring-offset-2 ring-white scale-110" : "hover:scale-105")}
+                style={{ backgroundColor: col.value }} />
             ))}
           </div>
         </div>
