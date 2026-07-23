@@ -162,18 +162,16 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
           )}
         </div>
 
-        {/* Spacer + Logo zentriert */}
-        <div className="flex-1 flex justify-center">
-          <div className="h-9 w-9 rounded-xl overflow-hidden">
-            <Image
-              src="/icons/icon-192x192.png"
-              alt="MaDe to find"
-              width={36}
-              height={36}
-              className="h-full w-full object-cover"
-            />
-          </Link>
-        </div>
+        {/* Logo */}
+<Link href="/dashboard" className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
+  <Image
+    src="/icons/icon-192x192.png"
+    alt="MaDe to find"
+    width={36}
+    height={36}
+    className="h-full w-full object-cover"
+  />
+</Link>
 
         {/* Glocke – ganz rechts */}
         <button
