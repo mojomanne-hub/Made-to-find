@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
@@ -30,20 +31,14 @@ interface Item {
   locations:   { id: string; name: string; color: string | null } | null;
 }
 
-interface LocationOption {
-  id:   string;
-  name: string;
-}
+interface LocationOption { id: string; name: string; }
 
 interface ItemsGridProps {
   items:     Item[];
   locations: LocationOption[];
 }
 
-const DEFAULT_COLORS = [
-  "#f59e0b", "#8b5cf6", "#3b82f6", "#10b981",
-  "#ef4444", "#ec4899", "#6b7280",
-];
+const DEFAULT_COLORS = ["#f59e0b","#8b5cf6","#3b82f6","#10b981","#ef4444","#ec4899","#6b7280"];
 
 function getItemColor(item: Item, index: number): string {
   if (item.color) return item.color;
@@ -56,6 +51,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
   const [filterLoc, setFilterLoc] = useState("");
   const [items,     setItems]     = useState(initialItems);
   const [deleting,  setDeleting]  = useState<string | null>(null);
+  const [view,      setView]      = useState<"grid" | "list">("grid");
   const router = useRouter();
 
   const filtered = useMemo(() =>
@@ -79,9 +75,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
       await supabase.from("items").update({ deleted_at: new Date().toISOString() }).eq("id", item.id);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
       router.refresh();
-    } finally {
-      setDeleting(null);
-    }
+    } finally { setDeleting(null); }
   }
 
   function handleEdit(e: React.MouseEvent, itemId: string) {
@@ -92,8 +86,8 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
 
   return (
     <div className="space-y-4">
-      {/* Suchleiste + Filter */}
-      <div className="flex gap-3">
+      {/* Suche + Filter + Toggle */}
+      <div className="flex gap-2">
         <div className="relative flex-1">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
             <LucideIcons.Search className="h-4 w-4" />
@@ -113,45 +107,53 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
           <select
             value={filterLoc}
             onChange={(e) => setFilterLoc(e.target.value)}
-            className="h-10 pl-9 pr-8 rounded-xl text-sm bg-[#1a2535] border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none min-w-[160px]"
+            className="h-10 pl-9 pr-8 rounded-xl text-sm bg-[#1a2535] border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none min-w-[140px]"
           >
             <option value="">Alle Ablageorte</option>
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>{loc.name}</option>
-            ))}
+            {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
             <LucideIcons.ChevronDown className="h-4 w-4" />
           </div>
         </div>
+        {/* Toggle */}
+        <div className="flex rounded-xl overflow-hidden border border-slate-700">
+          <button
+            onClick={() => setView("grid")}
+            className={cn("h-10 w-10 flex items-center justify-center transition-colors",
+              view === "grid" ? "bg-brand-600 text-white" : "bg-[#1a2535] text-slate-400 hover:text-slate-200")}
+            title="Kachelansicht"
+          >
+            <LucideIcons.LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={cn("h-10 w-10 flex items-center justify-center transition-colors",
+              view === "list" ? "bg-brand-600 text-white" : "bg-[#1a2535] text-slate-400 hover:text-slate-200")}
+            title="Listenansicht"
+          >
+            <LucideIcons.List className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Kacheln */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
           <EmptyState
             icon={<LucideIcons.Package />}
             title={search || filterLoc ? "Keine Ergebnisse" : "Noch keine Gegenstände"}
             description={search || filterLoc ? "Versuche andere Suchbegriffe oder Filter." : "Füge deinen ersten Gegenstand hinzu."}
-            action={
-              !search && !filterLoc ? (
-                <Link href={ROUTES.itemNew}>
-                  <Button size="sm">
-                    <LucideIcons.Plus className="h-4 w-4" /> Ersten Gegenstand erstellen
-                  </Button>
-                </Link>
-              ) : undefined
-            }
+            action={!search && !filterLoc ? <Link href={ROUTES.itemNew}><Button size="sm"><LucideIcons.Plus className="h-4 w-4" /> Ersten Gegenstand erstellen</Button></Link> : undefined}
           />
         </div>
-      ) : (
+      ) : view === "grid" ? (
+        /* ── Kachelansicht ── */
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((item, index) => {
             const color = getItemColor(item, index);
             return (
               <Link key={item.id} href={ROUTES.itemDetail(item.id)}>
                 <div className="rounded-2xl overflow-hidden border border-slate-700 hover:border-slate-500 hover:scale-[1.02] transition-all duration-150 cursor-pointer">
-                  {/* Farb-Banner */}
                   <div className="h-32 flex items-center justify-center relative" style={{ backgroundColor: color }}>
                     {item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -165,8 +167,6 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
                       </div>
                     )}
                   </div>
-
-                  {/* Info + Buttons */}
                   <div className="p-3 flex items-center justify-between gap-2" style={{ backgroundColor: "#1e2a3a" }}>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-100 truncate">{item.name}</p>
@@ -177,27 +177,59 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
                         </div>
                       )}
                     </div>
-                    {/* Bearbeiten + Löschen */}
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={(e) => handleEdit(e, item.id)}
-                        className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors"
-                        title="Bearbeiten"
-                      >
+                      <button onClick={(e) => handleEdit(e, item.id)} className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors" title="Bearbeiten">
                         <LucideIcons.Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button
-                        onClick={(e) => handleDelete(e, item)}
-                        disabled={deleting === item.id}
-                        className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-danger-400 hover:bg-danger-900/30 transition-colors"
-                        title="Löschen"
-                      >
-                        {deleting === item.id
-                          ? <LucideIcons.Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <LucideIcons.Trash2 className="h-3.5 w-3.5" />
-                        }
+                      <button onClick={(e) => handleDelete(e, item)} disabled={deleting === item.id} className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-danger-400 hover:bg-danger-900/30 transition-colors" title="Löschen">
+                        {deleting === item.id ? <LucideIcons.Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LucideIcons.Trash2 className="h-3.5 w-3.5" />}
                       </button>
                     </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Listenansicht ── */
+        <div className="flex flex-col gap-1.5">
+          {filtered.map((item, index) => {
+            const color = getItemColor(item, index);
+            return (
+              <Link key={item.id} href={ROUTES.itemDetail(item.id)}>
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/20 transition-all cursor-pointer" style={{ backgroundColor: "#1a2535" }}>
+                  {/* Farb-Icon */}
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color }}>
+                    {item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.image_url} alt={item.name} className="h-full w-full object-cover rounded-xl" />
+                    ) : (
+                      <DynIcon name={item.icon} className="h-5 w-5 text-white/90" />
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-100 truncate">{item.name}</p>
+                    {item.locations && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <LucideIcons.MapPin className="h-3 w-3 flex-shrink-0" style={{ color: item.locations.color ?? "#6b7280" }} />
+                        <span className="text-xs text-slate-500 truncate">{item.locations.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Menge */}
+                  {item.quantity > 0 && (
+                    <span className="text-xs text-slate-500 flex-shrink-0">{item.quantity}×</span>
+                  )}
+                  {/* Buttons */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={(e) => handleEdit(e, item.id)} className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors" title="Bearbeiten">
+                      <LucideIcons.Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={(e) => handleDelete(e, item)} disabled={deleting === item.id} className="h-7 w-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-danger-400 hover:bg-danger-900/30 transition-colors" title="Löschen">
+                      {deleting === item.id ? <LucideIcons.Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LucideIcons.Trash2 className="h-3.5 w-3.5" />}
+                    </button>
                   </div>
                 </div>
               </Link>
