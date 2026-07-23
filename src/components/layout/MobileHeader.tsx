@@ -1,20 +1,14 @@
 "use client";
 
-/**
- * MobileHeader – Obere Leiste auf Mobile.
- * Links: Hamburger-Icon (öffnet Drawer)
- * Mitte: Gruppen-Dropdown
- * Rechts: Glocke + Logo
- */
-
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Menu, ChevronDown, Check, Bell, X } from "lucide-react";
 import { useGroup, type Group } from "@/lib/context/GroupContext";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { ROUTES } from "@/lib/constants";
 
 const GROUP_COLORS = [
   "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
@@ -44,7 +38,6 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
 
   const contextLabel = activeGroup ? activeGroup.name : "Meine Daten";
 
-  // Ungelesene laden
   useEffect(() => {
     async function load() {
       const supabase = createBrowserClient();
@@ -162,16 +155,18 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
           )}
         </div>
 
-        {/* Logo */}
-<Link href="/dashboard" className="h-9 w-9 rounded-xl overflow-hidden ml-auto flex-shrink-0">
-  <Image
-    src="/icons/icon-192x192.png"
-    alt="MaDe to find"
-    width={36}
-    height={36}
-    className="h-full w-full object-cover"
-  />
-</Link>
+        {/* Logo – mittig via flex-1 */}
+        <div className="flex-1 flex justify-center">
+          <Link href={ROUTES.dashboard} className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="MaDe to find"
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
+          </Link>
+        </div>
 
         {/* Glocke – ganz rechts */}
         <button
