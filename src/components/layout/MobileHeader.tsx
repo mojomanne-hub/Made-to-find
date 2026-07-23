@@ -163,7 +163,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
         </div>
 
         {/* Logo */}
-<Link href="/dashboard" className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
+<Link href="/dashboard" className="h-9 w-9 rounded-xl overflow-hidden ml-auto flex-shrink-0">
   <Image
     src="/icons/icon-192x192.png"
     alt="MaDe to find"
