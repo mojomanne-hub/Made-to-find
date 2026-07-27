@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, MapPin, Package,
   Search, Settings, LogOut, Users,
-  ChevronDown, Check, Share2, Edit2,
+  ChevronDown, Check, Share2, Edit2,Crown, Sparkles, HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -203,67 +203,72 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-2 py-3 space-y-0.5" style={{ borderTop: "1px solid #1e2d4a" }}>
-          <Link
-            href={ROUTES.settings}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-              pathname === ROUTES.settings
-                ? "text-white bg-[#1e3a6e]"
-                : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
-            )}
-          >
-            <Settings className="h-4 w-4 flex-shrink-0" />
-            Einstellungen
-          </Link>
+       {/* Footer */}
+<div className="px-2 py-3 space-y-1" style={{ borderTop: "1px solid #1e2d4a" }}>
 
-{/* Benachrichtigungen */}
-<NotificationBell />
+  {/* Benachrichtigungen */}
+  <NotificationBell />
 
-          {/* Geteilter Zugriff Button */}
-          <button
-            onClick={() => { setSharingModal(true); setShareTarget(null); }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
-          >
-            <Users className="h-4 w-4 flex-shrink-0" />
-            Geteilter Zugriff
-          </button>
+  {/* Geteilter Zugriff */}
+  <button
+    onClick={() => { setSharingModal(true); setShareTarget(null); }}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+  >
+    <Users className="h-4 w-4 flex-shrink-0" />
+    Geteilter Zugriff
+  </button>
 
-          {/* Benutzer-Info */}
-          <div className="px-3 py-2">
-            <p className="text-xs font-semibold text-white truncate">{displayName}</p>
-            <p className="text-[11px] truncate" style={{ color: "#64748b" }}>{user.email}</p>
-          </div>
+  {/* Premium Button */}
+  <button
+    onClick={() => {}}
+    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
+    style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
+  >
+    <Crown className="h-4 w-4 flex-shrink-0" />
+    Premium Mitglied
+    <Sparkles className="h-3.5 w-3.5 ml-auto" />
+  </button>
 
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-            style={{ color: "#64748b" }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.1)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.backgroundColor = ""; }}
-          >
-            <LogOut className="h-4 w-4 flex-shrink-0" />
-            Abmelden
-          </button>
-        </div>
-      </aside>
+  {/* Support */}
+  <button
+    onClick={() => window.open("mailto:madetofind@web.de?subject=Support", "_blank")}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+  >
+    <HelpCircle className="h-4 w-4 flex-shrink-0" />
+    Support kontaktieren
+  </button>
 
-      {/* Geteilter Zugriff Modal */}
-      <SharedAccessModal
-        isOpen={sharingModal}
-        onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); }}
-        initialGroup={shareTarget}
-        initialManageGroup={manageTarget}
-        groups={groups}
-        onGroupsChange={setGroups}
-        userId={user.id}
-      />
-    </>
-  );
-}
+  <div className="h-px mx-3" style={{ backgroundColor: "#1e2d4a" }} />
 
-// Wrapper der den Context nutzt
-export function Sidebar({ user, groups, displayName }: SidebarProps) {
-  return <SidebarInner user={user} groups={groups} displayName={displayName} />;
-}
+  {/* Benutzer-Info */}
+  <div className="px-3 py-2">
+    <p className="text-xs font-semibold text-white truncate">{displayName}</p>
+    <p className="text-[11px] truncate" style={{ color: "#64748b" }}>{user.email}</p>
+  </div>
+
+  {/* Einstellungen */}
+  <Link
+    href={ROUTES.settings}
+    className={cn(
+      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+      pathname === ROUTES.settings
+        ? "text-white bg-[#1e3a6e]"
+        : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+    )}
+  >
+    <Settings className="h-4 w-4 flex-shrink-0" />
+    Einstellungen
+  </Link>
+
+  {/* Abmelden */}
+  <button
+    onClick={handleLogout}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+    style={{ color: "#64748b" }}
+    onMouseEnter={(e) => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.1)"; }}
+    onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.backgroundColor = ""; }}
+  >
+    <LogOut className="h-4 w-4 flex-shrink-0" />
+    Abmelden
+  </button>
+</div>
