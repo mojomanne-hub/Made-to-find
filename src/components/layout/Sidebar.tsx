@@ -225,7 +225,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
     style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
   >
     <Crown className="h-4 w-4 flex-shrink-0" />
-    Premium Mitglied
+    Premium Mitglied *bald*
     <Sparkles className="h-3.5 w-3.5 ml-auto" />
   </button>
 

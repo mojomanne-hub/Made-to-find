@@ -1,13 +1,7 @@
 "use client";
 
-/**
- * NotificationBell – Glocke in der Sidebar mit Echtzeit-Benachrichtigungen.
- * Zeigt ungelesene Benachrichtigungen mit rotem Badge.
- * Aktualisiert sich automatisch via Supabase Realtime.
- */
-
 import { useState, useEffect, useRef } from "react";
-import { Bell, X, Package, MapPin, Users, Check } from "lucide-react";
+import { Bell, X, Package, MapPin, Users, Check, Clock } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +16,7 @@ interface Notification {
 }
 
 function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff  = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);
@@ -36,6 +30,7 @@ function NotifIcon({ type }: { type: string }) {
   if (type === "item_added")     return <Package  className="h-4 w-4 text-emerald-400" />;
   if (type === "location_added") return <MapPin   className="h-4 w-4 text-brand-400" />;
   if (type === "member_joined")  return <Users    className="h-4 w-4 text-amber-400" />;
+  if (type === "item_expiring")  return <Clock    className="h-4 w-4 text-red-400" />;
   return <Bell className="h-4 w-4 text-slate-400" />;
 }
 
@@ -43,19 +38,30 @@ function notifBg(type: string): string {
   if (type === "item_added")     return "bg-emerald-900/30";
   if (type === "location_added") return "bg-brand-900/30";
   if (type === "member_joined")  return "bg-amber-900/30";
+  if (type === "item_expiring")  return "bg-red-900/30";
   return "bg-slate-700";
 }
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount,   setUnreadCount]   = useState(0);
   const [isOpen,        setIsOpen]        = useState(false);
-  const [isLoading,     setIsLoading]     = useState(true);
+  const [isLoading,     setIsLoading]     = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  // Nur ungelesene Anzahl laden beim Start
+  async function loadUnreadCount() {
+    const supabase = createBrowserClient();
+    const { count } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("is_read", false);
+    setUnreadCount(count ?? 0);
+  }
 
-  // Benachrichtigungen laden
+  // Alle Benachrichtigungen laden wenn Dropdown öffnet
   async function loadNotifications() {
+    setIsLoading(true);
     const supabase = createBrowserClient();
     const { data } = await supabase
       .from("notifications")
@@ -66,7 +72,7 @@ export function NotificationBell() {
     setIsLoading(false);
   }
 
-  // Alle als gelesen markieren
+  // Als gelesen markieren (nach kurzem Delay damit User sie sieht)
   async function markAllRead() {
     const unread = notifications.filter((n) => !n.is_read);
     if (!unread.length) return;
@@ -76,42 +82,40 @@ export function NotificationBell() {
       .update({ is_read: true })
       .in("id", unread.map((n) => n.id));
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
   }
 
-  // Eine als gelesen markieren
-  async function markRead(id: string) {
-    const supabase = createBrowserClient();
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    setNotifications((prev) =>
-      prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
-    );
-  }
-
-  // Beim Öffnen laden + als gelesen markieren
-  function handleOpen() {
-    setIsOpen((v) => !v);
-    if (!isOpen) {
-      loadNotifications();
-      setTimeout(markAllRead, 1500); // kurz warten damit User sie sieht
+  // Beim Öffnen: laden + nach 2 Sek als gelesen markieren
+  async function handleOpen() {
+    const newOpen = !isOpen;
+    setIsOpen(newOpen);
+    if (newOpen) {
+      await loadNotifications();
+      setTimeout(markAllRead, 2000);
     }
   }
 
-  // Initial laden
+  // Initial: nur Anzahl laden
   useEffect(() => {
-    loadNotifications();
+    loadUnreadCount();
   }, []);
 
-  // Realtime-Subscription
+  // Realtime — nur Badge aktualisieren
   useEffect(() => {
     const supabase = createBrowserClient();
     const channel  = supabase
-      .channel("notifications")
+      .channel("notifications-bell")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications" },
         (payload) => {
           const newNotif = payload.new as Notification;
-          setNotifications((prev) => [newNotif, ...prev]);
+          setUnreadCount((v) => v + 1);
+          // Wenn Dropdown offen ist, direkt hinzufügen
+          setNotifications((prev) => {
+            if (prev.length > 0) return [newNotif, ...prev];
+            return prev;
+          });
         }
       )
       .subscribe();
@@ -207,33 +211,21 @@ export function NotificationBell() {
                       !notif.is_read && "bg-brand-900/10"
                     )}
                   >
-                    <button
-                      onClick={() => markRead(notif.id)}
-                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-700/30 text-left transition-colors"
-                    >
-                      {/* Icon */}
+                    <div className="w-full flex items-start gap-3 px-4 py-3 text-left">
                       <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", notifBg(notif.type))}>
                         <NotifIcon type={notif.type} />
                       </div>
-
-                      {/* Text */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold text-slate-200 truncate">
-                            {notif.title}
-                          </p>
+                          <p className="text-xs font-semibold text-slate-200 truncate">{notif.title}</p>
                           {!notif.is_read && (
                             <span className="h-1.5 w-1.5 rounded-full bg-brand-400 flex-shrink-0" />
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                          {notif.message}
-                        </p>
-                        <p className="text-[10px] text-slate-600 mt-1">
-                          {timeAgo(notif.created_at)}
-                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{notif.message}</p>
+                        <p className="text-[10px] text-slate-600 mt-1">{timeAgo(notif.created_at)}</p>
                       </div>
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>
