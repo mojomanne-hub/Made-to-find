@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+/**
+ * JoinGroupClient – Bestätigungs-Dialog für Gruppeneinladungen.
+ * Zeigt Gruppenname und zwei Buttons: Beitreten / Ablehnen
+ */
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Loader2, CheckCircle2 } from "lucide-react";
-import { createBrowserClient }   from "@/lib/supabase/client";
-import { savePendingInviteToken, joinPendingGroup } from "@/lib/utils/invite-token";
+import { Users, Check, X, Loader2 } from "lucide-react";
+import { createBrowserClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
+import Image from "next/image";
 
 interface JoinGroupClientProps {
   token:      string;
@@ -14,99 +19,107 @@ interface JoinGroupClientProps {
 }
 
 export function JoinGroupClient({ token, groupName, isLoggedIn }: JoinGroupClientProps) {
-  const router  = useRouter();
-  const [status, setStatus] = useState<"idle" | "joining" | "success" | "error">("idle");
-  const [error,  setError]  = useState("");
+  const router    = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+  const [joined,    setJoined]    = useState(false);
 
-  useEffect(() => {
-    if (!isLoggedIn) {
-      // Token für nach dem Login/Register speichern
-      savePendingInviteToken(token);
-      return;
+  async function handleJoin() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const supabase = createBrowserClient();
+      const { data: groupId, error: jErr } = await supabase.rpc("join_group_by_token", { token });
+      if (jErr) throw jErr;
+      // Gruppe als aktiv setzen
+      document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+      setJoined(true);
+      setTimeout(() => {
+        router.push(ROUTES.dashboard);
+        router.refresh();
+      }, 1500);
+    } catch {
+      setError("Der Einladungslink ist ungültig oder abgelaufen.");
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    // Eingeloggt → direkt beitreten
-    async function autoJoin() {
-      setStatus("joining");
-      try {
-        const supabase = createBrowserClient();
-        const groupId  = await joinPendingGroup(supabase);
-        if (!groupId) throw new Error("Beitritt fehlgeschlagen.");
-
-        // Gruppe als aktiv setzen
-        document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-        setStatus("success");
-        setTimeout(() => router.push(ROUTES.dashboard), 1500);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Fehler beim Beitreten.");
-        setStatus("error");
-      }
-    }
-
-    autoJoin();
-  }, [isLoggedIn, token, router]);
+  function handleDecline() {
+    router.push(ROUTES.dashboard);
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#111827" }}>
-      <div
-        className="w-full max-w-sm rounded-2xl p-8 text-center"
-        style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55" }}
-      >
-        {/* Icon */}
-        <div className="h-16 w-16 rounded-2xl bg-brand-900/50 flex items-center justify-center mx-auto mb-5">
-          {status === "success"
-            ? <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-            : status === "joining"
-            ? <Loader2 className="h-8 w-8 text-brand-400 animate-spin" />
-            : <Users className="h-8 w-8 text-brand-400" />}
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{ backgroundColor: "#111827" }}
+    >
+      {/* Logo */}
+      <div className="mb-8">
+        <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-2xl shadow-brand-900/50 mx-auto">
+          <Image src="/icons/icon-192x192.png" alt="MaDe to find" width={64} height={64} />
         </div>
+        <p className="text-center text-sm font-medium text-slate-400 mt-3">MaDe to find</p>
+      </div>
 
-        <h1 className="text-xl font-bold text-slate-100 mb-2">
-          {status === "success" ? "Erfolgreich beigetreten!" : `„${groupName}" beitreten`}
-        </h1>
-
-        {/* Nicht eingeloggt → Login / Register Optionen */}
-        {status === "idle" && !isLoggedIn && (
-          <>
-            <p className="text-sm text-slate-400 mb-6">
-              Du wurdest eingeladen, der Gruppe{" "}
-              <strong className="text-slate-200">„{groupName}"</strong> beizutreten.
-              Melde dich an oder registriere dich — du wirst danach automatisch aufgenommen.
-            </p>
-            <div className="flex flex-col gap-3">
-              <a
-                href={`${ROUTES.login}?redirect=/join/${token}`}
-                className="w-full h-11 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium transition-colors flex items-center justify-center"
-              >
-                Anmelden & Gruppe beitreten
-              </a>
-              <a
-                href={`${ROUTES.register}?redirect=/join/${token}`}
-                className="w-full h-11 rounded-xl border border-slate-600 text-slate-300 hover:border-slate-500 hover:bg-slate-700/30 text-sm font-medium transition-colors flex items-center justify-center"
-              >
-                Registrieren & Gruppe beitreten
-              </a>
+      {/* Card */}
+      <div
+        className="w-full max-w-sm rounded-2xl p-6 text-center"
+        style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55", boxShadow: "0 25px 50px rgba(0,0,0,0.4)" }}
+      >
+        {joined ? (
+          /* Erfolgreich beigetreten */
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="h-14 w-14 rounded-full bg-emerald-600/20 flex items-center justify-center">
+              <Check className="h-7 w-7 text-emerald-400" />
             </div>
-          </>
-        )}
-
-        {status === "joining" && (
-          <p className="text-sm text-slate-400">Einen Moment…</p>
-        )}
-
-        {status === "success" && (
-          <p className="text-sm text-slate-400">Du wirst zur Gruppe weitergeleitet…</p>
-        )}
-
-        {status === "error" && (
+            <div>
+              <p className="text-lg font-bold text-white">Willkommen!</p>
+              <p className="text-sm text-slate-400 mt-1">Du bist der Gruppe beigetreten.</p>
+            </div>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />
+          </div>
+        ) : (
           <>
-            <p className="text-sm text-danger-400 mb-4">{error}</p>
-            <button
-              onClick={() => router.push(ROUTES.dashboard)}
-              className="text-sm text-brand-400 hover:text-brand-300"
-            >
-              Zum Dashboard
-            </button>
+            {/* Gruppen-Icon */}
+            <div className="h-14 w-14 rounded-2xl bg-brand-900/50 flex items-center justify-center mx-auto mb-4">
+              <Users className="h-7 w-7 text-brand-400" />
+            </div>
+
+            {/* Text */}
+            <h1 className="text-xl font-bold text-white mb-2">
+              Gruppeneinladung
+            </h1>
+            <p className="text-slate-400 text-sm mb-1">Du wurdest eingeladen, der Gruppe</p>
+            <p className="text-lg font-bold text-white mb-1">„{groupName}"</p>
+            <p className="text-slate-400 text-sm mb-6">beizutreten.</p>
+
+            {error && (
+              <div className="mb-4 px-3 py-2 rounded-xl text-xs text-red-300"
+                style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                {error}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleDecline}
+                className="flex-1 h-11 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+              >
+                <X className="h-4 w-4" /> Ablehnen
+              </button>
+              <button
+                onClick={handleJoin}
+                disabled={isLoading}
+                className="flex-1 h-11 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white transition-colors flex items-center justify-center gap-2 text-sm font-semibold"
+              >
+                {isLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <><Check className="h-4 w-4" /> Beitreten</>
+                }
+              </button>
+            </div>
           </>
         )}
       </div>
