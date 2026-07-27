@@ -6,8 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, MapPin, Package,
   Search, Settings, LogOut, Users,
-  ChevronDown, Check, Share2, Edit2,
-  Crown, Sparkles, HelpCircle,
+  ChevronDown, Check, Share2, Edit2,Crown, Sparkles, HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -204,7 +203,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
           })}
         </nav>
 
-       {/* Footer */}
+{/* Footer */}
 <div className="px-2 py-3 space-y-1" style={{ borderTop: "1px solid #1e2d4a" }}>
 
   {/* Benachrichtigungen */}
@@ -273,3 +272,23 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
     Abmelden
   </button>
 </div>
+      </aside>
+
+      {/* Geteilter Zugriff Modal */}
+      <SharedAccessModal
+        isOpen={sharingModal}
+        onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); }}
+        initialGroup={shareTarget}
+        initialManageGroup={manageTarget}
+        groups={groups}
+        onGroupsChange={setGroups}
+        userId={user.id}
+      />
+    </>
+  );
+}
+
+// Wrapper der den Context nutzt
+export function Sidebar({ user, groups, displayName }: SidebarProps) {
+  return <SidebarInner user={user} groups={groups} displayName={displayName} />;
+}
