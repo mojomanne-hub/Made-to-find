@@ -19,6 +19,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
 
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -42,6 +43,7 @@ export function LoginForm() {
         document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
       }
 
+      console.log("redirectTo:", redirectTo);
       router.push(redirectTo);
       router.refresh();
     } catch {
