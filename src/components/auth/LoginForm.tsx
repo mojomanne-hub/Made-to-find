@@ -11,7 +11,13 @@ import { ROUTES }                from "@/lib/constants";
 export function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo   = searchParams.get("redirect") ?? ROUTES.dashboard;
+  const [redirectTo, setRedirectTo] = useState(ROUTES.dashboard);
+
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get("redirect");
+  if (redirect) setRedirectTo(redirect);
+}, []);
 
   const [email,     setEmail]     = useState("");
   const [password,  setPassword]  = useState("");
