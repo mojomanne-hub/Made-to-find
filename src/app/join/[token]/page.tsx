@@ -26,10 +26,10 @@ export default async function JoinGroupPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    // Nicht eingeloggt → Login mit redirect zurück zu dieser Seite
-    redirect(`${ROUTES.login}?redirect=/join/${token}`);
-  }
+ if (!user) {
+  const loginUrl = `/login?redirect=${encodeURIComponent(`/join/${token}`)}`;
+  redirect(loginUrl);
+}
 
   return (
     <JoinGroupClient
