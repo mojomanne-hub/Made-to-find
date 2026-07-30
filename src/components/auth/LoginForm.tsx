@@ -11,10 +11,9 @@ import { ROUTES }                from "@/lib/constants";
 export function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || 
-  (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null) || 
-  ROUTES.dashboard;
-
+  const redirectTo = typeof window !== "undefined" 
+  ? (new URLSearchParams(window.location.search).get("redirect") ?? ROUTES.dashboard)
+  : ROUTES.dashboard;
   const [email,     setEmail]     = useState("");
   const [password,  setPassword]  = useState("");
   const [showPwd,   setShowPwd]   = useState(false);
