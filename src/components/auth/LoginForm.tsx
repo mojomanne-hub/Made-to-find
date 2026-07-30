@@ -11,7 +11,7 @@ import { ROUTES }               from "@/lib/constants";
 export function LoginForm() {
   const router = useRouter();
 
-  const [redirectTo, setRedirectTo] = useState(ROUTES.dashboard);
+  const [redirectTo, setRedirectTo] = useState<string>(ROUTES.dashboard);
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
   const [showPwd,    setShowPwd]    = useState(false);
