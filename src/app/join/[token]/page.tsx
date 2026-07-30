@@ -20,23 +20,15 @@ export default async function JoinGroupPage({ params }: Props) {
     .eq("invite_token", token)
     .maybeSingle();
 
-  if (!group) {
-    redirect(ROUTES.login);
-  }
+  if (!group) redirect(ROUTES.login);
 
   const { data: { user } } = await supabase.auth.getUser();
-
-if (!user) {
-  const target = `/login?redirect=${encodeURIComponent(`/join/${token}`)}`;
-  console.log("Redirecting to:", target);
-  redirect(target);
-}
 
   return (
     <JoinGroupClient
       token={token}
       groupName={group.name}
-      isLoggedIn={true}
+      isLoggedIn={!!user}
     />
   );
 }
