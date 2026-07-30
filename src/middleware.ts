@@ -12,12 +12,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Alle Pfade außer:
-     * - _next/static  (statische Assets)
-     * - _next/image   (Bildoptimierung)
-     * - favicon.ico, icons/, *.png/svg/jpg/webp (öffentliche Dateien)
-     */
-    "/((?!_next/static|_next/image|favicon\\.ico|icons/|.*\\.(?:png|svg|jpg|jpeg|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|icons/|join/|.*\\.(?:png|svg|jpg|jpeg|webp)$).*)",
   ],
 };
