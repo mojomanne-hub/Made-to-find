@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { createBrowserClient }  from "@/lib/supabase/client";
 import { joinPendingGroup }      from "@/lib/utils/invite-token";
