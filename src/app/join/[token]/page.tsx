@@ -26,9 +26,10 @@ export default async function JoinGroupPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
- if (!user) {
-  const loginUrl = `/login?redirect=${encodeURIComponent(`/join/${token}`)}`;
-  redirect(loginUrl);
+if (!user) {
+  const target = `/login?redirect=${encodeURIComponent(`/join/${token}`)}`;
+  console.log("Redirecting to:", target);
+  redirect(target);
 }
 
   return (

@@ -60,10 +60,14 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return NextResponse.redirect(loginUrl);
   }
 
-  // Eingeloggt → Auth-Route → zum Dashboard
-  if (user && AUTH_ONLY.some(p => path.startsWith(p))) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Eingeloggt → Auth-Route → zum Dashboard (aber nicht wenn redirect Parameter vorhanden)
+if (user && AUTH_ONLY.some(p => path.startsWith(p))) {
+  const redirectParam = request.nextUrl.searchParams.get("redirect");
+  if (redirectParam) {
+    return NextResponse.redirect(new URL(redirectParam, request.url));
   }
+  return NextResponse.redirect(new URL("/dashboard", request.url));
+}
 
   return response;
 }
