@@ -40,15 +40,22 @@ interface SearchRow {
   location_name: string; quantity: number | null;
 }
 
-interface Props {
-  locationCount: number;
-  itemCount:     number;
-  locations:     Location[];
-  recentItems:   RecentItem[];
-  groupId:       string | null;
+interface ExpiringItem {
+  id:         string;
+  name:       string;
+  expires_at: string;
 }
 
-export function DashboardClient({ locationCount, itemCount, locations, recentItems, groupId }: Props) {
+interface Props {
+  locationCount:  number;
+  itemCount:      number;
+  locations:      Location[];
+  recentItems:    RecentItem[];
+  groupId:        string | null;
+  expiringItems:  ExpiringItem[];  // NEU
+}
+
+export function DashboardClient({ locationCount, itemCount, locations, recentItems, groupId, expiringItems }: Props) {
   const [query,       setQuery]       = useState("");
   const [results,     setResults]     = useState<SearchRow[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -223,6 +230,51 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
           </div>
         </Link>
       </div>
+
+{/* ── Bald ablaufend ── */}
+{expiringItems.length > 0 && (
+  <div className="rounded-2xl border border-amber-800/50 overflow-hidden" style={{ backgroundColor: "#1a2535" }}>
+    <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid #2d3f55" }}>
+      <div className="h-7 w-7 rounded-lg bg-amber-900/40 flex items-center justify-center">
+        <LucideIcons.Clock className="h-4 w-4 text-amber-400" />
+      </div>
+      <p className="text-sm font-semibold text-amber-400">Bald ablaufend</p>
+      <span className="ml-auto text-xs bg-amber-900/40 text-amber-400 px-2 py-0.5 rounded-full font-medium">
+        {expiringItems.length}
+      </span>
+    </div>
+    <div className="divide-y divide-slate-700/50">
+      {expiringItems.map((item) => {
+        const today    = new Date();
+        today.setHours(0, 0, 0, 0);
+        const expiry   = new Date(item.expires_at);
+        expiry.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const expired  = diffDays < 0;
+        const dateStr  = expiry.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+        return (
+          <Link key={item.id} href={ROUTES.itemDetail(item.id)}>
+            <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-700/20 transition-colors">
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${expired ? "bg-red-900/30" : "bg-amber-900/30"}`}>
+                {expired
+                  ? <LucideIcons.AlertTriangle className="h-4 w-4 text-red-400" />
+                  : <LucideIcons.Clock className="h-4 w-4 text-amber-400" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-200 truncate">{item.name}</p>
+                <p className={`text-xs ${expired ? "text-red-400" : "text-amber-400"}`}>
+                  {expired ? "Abgelaufen" : diffDays === 0 ? "Läuft heute ab" : `In ${diffDays} Tag${diffDays !== 1 ? "en" : ""}`} · {dateStr}
+                </p>
+              </div>
+              <LucideIcons.ChevronRight className="h-4 w-4 text-slate-600 flex-shrink-0" />
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  </div>
+)}
 
       {/* ── Untere Sektion ── */}
       <div className="grid lg:grid-cols-2 gap-4">
