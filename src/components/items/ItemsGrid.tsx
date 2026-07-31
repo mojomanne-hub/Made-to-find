@@ -55,14 +55,15 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
   expiry.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   const expired  = diffDays < 0;
-  const soonExp  = diffDays >= 0 && diffDays <= 7;
+  const redZone  = diffDays >= 0 && diffDays <= 1;   // 0-1 Tag → rot
+  const soonExp  = diffDays >= 2 && diffDays <= 7;   // 2-7 Tage → amber
   const dateStr  = expiry.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-  if (expired) return (
-    <span className="flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded-full">
-      <LucideIcons.AlertTriangle className="h-2.5 w-2.5" /> Abgelaufen
-    </span>
-  );
+  if (expired || redZone) return (
+  <span className="flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded-full">
+    <LucideIcons.AlertTriangle className="h-2.5 w-2.5" /> {expired ? "Abgelaufen" : dateStr}
+  </span>
+);
   if (soonExp) return (
     <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded-full">
       <LucideIcons.Clock className="h-2.5 w-2.5" /> {dateStr}

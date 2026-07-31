@@ -25,20 +25,23 @@ function ExpiryInfo({ expiresAt }: { expiresAt: string }) {
   const expiry   = new Date(expiresAt);
   expiry.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  const expired  = diffDays < 0;
-  const soonExp  = diffDays >= 0 && diffDays <= 7;
+const expired  = diffDays < 0;
+const redZone  = diffDays >= 0 && diffDays <= 1;
+const soonExp  = diffDays >= 2 && diffDays <= 7;
   const dateStr  = expiry.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-  if (expired) return (
-    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-      style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
-      <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
-      <div>
-        <p className="text-xs font-semibold text-red-400">Abgelaufen</p>
-        <p className="text-xs text-red-400/70">{dateStr}</p>
-      </div>
+  if (expired || redZone) return (
+  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+    style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+    <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+    <div>
+      <p className="text-xs font-semibold text-red-400">
+        {expired ? "Abgelaufen" : "Läuft morgen ab"}
+      </p>
+      <p className="text-xs text-red-400/70">{dateStr}</p>
     </div>
-  );
+  </div>
+);
 
   if (soonExp) return (
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
