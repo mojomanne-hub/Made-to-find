@@ -38,7 +38,7 @@ const STEPS = [
   {
     icon: Users,
     title: "Gemeinsam organisieren",
-    description: "Teile deine Ablageorte mit Familie oder Mitbewohnern. Alle sehen dasselbe — keine Missverständnisse mehr.",
+    description: "Teile deine Ablageorte mit Familie, Mitbewohnern odr Vereinsmitgliedern. Alle sehen dasselbe — keine Missverständnisse mehr.",
     color: "#ec4899",
   },
 ];
