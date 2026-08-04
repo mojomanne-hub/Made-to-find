@@ -55,15 +55,14 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
   expiry.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   const expired  = diffDays < 0;
-  const redZone  = diffDays >= 0 && diffDays <= 1;   // 0-1 Tag → rot
-  const soonExp  = diffDays >= 2 && diffDays <= 7;   // 2-7 Tage → amber
+  const soonExp  = diffDays >= 0 && diffDays <= 7;
   const dateStr  = expiry.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-  if (expired || redZone) return (
-  <span className="flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded-full">
-    <LucideIcons.AlertTriangle className="h-2.5 w-2.5" /> {expired ? "Abgelaufen" : dateStr}
-  </span>
-);
+  if (expired) return (
+    <span className="flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-900/30 px-1.5 py-0.5 rounded-full">
+      <LucideIcons.AlertTriangle className="h-2.5 w-2.5" /> Abgelaufen
+    </span>
+  );
   if (soonExp) return (
     <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded-full">
       <LucideIcons.Clock className="h-2.5 w-2.5" /> {dateStr}
@@ -116,22 +115,24 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
 
   return (
     <div className="space-y-4">
-      {/* Suche + Filter + Toggle */}
+      {/* Suche oben — volle Breite */}
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <LucideIcons.Search className="h-4 w-4" />
+        </div>
+        <input type="search" placeholder="Nach Name oder Beschreibung suchen..."
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          className="w-full h-10 rounded-xl pl-10 pr-4 text-sm bg-[#1a2535] border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      </div>
+
+      {/* Filter + Toggle in einer Zeile */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-            <LucideIcons.Search className="h-4 w-4" />
-          </div>
-          <input type="search" placeholder="Nach Name, Tags oder Beschreibung suchen..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 rounded-xl pl-10 pr-4 text-sm bg-[#1a2535] border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
-        </div>
-        <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
             <LucideIcons.Filter className="h-4 w-4" />
           </div>
           <select value={filterLoc} onChange={(e) => setFilterLoc(e.target.value)}
-            className="h-10 pl-9 pr-8 rounded-xl text-sm bg-[#1a2535] border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none min-w-[140px]">
+            className="w-full h-10 pl-9 pr-8 rounded-xl text-sm bg-[#1a2535] border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none">
             <option value="">Alle Ablageorte</option>
             {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
           </select>
@@ -140,7 +141,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
           </div>
         </div>
         {/* Toggle */}
-        <div className="flex rounded-xl overflow-hidden border border-slate-700">
+        <div className="flex rounded-xl overflow-hidden border border-slate-700 flex-shrink-0">
           <button onClick={() => setView("grid")}
             className={cn("h-10 w-10 flex items-center justify-center transition-colors",
               view === "grid" ? "bg-brand-600 text-white" : "bg-[#1a2535] text-slate-400 hover:text-slate-200")}>
