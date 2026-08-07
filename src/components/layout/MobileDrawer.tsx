@@ -10,10 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard, MapPin, Package,
-  LogOut, Users, X, Share2, Edit2,
-} from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
@@ -21,7 +18,7 @@ import { ROUTES }                 from "@/lib/constants";
 import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
 import { useState }               from "react";
-import { Crown, Sparkles, Users, Settings, LogOut, Package, Edit2, Share2 } from "lucide-react";
+
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
