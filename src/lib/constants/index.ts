@@ -93,9 +93,14 @@ export const ITEM_ICONS: { label: string; name: string }[] = [
   { label: "Stecker",       name: "Plug" },
   // Küche
   { label: "Kuchenform",    name: "Utensils" },
+  { label: "Topf",          name: "cooking-pot" },
   { label: "Töpfe",         name: "ChefHat" },
   { label: "Messer",        name: "UtensilsCrossed" },
   { label: "Thermometer",   name: "Thermometer" },
+  { label: "Glas",          name: "Wine" },
+  { label: "Thermometer",   name: "Thermometer" },
+  { label: "Kuchenform",    name: "Cake" },
+ 
   // Kleidung & Accessoires
   { label: "Kleidung",      name: "Shirt" },
   { label: "Schuhe",        name: "Footprints" },
@@ -121,4 +126,6 @@ export const ITEM_ICONS: { label: string; name: string }[] = [
   { label: "Medizin",       name: "Pill" },
   { label: "Geschenk",      name: "Gift" },
   { label: "Box",           name: "Box" },
+  { label: "Spiele",        name: "Dices" },
+
 ];
