@@ -195,6 +195,18 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
             Geteilter Zugriff
           </button>
 
+
+  {/* Premium Button */}
+  <button
+    onClick={() => {}}
+    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
+    style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
+  >
+    <Crown className="h-4 w-4 flex-shrink-0" />
+    Premium Mitglied *bald*
+    <Sparkles className="h-3.5 w-3.5 ml-auto" />
+  </button>
+
           {/* Einstellungen */}
           <Link
             href={ROUTES.settings}
