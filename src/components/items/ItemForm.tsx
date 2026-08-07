@@ -4,16 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { Minus, Plus } from "lucide-react";
-import { createBrowserClient }                    from "@/lib/supabase/client";
-import { itemSchema }                             from "@/lib/validations";
-import { ROUTES, ITEM_ICONS, LOCATION_COLORS }    from "@/lib/constants";
-import { Button }       from "@/components/ui/Button";
-import { Input }        from "@/components/ui/Input";
-import { Textarea }     from "@/components/ui/Textarea";
-import { Card }         from "@/components/ui/Card";
-import { Alert }        from "@/components/ui/Alert";
-import { cn }           from "@/lib/utils";
-import type { Item }    from "@/lib/types";import { ITEM_ICONS, getAllIcons } from "@/lib/constants";
+import { createBrowserClient } from "@/lib/supabase/client";
+import { itemSchema } from "@/lib/validations";
+import { ROUTES, ITEM_ICONS, LOCATION_COLORS, getAllIcons } from "@/lib/constants";  // ← HIER
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Card } from "@/components/ui/Card";
+import { Alert } from "@/components/ui/Alert";
+import { cn } from "@/lib/utils";
+import type { Item } from "@/lib/types";
 
 function DynIcon({ name, className }: { name: string; className?: string }) {
   const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
