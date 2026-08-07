@@ -11,12 +11,13 @@ import { ROUTES }           from "@/lib/constants";
 
 interface Props { params: Promise<{ id: string }> }
 
-function DynIcon({ name, className }: { name: string | null; className?: string }) {
-  const Icon = name
-    ? (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name]
-    : null;
-  const Comp = Icon ?? LucideIcons.Box;
-  return <Comp className={className} />;
+function ItemIcon({ icon, className }: { icon: string | null; className?: string }) {
+  if (!icon) return <LucideIcons.Box className={className} />;
+  const isEmoji = icon.length <= 4 && !/^[A-Z]/.test(icon);
+  if (isEmoji) return <span style={{ fontSize: "4rem", lineHeight: 1 }}>{icon}</span>;
+  const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[icon];
+  if (!Icon) return <LucideIcons.Box className={className} />;
+  return <Icon className={className} />;
 }
 
 function ExpiryInfo({ expiresAt }: { expiresAt: string }) {
@@ -25,23 +26,20 @@ function ExpiryInfo({ expiresAt }: { expiresAt: string }) {
   const expiry   = new Date(expiresAt);
   expiry.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-const expired  = diffDays < 0;
-const redZone  = diffDays >= 0 && diffDays <= 1;
-const soonExp  = diffDays >= 2 && diffDays <= 7;
+  const expired  = diffDays < 0;
+  const soonExp  = diffDays >= 0 && diffDays <= 7;
   const dateStr  = expiry.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-  if (expired || redZone) return (
-  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
-    style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
-    <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
-    <div>
-      <p className="text-xs font-semibold text-red-400">
-        {expired ? "Abgelaufen" : "Läuft morgen ab"}
-      </p>
-      <p className="text-xs text-red-400/70">{dateStr}</p>
+  if (expired) return (
+    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+      style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+      <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+      <div>
+        <p className="text-xs font-semibold text-red-400">Abgelaufen</p>
+        <p className="text-xs text-red-400/70">{dateStr}</p>
+      </div>
     </div>
-  </div>
-);
+  );
 
   if (soonExp) return (
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
@@ -117,7 +115,7 @@ export default async function ItemDetailPage({ params }: Props) {
           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <DynIcon name={item.icon} className="h-20 w-20 text-white/70" />
+            <ItemIcon icon={item.icon} className="h-20 w-20 text-white/70" />
           </div>
         )}
       </div>

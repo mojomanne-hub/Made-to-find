@@ -111,11 +111,12 @@ export const ITEM_ICONS = {
     { label: "Koffer", emoji: "🧳" },
   ],
   spiele: [
-    { label: "Kartenspiel", emoji: "🃏" },
-    { label: "Würfelspiel", emoji: "🎲" },
-    { label: "Videospiel", emoji: "🎮" },
-    { label: "Ball", emoji: "⚽" },
-  ],
+  { label: "Kartenspiel", emoji: "🃏" },
+  { label: "Würfelspiel", emoji: "🎲" },  // dices
+  { label: "Videospiel", emoji: "🎮" },
+  { label: "Ball", emoji: "⚽" },
+  { label: "Wein", emoji: "🍷" },           // wine — NEU
+],
 };
 
 // ============ HELPER FUNCTIONS ============

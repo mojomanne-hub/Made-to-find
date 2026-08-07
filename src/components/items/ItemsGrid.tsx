@@ -10,12 +10,14 @@ import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
 import { createBrowserClient } from "@/lib/supabase/client";
 
-function DynIcon({ name, className }: { name: string | null; className?: string }) {
-  const Icon = name
-    ? (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name]
-    : null;
-  const Comp = Icon ?? LucideIcons.Box;
-  return <Comp className={className} />;
+function ItemIcon({ icon, className }: { icon: string | null; className?: string }) {
+  if (!icon) return <LucideIcons.Box className={className} />;
+  // Emoji erkennen
+  const isEmoji = icon.length <= 4 && !/^[A-Z]/.test(icon);
+  if (isEmoji) return <span className="text-2xl leading-none">{icon}</span>;
+  const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[icon];
+  if (!Icon) return <LucideIcons.Box className={className} />;
+  return <Icon className={className} />;
 }
 
 interface Item {
@@ -175,7 +177,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
                     ) : (
-                      <DynIcon name={item.icon} className="h-12 w-12 text-white/80" />
+                      <ItemIcon icon={item.icon} className="h-12 w-12 text-white/80" />
                     )}
                     {item.quantity > 1 && (
                       <div className="absolute top-2 right-2 bg-black/30 backdrop-blur-sm text-white text-xs font-semibold px-2 py-0.5 rounded-full">
@@ -226,7 +228,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.image_url} alt={item.name} className="h-full w-full object-cover rounded-xl" />
                     ) : (
-                      <DynIcon name={item.icon} className="h-5 w-5 text-white/90" />
+                      <ItemIcon icon={item.icon} className="h-5 w-5 text-white/90" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
