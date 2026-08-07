@@ -236,17 +236,21 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-8 gap-1.5">
-            {ITEM_ICONS.map((ic) => (
-              <button key={ic.name} type="button" onClick={() => setIcon(ic.name)} title={ic.label}
-                className={cn(
-                  "h-10 w-full rounded-xl flex items-center justify-center transition-all",
-                  icon === ic.name ? "bg-brand-600 border-2 border-brand-400" : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
-                )}>
-                <DynIcon name={ic.name} className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")} />
-              </button>
-            ))}
-          </div>
+         <div className="grid grid-cols-8 gap-1.5">
+  {getAllIcons().map((ic) => (
+    <button 
+      key={ic.emoji} 
+      type="button" 
+      onClick={() => setIcon(ic.emoji)} 
+      title={ic.label}
+      className={cn(
+        "h-10 w-full rounded-xl flex items-center justify-center transition-all text-xl",
+        icon === ic.emoji ? "bg-brand-600 border-2 border-brand-400" : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
+      )}>
+      {ic.emoji}
+    </button>
+  ))}
+</div>
         </div>
 
         {/* Farbauswahl */}
