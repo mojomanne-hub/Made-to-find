@@ -83,49 +83,46 @@ export const LOCATION_ICONS: { label: string; name: string }[] = [
 ];
 
 // ---- Icons für Gegenstände --------------------------------
-export const ITEM_ICONS: { label: string; name: string }[] = [
-  // Werkzeug & Haushalt
-  { label: "Werkzeug",      name: "Wrench" },
-  { label: "Hammer",        name: "Hammer" },
-  { label: "Schrauber",     name: "Drill" },
-  { label: "Schere",        name: "Scissors" },
-  { label: "Glühbirne",     name: "Lightbulb" },
-  { label: "Stecker",       name: "Plug" },
-  // Küche
-  { label: "Kuchenform",    name: "Utensils" },
-  { label: "Topf",          name: "cooking-pot" },
-  { label: "Töpfe",         name: "ChefHat" },
-  { label: "Messer",        name: "UtensilsCrossed" },
-  { label: "Thermometer",   name: "Thermometer" },
-  { label: "Glas",          name: "Wine" },
-  { label: "Thermometer",   name: "Thermometer" },
-  { label: "Kuchenform",    name: "Cake" },
- 
-  // Kleidung & Accessoires
-  { label: "Kleidung",      name: "Shirt" },
-  { label: "Schuhe",        name: "Footprints" },
-  { label: "Uhr",           name: "Watch" },
-  { label: "Koffer",        name: "Luggage" },
-  // Elektronik
-  { label: "Laptop",        name: "Laptop" },
-  { label: "Handy",         name: "Smartphone" },
-  { label: "Kamera",        name: "Camera" },
-  { label: "Kopfhörer",     name: "Headphones" },
-  { label: "Kabel",         name: "Cable" },
-  { label: "Batterie",      name: "Battery" },
-  // Dokumente & Büro
-  { label: "Dokument",      name: "FileText" },
-  { label: "Schlüssel",     name: "KeyRound" },
-  { label: "Buch",          name: "BookOpen" },
-  { label: "Ordner",        name: "Folder" },
-  // Sport & Freizeit
-  { label: "Sport",         name: "Dumbbell" },
-  { label: "Fahrrad",       name: "Bike" },
-  { label: "Ball",          name: "CircleDot" },
-  // Sonstiges
-  { label: "Medizin",       name: "Pill" },
-  { label: "Geschenk",      name: "Gift" },
-  { label: "Box",           name: "Box" },
-  { label: "Spiele",        name: "Dices" },
+export const ITEM_ICONS = {
+  kueche: [
+    { label: "Kuchenform", emoji: "🍰" },
+    { label: "Glas/Krug", emoji: "🥤" },
+    { label: "Topf", emoji: "🍳" },
+    { label: "Besteck", emoji: "🍴" },
+    { label: "Thermometer", emoji: "🌡️" },
+  ],
+  elektronik: [
+    { label: "Laptop", emoji: "💻" },
+    { label: "Handy", emoji: "📱" },
+    { label: "Kamera", emoji: "📷" },
+    { label: "Kopfhörer", emoji: "🎧" },
+    { label: "Batterie", emoji: "🔋" },
+  ],
+  wohnen: [
+    { label: "Stuhl", emoji: "🪑" },
+    { label: "Regal", emoji: "📚" },
+    { label: "Bett", emoji: "🛏️" },
+    { label: "Schrank", emoji: "🗄️" },
+  ],
+  kleidung: [
+    { label: "Shirt", emoji: "👕" },
+    { label: "Schuhe", emoji: "👟" },
+    { label: "Uhr", emoji: "⌚" },
+    { label: "Koffer", emoji: "🧳" },
+  ],
+  spiele: [
+    { label: "Kartenspiel", emoji: "🃏" },
+    { label: "Würfelspiel", emoji: "🎲" },
+    { label: "Videospiel", emoji: "🎮" },
+    { label: "Ball", emoji: "⚽" },
+  ],
+};
 
-];
+// ============ HELPER FUNCTIONS ============
+export function getIconsByCategory(category: string) {
+  return ITEM_ICONS[category as keyof typeof ITEM_ICONS] || [];
+}
+
+export function getAllIcons() {
+  return Object.values(ITEM_ICONS).flat();
+}
