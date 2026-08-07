@@ -21,6 +21,7 @@ import { ROUTES }                 from "@/lib/constants";
 import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
 import { useState }               from "react";
+import { Crown, Sparkles, Users, Settings, LogOut, Package, Edit2, Share2 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
