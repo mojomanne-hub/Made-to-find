@@ -13,7 +13,7 @@ import { Textarea }     from "@/components/ui/Textarea";
 import { Card }         from "@/components/ui/Card";
 import { Alert }        from "@/components/ui/Alert";
 import { cn }           from "@/lib/utils";
-import type { Item }    from "@/lib/types";
+import type { Item }    from "@/lib/types";import { ITEM_ICONS, getAllIcons } from "@/lib/constants";
 
 function DynIcon({ name, className }: { name: string; className?: string }) {
   const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
@@ -45,7 +45,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [locationId,  setLocationId]  = useState(
     item?.location_id ?? preselectedLocationId ?? locations[0]?.id ?? ""
   );
-  const [icon,        setIcon]        = useState(item?.icon  ?? ITEM_ICONS[0].name);
+  const [icon, setIcon] = useState(item?.icon ?? getAllIcons()[0].emoji);
   const [color,       setColor]       = useState(item?.color ?? LOCATION_COLORS[0].value);
   const [hasExpiry,   setHasExpiry]   = useState(!!item?.expires_at);
   const [expiresAt,   setExpiresAt]   = useState(item?.expires_at ?? "");
