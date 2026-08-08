@@ -27,7 +27,7 @@ export default function LoginPage() {
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white tracking-tight">
-            Willkommen zurück
+            Willkommen zu MaDe to find
           </h1>
           <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>
             Melde dich an, um deine Ablageorte zu verwalten
