@@ -8,9 +8,16 @@ import { ROUTES }     from "@/lib/constants";
 import { formatRelativeDate } from "@/lib/utils";
 
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
-  const Icon = name
-    ? (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name]
-    : null;
+  if (!name) return <LucideIcons.Box className={className} />;
+  
+  // Emoji-Erkennung: max 4 Zeichen und nicht mit Großbuchstaben (Lucide-Icon-Namen)
+  const isEmoji = name.length <= 4 && !/^[A-Z]/.test(name);
+  
+  if (isEmoji) {
+    return <span className="text-lg leading-none">{name}</span>;
+  }
+  
+  const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
   const Comp = Icon ?? LucideIcons.Box;
   return <Comp className={className} />;
 }
@@ -60,18 +67,17 @@ export function ItemList({ items, showLocation = false }: ItemListProps) {
             <div className="flex items-center gap-3">
               {/* Icon oder Foto */}
               <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-  style={{ backgroundColor: item.color ? item.color + "30" : "#334155" }}
->
-  {item.image_url ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-  ) : (
-    <span style={{ color: item.color ?? "#94a3b8" }}>
-      <DynIcon name={item.icon ?? null} className="h-[18px] w-[18px]" />
-    </span>
-  )}
-</div>
-
+                style={{ backgroundColor: item.color ? item.color + "30" : "#334155" }}
+              >
+                {item.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span style={{ color: item.color ?? "#94a3b8" }}>
+                    <DynIcon name={item.icon ?? null} className="h-[18px] w-[18px]" />
+                  </span>
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-100 truncate">{item.name}</p>
                 {showLocation && item.locations && (
@@ -84,7 +90,6 @@ export function ItemList({ items, showLocation = false }: ItemListProps) {
                   <p className="text-xs text-slate-500 truncate mt-0.5">{item.description}</p>
                 )}
               </div>
-
               <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="hidden sm:block text-right">
                   <p className="text-xs font-medium text-slate-400">{item.quantity}×</p>
