@@ -13,17 +13,14 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Willkommen zu MaDe to find
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>
-            Melde dich an, um deine Ablageorte zu verwalten
-          </p>
-        </div>
-<div className="space-y-6">
-      {/* Logo zentriert */}
-      <div className="flex flex-col items-center gap-3">
+    <div className="space-y-6">
+      {/* 1. Willkommens-Text oben */}
+      <h1 className="text-center text-2xl font-bold text-white tracking-tight">
+        Willkommen zu
+      </h1>
+
+      {/* 2. Logo */}
+      <div className="flex flex-col items-center">
         <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl shadow-brand-900/50">
           <Image
             src="/icons/icon-512x512.png"
@@ -32,8 +29,13 @@ export default function LoginPage() {
             height={80}
             className="h-full w-full object-cover"
           />
-</div>
+        </div>
       </div>
+
+      {/* 3. Description */}
+      <p className="text-center text-sm" style={{ color: "#94a3b8" }}>
+        Melde dich an, um deine Ablageorte zu verwalten
+      </p>
 
       <Suspense>
         <LoginPageHint />
