@@ -43,6 +43,7 @@ const LUCIDE_ICONS = [
   "ShoppingBag","Gift","Star","Heart","Home","Car",
   "Bike","Dumbbell","Music","Book","Pen","Scissors",
   "Key","Lock","Flashlight","Thermometer","Clock","Calendar",
+  "CakeSlice","Wine","Dices",  // ← NEU
 ];
 
 function DynIcon({ name, className }: { name: string; className?: string }) {
