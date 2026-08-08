@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-        </div>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Willkommen zu MaDe to find
@@ -33,6 +32,7 @@ export default function LoginPage() {
             height={80}
             className="h-full w-full object-cover"
           />
+</div>
       </div>
 
       <Suspense>
