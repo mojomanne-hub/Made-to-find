@@ -232,6 +232,23 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
               </button>
             </div>
 
+            {/* Vorschau */}
+            <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: mediaTab === "icon" ? color : "#2d3f55" }}>
+                {mediaTab === "emoji"
+                  ? <span className="text-2xl">{emoji}</span>
+                  : mediaTab === "icon"
+                  ? <DynIcon name={icon} className="h-5 w-5 text-white" />
+                  : null
+                }
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Vorschau</p>
+                <p className="text-sm font-medium text-slate-200">{name || "Ablageort"}</p>
+              </div>
+            </div>
+
             {/* Emoji-Auswahl */}
             {mediaTab === "emoji" && (
               <div className="space-y-3">
