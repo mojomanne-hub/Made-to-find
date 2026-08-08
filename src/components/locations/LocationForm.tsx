@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { createBrowserClient }          from "@/lib/supabase/client";
 import { locationSchema }               from "@/lib/validations";
-import { ROUTES, LOCATION_COLORS, LOCATION_ICONS, ITEM_ICONS } from "@/lib/constants";
+import { ROUTES, LOCATION_COLORS, LOCATION_ICONS, LOCATION_EMOJIS } from "@/lib/constants";
 import { compressImage }               from "@/lib/utils/compress-image";
 import { Button }        from "@/components/ui/Button";
 import { Input }         from "@/components/ui/Input";
@@ -44,8 +44,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const [icon,        setIcon]        = useState(location?.icon        ?? LOCATION_ICONS[0].name);
   const [imageUrl,    setImageUrl]    = useState<string | null>(location?.image_url ?? null);
   const [mediaTab,    setMediaTab]    = useState<MediaTab>("icon");
-  const [iconTab,     setIconTab]     = useState<IconTab>("icon");
-  const [emoji,       setEmoji]       = useState("📦");
+  const [emoji,       setEmoji]       = useState("🏠");
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading,   setIsLoading]   = useState(false);
   const [errors,      setErrors]      = useState<Record<string, string>>({});
@@ -124,7 +123,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
       let finalIcon: string | null = null;
       if (mediaTab === "photo") {
         finalIcon = null;
-      } else if (iconTab === "emoji") {
+      } else if (mediaTab === "emoji") {
         finalIcon = emoji;
       } else {
         finalIcon = icon;
@@ -195,26 +194,37 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
             hint="Optional – hilft beim Wiederfinden"
           />
 
-          {/* Tab: Icon / Foto */}
+          {/* Tab: Emoji / Icon / Foto — Alle 3 nebeneinander */}
           <div className="flex flex-col gap-3">
             <div className="flex rounded-xl overflow-hidden border border-slate-600">
               <button
                 type="button"
-                onClick={() => setMediaTab("icon")}
+                onClick={() => setMediaTab("emoji")}
                 className={cn(
-                  "flex-1 py-2.5 text-sm font-medium transition-colors",
-                  mediaTab === "icon" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                  "flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                  mediaTab === "emoji" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
                 )}
               >
-                Symbol
+                😀 Emoji
               </button>
               <button
                 type="button"
+                onClick={() => setMediaTab("icon")}
+                className={cn(
+                  "flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                  mediaTab === "icon" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                )}
+              >
+                <LucideIcons.Shapes className="h-4 w-4" /> Icon
+              </button>
+              <button
+                type="button"
+                onClick={() => setMediaTab("photo")}
                 disabled
                 className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 cursor-not-allowed border-l border-slate-600 text-slate-500"
               >
                 <LucideIcons.Camera className="h-3.5 w-3.5 text-amber-400/60" />
-                <span className="text-slate-500">Foto hochladen</span>
+                <span className="text-slate-500">Foto</span>
                 <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
                   <LucideIcons.Sparkles className="h-2.5 w-2.5" />
                   Bald
@@ -222,72 +232,54 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
               </button>
             </div>
 
-            {/* Symbol-Auswahl: Emoji vs Icon Tab */}
-            {mediaTab === "icon" && (
-              <>
-                <div className="flex rounded-xl overflow-hidden border border-slate-600">
-                  <button type="button" onClick={() => setIconTab("emoji")}
-                    className={cn("flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                      iconTab === "emoji" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}>
-                    😀 Emoji
-                  </button>
-                  <button type="button" onClick={() => setIconTab("icon")}
-                    className={cn("flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                      iconTab === "icon" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700")}>
-                    <LucideIcons.Shapes className="h-4 w-4" /> Icon
-                  </button>
-                </div>
-
-                {/* Emoji-Auswahl */}
-                {iconTab === "emoji" && (
-                  <div className="space-y-3">
-                    {Object.entries(ITEM_ICONS).map(([cat, items]) => (
-                      <div key={cat}>
-                        <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
-                        <div className="grid grid-cols-8 gap-1.5">
-                          {(items as { label: string; emoji: string }[]).map((ic) => (
-                            <button key={ic.emoji} type="button" onClick={() => setEmoji(ic.emoji)} title={ic.label}
-                              className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
-                                emoji === ic.emoji
-                                  ? "bg-brand-600/30 border-2 border-brand-400"
-                                  : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
-                              {ic.emoji}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Icon-Auswahl */}
-                {iconTab === "icon" && (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-xs text-slate-400">Icon auswählen</p>
+            {/* Emoji-Auswahl */}
+            {mediaTab === "emoji" && (
+              <div className="space-y-3">
+                {Object.entries(LOCATION_EMOJIS).map(([cat, items]) => (
+                  <div key={cat}>
+                    <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
                     <div className="grid grid-cols-8 gap-1.5">
-                      {LOCATION_ICONS.map((ic) => (
-                        <button
-                          key={ic.name}
-                          type="button"
-                          onClick={() => setIcon(ic.name)}
-                          title={ic.label}
-                          className={cn(
-                            "h-10 w-full rounded-xl flex items-center justify-center transition-all",
-                            icon === ic.name
-                              ? "bg-brand-600 border-2 border-brand-400"
-                              : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
-                          )}
-                        >
-                          <DynIcon
-                            name={ic.name}
-                            className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")}
-                          />
+                      {(items as { label: string; emoji: string }[]).map((ic) => (
+                        <button key={ic.emoji} type="button" onClick={() => setEmoji(ic.emoji)} title={ic.label}
+                          className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
+                            emoji === ic.emoji
+                              ? "bg-brand-600/30 border-2 border-brand-400"
+                              : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
+                          {ic.emoji}
                         </button>
                       ))}
                     </div>
                   </div>
-                )}
-              </>
+                ))}
+              </div>
+            )}
+
+            {/* Icon-Auswahl */}
+            {mediaTab === "icon" && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-slate-400">Icon auswählen</p>
+                <div className="grid grid-cols-8 gap-1.5">
+                  {LOCATION_ICONS.map((ic) => (
+                    <button
+                      key={ic.name}
+                      type="button"
+                      onClick={() => setIcon(ic.name)}
+                      title={ic.label}
+                      className={cn(
+                        "h-10 w-full rounded-xl flex items-center justify-center transition-all",
+                        icon === ic.name
+                          ? "bg-brand-600 border-2 border-brand-400"
+                          : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
+                      )}
+                    >
+                      <DynIcon
+                        name={ic.name}
+                        className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Foto-Upload mit Cropper */}

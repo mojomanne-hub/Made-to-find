@@ -58,7 +58,7 @@ export const ROUTES = {
   groupJoin:         (token: string) => `/join/${token}`,
 } as const;
 
-// ---- Icons für Ablageorte (bereinigt) --------------------
+// ---- Icons für Ablageorte (Lucide Icons) --------------------
 export const LOCATION_ICONS: { label: string; name: string }[] = [
   { label: "Haus",         name: "House" },
   { label: "Garage",       name: "Warehouse" },
@@ -85,6 +85,50 @@ export const LOCATION_ICONS: { label: string; name: string }[] = [
   { label: "Spielzimmer",  name: "Dices" },
 ];
 
+// ---- Emojis für Ablageorte (nach Kategorien) ----
+export const LOCATION_EMOJIS = {
+  zimmer: [
+    { label: "Schlafzimmer", emoji: "🛏️" },
+    { label: "Wohnzimmer", emoji: "🛋️" },
+    { label: "Küche", emoji: "🍳" },
+    { label: "Badezimmer", emoji: "🚿" },
+    { label: "Büro/Arbeitszimmer", emoji: "🖥️" },
+    { label: "Flur/Diele", emoji: "🚪" },
+    { label: "Treppe", emoji: "🪜" },
+    { label: "Kammer", emoji: "🗄️" },
+  ],
+  lagerung: [
+    { label: "Keller", emoji: "🏚️" },
+    { label: "Garage", emoji: "🚗" },
+    { label: "Dachboden", emoji: "🏠" },
+    { label: "Schuppen", emoji: "🏗️" },
+    { label: "Lagerraum", emoji: "📦" },
+    { label: "Kiste/Box", emoji: "📮" },
+    { label: "Regal", emoji: "📚" },
+    { label: "Schrank", emoji: "🗄️" },
+  ],
+  außen: [
+    { label: "Garten", emoji: "🌳" },
+    { label: "Terrasse", emoji: "🪑" },
+    { label: "Balkon", emoji: "🌿" },
+    { label: "Hof", emoji: "🏡" },
+    { label: "Parkplatz", emoji: "🅿️" },
+    { label: "Schuppen/Geräteschuppen", emoji: "⚒️" },
+    { label: "Gartenhaus", emoji: "🏘️" },
+    { label: "Pool/Jacuzzi", emoji: "🏊" },
+  ],
+  hobby: [
+    { label: "Werkstatt", emoji: "🔧" },
+    { label: "Hobbyraum", emoji: "🎨" },
+    { label: "Fitnessraum", emoji: "💪" },
+    { label: "Spielzimmer", emoji: "🎮" },
+    { label: "Musikzimmer", emoji: "🎵" },
+    { label: "Atelie", emoji: "🖌️" },
+    { label: "Kino/Medienraum", emoji: "🎬" },
+    { label: "Lounge", emoji: "☕" },
+  ],
+};
+
 // ---- Icons für Gegenstände --------------------------------
 export const ITEM_ICONS = {
   kueche: [
@@ -93,7 +137,7 @@ export const ITEM_ICONS = {
     { label: "Topf", emoji: "🍳" },
     { label: "Besteck", emoji: "🍴" },
     { label: "Thermometer", emoji: "🌡️" },
-    { label: "Wein", emoji: "🍷" },           // wine — NEU
+    { label: "Wein", emoji: "🍷" },
   ],
   elektronik: [
     { label: "Laptop", emoji: "💻" },
@@ -115,17 +159,24 @@ export const ITEM_ICONS = {
     { label: "Koffer", emoji: "🧳" },
   ],
   spiele: [
-  { label: "Kartenspiel", emoji: "🃏" },
-  { label: "Würfelspiel", emoji: "🎲" },  // dices
-  { label: "Videospiel", emoji: "🎮" },
-  { label: "Ball", emoji: "⚽" },
-  
-],
+    { label: "Kartenspiel", emoji: "🃏" },
+    { label: "Würfelspiel", emoji: "🎲" },
+    { label: "Videospiel", emoji: "🎮" },
+    { label: "Ball", emoji: "⚽" },
+  ],
 };
 
 // ============ HELPER FUNCTIONS ============
-export function getIconsByCategory(category: string) {
+export function getLocationEmojisByCategory(category: string) {
+  return LOCATION_EMOJIS[category as keyof typeof LOCATION_EMOJIS] || [];
+}
+
+export function getItemsByCategory(category: string) {
   return ITEM_ICONS[category as keyof typeof ITEM_ICONS] || [];
+}
+
+export function getAllLocationEmojis() {
+  return Object.values(LOCATION_EMOJIS).flat();
 }
 
 export function getAllIcons() {
