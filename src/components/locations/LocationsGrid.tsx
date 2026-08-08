@@ -11,9 +11,17 @@ import { Button }     from "@/components/ui/Button";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
-  const Icon = name
-    ? (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name]
-    : null;
+  if (!name) return <LucideIcons.MapPin className={className} />;
+  
+  // Emoji-Erkennung: max 4 Zeichen (meiste Emojis) und nicht mit Großbuchstaben (Lucide-Icon-Namen)
+  const isEmoji = name.length <= 4 && !/^[A-Z]/.test(name);
+  
+  if (isEmoji) {
+    // Emoji-Größe basierend auf className extrahieren und anpassen
+    return <span className="text-2xl leading-none">{name}</span>;
+  }
+  
+  const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
   const Comp = Icon ?? LucideIcons.MapPin;
   return <Comp className={className} />;
 }
