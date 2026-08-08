@@ -80,6 +80,9 @@ export const LOCATION_ICONS: { label: string; name: string }[] = [
   { label: "Stapel",       name: "Layers" },
   { label: "Einkauf",      name: "ShoppingBag" },
   { label: "Keller",       name: "Building2" },
+  { label: "Kuchenform",   name: "CakeSlice" },
+  { label: "Weinkeller",   name: "Wine" },
+  { label: "Spielzimmer",  name: "Dices" },
 ];
 
 // ---- Icons für Gegenstände --------------------------------
@@ -90,6 +93,7 @@ export const ITEM_ICONS = {
     { label: "Topf", emoji: "🍳" },
     { label: "Besteck", emoji: "🍴" },
     { label: "Thermometer", emoji: "🌡️" },
+    { label: "Wein", emoji: "🍷" },           // wine — NEU
   ],
   elektronik: [
     { label: "Laptop", emoji: "💻" },
@@ -115,7 +119,7 @@ export const ITEM_ICONS = {
   { label: "Würfelspiel", emoji: "🎲" },  // dices
   { label: "Videospiel", emoji: "🎮" },
   { label: "Ball", emoji: "⚽" },
-  { label: "Wein", emoji: "🍷" },           // wine — NEU
+  
 ],
 };
 
