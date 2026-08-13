@@ -333,8 +333,9 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                   <div key={cat}>
                     <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
                     <div className="grid grid-cols-8 gap-1.5">
-                      {items.map((emojiItem) => (
-                        <button key={emojiItem} type="button" onClick={() => setEmoji(emojiItem)} 
+                      (items as { label: string; emoji: string }[]).map((ic) => (
+  <button key={ic.emoji} onClick={() => setEmoji(ic.emoji)} title={ic.label}>
+    {ic.emoji}
                           className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
                             emoji === emojiItem
                               ? "bg-brand-600/30 border-2 border-brand-400"
