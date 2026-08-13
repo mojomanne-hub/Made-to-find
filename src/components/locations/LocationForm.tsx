@@ -6,7 +6,6 @@ import * as LucideIcons from "lucide-react";
 import { createBrowserClient }          from "@/lib/supabase/client";
 import { locationSchema }               from "@/lib/validations";
 import { ROUTES, LOCATION_COLORS, LOCATION_ICONS, LOCATION_EMOJIS } from "@/lib/constants";
-import { compressImage }               from "@/lib/utils/compress-image";
 import { Button }        from "@/components/ui/Button";
 import { Input }         from "@/components/ui/Input";
 import { Textarea }      from "@/components/ui/Textarea";
@@ -32,7 +31,7 @@ interface LocationFormProps {
 }
 
 const BUCKET     = "location-images";
-const MAX_SIZE_B = 10 * 1024 * 1024;
+const MAX_SIZE_B = 1 * 1024 * 1024; // 1 MB
 
 export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const isEditing = !!location;
@@ -53,6 +52,10 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   // Cropper State
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
+  // Komprimierungs-Dialog
+  const [showCompressionDialog, setShowCompressionDialog] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
   const [tempLocId] = useState(location?.id ?? crypto.randomUUID());
 
   // Bestimme ob gespeichertes Icon ein Emoji ist
@@ -60,30 +63,82 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const isEmojiSaved = savedIcon && !LOCATION_ICONS.map(i => i.name).includes(savedIcon);
   const initialTab: IconTab = isEmojiSaved ? "emoji" : "icon";
 
-  // Foto ausgewählt → Cropper öffnen
-  function handlePhotoSelect(file: File) {
-    if (file.size > MAX_SIZE_B) {
-      setServerError("Bild zu groß (max. 10 MB).");
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    setCropSrc(objectUrl);
+  // Komprimieren
+  async function compressImage(file: File): Promise<Blob> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let { width, height } = img;
+          
+          // Skaliere bei Bedarf
+          if (width > 1920) {
+            height = Math.round((height * 1920) / width);
+            width = 1920;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Komprimiere als JPEG
+          canvas.toBlob((blob) => {
+            resolve(blob || new Blob());
+          }, "image/jpeg", 0.75);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
-  // Nach Crop → komprimieren + hochladen
+  // Foto ausgewählt → Prüfe Größe
+  function handlePhotoSelect(file: File) {
+    if (file.size > MAX_SIZE_B) {
+      // Zeige Komprimierungs-Dialog
+      setPendingFile(file);
+      setShowCompressionDialog(true);
+    } else {
+      // Direkt zum Cropper wenn < 1 MB
+      const objectUrl = URL.createObjectURL(file);
+      setCropSrc(objectUrl);
+    }
+  }
+
+  async function handleCompressAndUpload() {
+    if (!pendingFile) return;
+    setShowCompressionDialog(false);
+    
+    try {
+      const compressed = await compressImage(pendingFile);
+      const compressedFile = new File([compressed], "image.jpg", { type: "image/jpeg" });
+      
+      // Jetzt zum Cropper
+      const objectUrl = URL.createObjectURL(compressedFile);
+      setCropSrc(objectUrl);
+    } catch (err) {
+      setServerError("Komprimierung fehlgeschlagen.");
+    } finally {
+      setPendingFile(null);
+    }
+  }
+
+  // Nach Crop → hochladen
   async function handleCropDone(blob: Blob) {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
     setIsUploading(true);
     try {
       const file       = new File([blob], "image.jpg", { type: "image/jpeg" });
-      const compressed = await compressImage(file);
       const supabase   = createBrowserClient();
       const path       = `${userId}/${tempLocId}.jpg`;
       await supabase.storage.from(BUCKET).remove([path]);
       const { error } = await supabase.storage
         .from(BUCKET)
-        .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
+        .upload(path, file, { upsert: true, contentType: "image/jpeg" });
       if (error) throw error;
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
       setImageUrl(`${data.publicUrl}?t=${Date.now()}`);
@@ -159,13 +214,48 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
 
   return (
     <>
+      {/* Komprimierungs-Dialog */}
+      {showCompressionDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-sm">
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">Bild wird komprimiert</h2>
+                <p className="text-sm text-slate-400 mt-1">
+                  Dein Bild ist größer als 1 MB und wird automatisch verkleinert.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowCompressionDialog(false);
+                    setPendingFile(null);
+                  }}
+                  disabled={isLoading}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCompressAndUpload}
+                  isLoading={isLoading}
+                >
+                  Komprimieren & Hochladen
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Cropper Modal */}
       {cropSrc && (
         <ImageCropper
           imageSrc={cropSrc}
           onCrop={handleCropDone}
           onCancel={handleCropCancel}
-          
         />
       )}
 
@@ -220,15 +310,12 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
               <button
                 type="button"
                 onClick={() => setMediaTab("photo")}
-                disabled
-                className="flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 cursor-not-allowed border-l border-slate-600 text-slate-500"
+                className={cn(
+                  "flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                  mediaTab === "photo" ? "bg-brand-600 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                )}
               >
-                <LucideIcons.Camera className="h-3.5 w-3.5 text-amber-400/60" />
-                <span className="text-slate-500">Foto</span>
-                <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
-                  <LucideIcons.Sparkles className="h-2.5 w-2.5" />
-                  Bald
-                </span>
+                <LucideIcons.Camera className="h-3.5 w-3.5" /> Foto
               </button>
             </div>
 
@@ -299,7 +386,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
               </div>
             )}
 
-            {/* Foto-Upload mit Cropper */}
+            {/* Foto-Upload */}
             {mediaTab === "photo" && (
               <div>
                 {imageUrl ? (
@@ -342,7 +429,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                     {isUploading ? (
                       <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird hochgeladen…</span></>
                     ) : (
-                      <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · dann zuschneiden</span></>
+                      <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 1 MB</span></>
                     )}
                     <input
                       type="file"
