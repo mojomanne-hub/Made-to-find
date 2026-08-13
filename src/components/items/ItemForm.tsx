@@ -12,6 +12,7 @@ import { Input }     from "@/components/ui/Input";
 import { Textarea }  from "@/components/ui/Textarea";
 import { Card }      from "@/components/ui/Card";
 import { Alert }     from "@/components/ui/Alert";
+import { ImageCropper } from "@/components/ui/ImageCropper";
 import { cn }        from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
@@ -31,12 +32,6 @@ interface ItemFormProps {
 
 type IconTab = "emoji" | "icon" | "photo";
 
-// Alle Emojis flach
-const ALL_EMOJIS = Object.entries(ITEM_ICONS).flatMap(([cat, items]) =>
-  (items as { label: string; emoji: string }[]).map((i) => ({ ...i, cat }))
-);
-
-// Lucide Icon Namen (Fallback wenn kein Emoji)
 const LUCIDE_ICONS = [
   "Wrench","Hammer","Screwdriver","Package","Box","Archive",
   "Laptop","Smartphone","Camera","Headphones","Battery","Monitor",
@@ -59,7 +54,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const isEditing = !!item;
   const router    = useRouter();
 
-  // Bestimme ob gespeichertes Icon ein Emoji ist
   const savedIcon   = item?.icon ?? "";
   const isEmoji     = savedIcon && !LUCIDE_ICONS.includes(savedIcon);
   const initialTab: IconTab = isEmoji ? "emoji" : "icon";
@@ -80,14 +74,12 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Komprimierungs-Dialog
+  // Cropper & Upload
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(null);
   const [showCompressionDialog, setShowCompressionDialog] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  // Photo-Image
-  const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(null);
-
-  // Aktuelles Icon je nach Tab
   const currentIcon = iconTab === "emoji" ? emoji : iconTab === "icon" ? lucideIcon : null;
 
   // Komprimieren
@@ -125,7 +117,9 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
       setPendingFile(file);
       setShowCompressionDialog(true);
     } else {
-      uploadPhoto(file);
+      // Direkt zum Cropper
+      const objectUrl = URL.createObjectURL(file);
+      setCropSrc(objectUrl);
     }
   }
 
@@ -135,7 +129,11 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
     
     try {
       const compressed = await compressImage(pendingFile);
-      uploadPhoto(new File([compressed], "image.jpg", { type: "image/jpeg" }));
+      const compressedFile = new File([compressed], "image.jpg", { type: "image/jpeg" });
+      
+      // Jetzt zum Cropper
+      const objectUrl = URL.createObjectURL(compressedFile);
+      setCropSrc(objectUrl);
     } catch (err) {
       setServerError("Komprimierung fehlgeschlagen.");
     } finally {
@@ -143,9 +141,13 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
     }
   }
 
-  async function uploadPhoto(file: File) {
+  async function handleCropDone(blob: Blob) {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
     setIsLoading(true);
+    
     try {
+      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
       const supabase = createBrowserClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push(ROUTES.login); return; }
@@ -162,12 +164,17 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
       if (error) throw error;
       
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      setPhotoImageUrl(data.publicUrl);
+      setPhotoImageUrl(`${data.publicUrl}?t=${Date.now()}`);
     } catch {
       setServerError("Foto-Upload fehlgeschlagen.");
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleCropCancel() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -253,12 +260,21 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
                   onClick={handleCompressAndUpload}
                   isLoading={isLoading}
                 >
-                  Komprimieren & Hochladen
+                  Komprimieren
                 </Button>
               </div>
             </div>
           </Card>
         </div>
+      )}
+
+      {/* ImageCropper */}
+      {cropSrc && (
+        <ImageCropper
+          imageSrc={cropSrc}
+          onCrop={handleCropDone}
+          onCancel={handleCropCancel}
+        />
       )}
 
       <Card>
@@ -274,7 +290,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             required autoFocus maxLength={200}
           />
 
-          {/* Ablageort */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-300">
               Ablageort <span className="text-danger-400">*</span>
@@ -291,7 +306,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             {errors.location_id && <p className="text-xs text-danger-400">{errors.location_id}</p>}
           </div>
 
-          {/* Menge */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-300">Menge</label>
             <div className="flex items-center gap-3">
@@ -313,7 +327,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             value={description} onChange={(e) => setDescription(e.target.value)}
             rows={3} maxLength={1000} />
 
-          {/* Ablaufdatum */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setHasExpiry((v) => !v)}
@@ -340,9 +353,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             )}
           </div>
 
-          {/* Icon/Emoji/Foto Tab */}
           <div className="flex flex-col gap-3">
-            {/* Tab-Switch */}
             <div className="flex rounded-xl overflow-hidden border border-slate-600">
               <button type="button" onClick={() => setIconTab("emoji")}
                 className={cn("flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2",
@@ -361,7 +372,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
               </button>
             </div>
 
-            {/* Vorschau */}
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
               <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: iconTab === "icon" ? color : "#2d3f55" }}>
@@ -378,7 +388,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
               </div>
             </div>
 
-            {/* Emoji-Auswahl */}
             {iconTab === "emoji" && (
               <div className="space-y-3">
                 {Object.entries(ITEM_ICONS).map(([cat, items]) => (
@@ -400,7 +409,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
               </div>
             )}
 
-            {/* Lucide Icon-Auswahl */}
             {iconTab === "icon" && (
               <div className="grid grid-cols-8 gap-1.5">
                 {LUCIDE_ICONS.map((ic) => (
@@ -415,7 +423,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
               </div>
             )}
 
-            {/* Foto-Upload */}
             {iconTab === "photo" && (
               <label className={cn(
                 "flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors",
@@ -424,9 +431,9 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
                   : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/30"
               )}>
                 {isLoading ? (
-                  <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird hochgeladen…</span></>
+                  <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird verarbeitet…</span></>
                 ) : (
-                  <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 1 MB</span></>
+                  <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 1 MB (wird komprimiert)</span></>
                 )}
                 <input
                   type="file"
@@ -438,7 +445,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             )}
           </div>
 
-          {/* Farbauswahl — nur bei Icons */}
           {iconTab === "icon" && (
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>

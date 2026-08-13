@@ -49,7 +49,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Cropper State
+  // Cropper
   const [cropSrc, setCropSrc] = useState<string | null>(null);
 
   // Komprimierungs-Dialog
@@ -58,7 +58,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
 
   const [tempLocId] = useState(location?.id ?? crypto.randomUUID());
 
-  // Bestimme ob gespeichertes Icon ein Emoji ist
   const savedIcon = location?.icon ?? "";
   const isEmojiSaved = savedIcon && !LOCATION_ICONS.map(i => i.name).includes(savedIcon);
   const initialTab: IconTab = isEmojiSaved ? "emoji" : "icon";
@@ -73,7 +72,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
           const canvas = document.createElement("canvas");
           let { width, height } = img;
           
-          // Skaliere bei Bedarf
           if (width > 1920) {
             height = Math.round((height * 1920) / width);
             width = 1920;
@@ -84,7 +82,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
           const ctx = canvas.getContext("2d")!;
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Komprimiere als JPEG
           canvas.toBlob((blob) => {
             resolve(blob || new Blob());
           }, "image/jpeg", 0.75);
@@ -95,14 +92,11 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
     });
   }
 
-  // Foto ausgewählt → Prüfe Größe
   function handlePhotoSelect(file: File) {
     if (file.size > MAX_SIZE_B) {
-      // Zeige Komprimierungs-Dialog
       setPendingFile(file);
       setShowCompressionDialog(true);
     } else {
-      // Direkt zum Cropper wenn < 1 MB
       const objectUrl = URL.createObjectURL(file);
       setCropSrc(objectUrl);
     }
@@ -116,7 +110,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
       const compressed = await compressImage(pendingFile);
       const compressedFile = new File([compressed], "image.jpg", { type: "image/jpeg" });
       
-      // Jetzt zum Cropper
       const objectUrl = URL.createObjectURL(compressedFile);
       setCropSrc(objectUrl);
     } catch (err) {
@@ -126,7 +119,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
     }
   }
 
-  // Nach Crop → hochladen
   async function handleCropDone(blob: Blob) {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
@@ -174,7 +166,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
     try {
       const supabase = createBrowserClient();
       
-      // Bestimme welches Icon gespeichert wird
       let finalIcon: string | null = null;
       if (mediaTab === "photo") {
         finalIcon = null;
@@ -242,7 +233,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                   onClick={handleCompressAndUpload}
                   isLoading={isLoading}
                 >
-                  Komprimieren & Hochladen
+                  Komprimieren
                 </Button>
               </div>
             </div>
@@ -284,7 +275,6 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
             hint="Optional – hilft beim Wiederfinden"
           />
 
-          {/* Tab: Emoji / Icon / Foto — Alle 3 nebeneinander */}
           <div className="flex flex-col gap-3">
             <div className="flex rounded-xl overflow-hidden border border-slate-600">
               <button
@@ -321,13 +311,13 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
 
             {/* Vorschau */}
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: mediaTab === "icon" ? color : "#2d3f55" }}>
                 {mediaTab === "emoji"
                   ? <span className="text-2xl">{emoji}</span>
                   : mediaTab === "icon"
                   ? <DynIcon name={icon} className="h-5 w-5 text-white" />
-                  : null
+                  : imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : <LucideIcons.ImagePlus className="h-5 w-5 text-slate-400" />
                 }
               </div>
               <div>
@@ -343,13 +333,13 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                   <div key={cat}>
                     <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
                     <div className="grid grid-cols-8 gap-1.5">
-                      {(items as { label: string; emoji: string }[]).map((ic) => (
-                        <button key={ic.emoji} type="button" onClick={() => setEmoji(ic.emoji)} title={ic.label}
+                      {(items as string[]).map((emojiItem) => (
+                        <button key={emojiItem} type="button" onClick={() => setEmoji(emojiItem)} 
                           className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
-                            emoji === ic.emoji
+                            emoji === emojiItem
                               ? "bg-brand-600/30 border-2 border-brand-400"
                               : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
-                          {ic.emoji}
+                          {emojiItem}
                         </button>
                       ))}
                     </div>
@@ -388,58 +378,24 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
 
             {/* Foto-Upload */}
             {mediaTab === "photo" && (
-              <div>
-                {imageUrl ? (
-                  <div className="relative rounded-xl overflow-hidden border border-slate-600">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Vorschau" className="w-full object-cover" style={{ aspectRatio: "16/9" }} />
-                    {isUploading && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <LucideIcons.Loader2 className="h-8 w-8 text-white animate-spin" />
-                      </div>
-                    )}
-                    {!isUploading && (
-                      <div className="absolute top-2 right-2 flex gap-2">
-                        <label className="h-8 px-3 rounded-lg bg-black/50 text-white text-xs font-medium hover:bg-black/70 cursor-pointer flex items-center gap-1.5">
-                          <LucideIcons.Upload className="h-3.5 w-3.5" /> Ersetzen
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setImageUrl(null)}
-                          className="h-8 w-8 rounded-lg bg-black/50 text-white hover:bg-danger-600/80 flex items-center justify-center"
-                        >
-                          <LucideIcons.X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+              <label className={cn(
+                "flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors",
+                isUploading
+                  ? "border-brand-500 bg-brand-900/20"
+                  : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/30"
+              )}>
+                {isUploading ? (
+                  <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird verarbeitet…</span></>
                 ) : (
-                  <label className={cn(
-                    "flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors",
-                    isUploading
-                      ? "border-brand-500 bg-brand-900/20"
-                      : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/30"
-                  )}>
-                    {isUploading ? (
-                      <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird hochgeladen…</span></>
-                    ) : (
-                      <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 1 MB</span></>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
-                    />
-                  </label>
+                  <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 1 MB (wird komprimiert)</span></>
                 )}
-              </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
+                />
+              </label>
             )}
           </div>
 
