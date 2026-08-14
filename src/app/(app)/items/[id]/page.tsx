@@ -110,12 +110,11 @@ export default async function ItemDetailPage({ params }: Props) {
       {/* Hero Banner */}
       <div className="rounded-2xl overflow-hidden mb-5 w-full"
         style={{ backgroundColor: color, maxHeight: "280px", aspectRatio: "16/9" }}>
-       {item.image_url && (
+      {item.image_url && (
   <img
     src={item.image_url}
     alt={item.name}
-    className="w-full rounded-2xl object-cover"
-    style={{ maxHeight: "80vh" }}
+    className="w-full rounded-2xl object-contain"
   />
 )}
       </div>
