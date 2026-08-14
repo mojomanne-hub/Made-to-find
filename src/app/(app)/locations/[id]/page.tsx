@@ -81,8 +81,9 @@ export default async function LocationDetailPage({ params }: Props) {
           <img
             src={location.image_url}
             alt={location.name}
-            className="w-full h-full object-cover"
-          />
+            className="w-full max-w-2xl mx-auto rounded-2xl object-cover"
+    style={{ maxHeight: "400px", aspectRatio: "16/9" }}
+  />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <DynIcon name={location.icon} className="h-20 w-20 text-white/70" />

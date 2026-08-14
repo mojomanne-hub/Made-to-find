@@ -110,14 +110,14 @@ export default async function ItemDetailPage({ params }: Props) {
       {/* Hero Banner */}
       <div className="rounded-2xl overflow-hidden mb-5 w-full"
         style={{ backgroundColor: color, maxHeight: "280px", aspectRatio: "16/9" }}>
-        {item.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ItemIcon icon={item.icon} className="h-20 w-20 text-white/70" />
-          </div>
-        )}
+       {item.image_url && (
+  <img
+    src={item.image_url}
+    alt={item.name}
+    className="w-full max-w-2xl mx-auto rounded-2xl object-cover"
+    style={{ maxHeight: "400px", aspectRatio: "16/9" }}
+  />
+)}
       </div>
 
       {/* Name + Aktionen */}
