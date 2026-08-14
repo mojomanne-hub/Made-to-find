@@ -107,17 +107,17 @@ export default async function ItemDetailPage({ params }: Props) {
         <ChevronLeft className="h-4 w-4" /> Alle Gegenstände
       </Link>
 
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-b from-slate-900 to-slate-950">
-        style={{ backgroundColor: color, maxHeight: "280px", aspectRatio: "16/9" }}>
-      {item.image_url && (
-  <img
-    src={item.image_url}
-    alt={item.name}
-    className="w-full rounded-2xl object-contain"
-  />
-)}
-      </div>
+   {/* Hero Banner */}
+<div className="bg-gradient-to-b from-slate-900 to-slate-950"
+  style={{ backgroundColor: color }}>
+  {item.image_url && (
+    <img
+      src={item.image_url}
+      alt={item.name}
+      className="w-full rounded-2xl object-contain"
+    />
+  )}
+</div>
 
       {/* Name + Aktionen */}
       <div className="flex items-start justify-between gap-3 mb-5">
