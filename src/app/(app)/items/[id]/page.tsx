@@ -108,7 +108,7 @@ export default async function ItemDetailPage({ params }: Props) {
       </Link>
 
       {/* Hero Banner */}
-      <div className="rounded-2xl overflow-hidden mb-5 w-full"
+      <div className="bg-gradient-to-b from-slate-900 to-slate-950">
         style={{ backgroundColor: color, maxHeight: "280px", aspectRatio: "16/9" }}>
       {item.image_url && (
   <img
