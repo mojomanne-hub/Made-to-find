@@ -177,6 +177,19 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
     setCropSrc(null);
   }
 
+async function handleEditPhoto() {
+  if (!imageUrl) return;
+  try {
+    // Fetch die externe imageUrl
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    setCropSrc(objectUrl);
+  } catch {
+    setServerError("Foto konnte nicht bearbeitet werden.");
+  }
+}
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});

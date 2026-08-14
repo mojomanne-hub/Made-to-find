@@ -146,6 +146,19 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
     setCropSrc(null);
   }
 
+async function handleEditPhoto() {
+  if (!imageUrl) return;
+  try {
+    // Fetch die externe imageUrl
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    setCropSrc(objectUrl);
+  } catch {
+    setServerError("Foto konnte nicht bearbeitet werden.");
+  }
+}
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
@@ -309,17 +322,19 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
               </button>
             </div>
 
-            {/* Vorschau */}
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                style={{ backgroundColor: mediaTab === "icon" ? color : "#2d3f55" }}>
-                {mediaTab === "emoji"
-                  ? <span className="text-2xl">{emoji}</span>
-                  : mediaTab === "icon"
-                  ? <DynIcon name={icon} className="h-5 w-5 text-white" />
-                  : imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : <LucideIcons.ImagePlus className="h-5 w-5 text-slate-400" />
-                }
-              </div>
+           {/* Vorschau */}
+<div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-700">
+  <div className="flex items-center gap-3 flex-1">
+    {/* Icon/Emoji/Foto */}
+  </div>
+  {(iconTab === "photo" || mediaTab === "photo") && (photoImageUrl || imageUrl) && (
+    <button type="button" onClick={handleEditPhoto}
+      className="h-8 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium flex items-center gap-1.5">
+      <LucideIcons.Edit2 className="h-3.5 w-3.5" />
+      Bearbeiten
+    </button>
+  )}
+</div>
               <div>
                 <p className="text-xs text-slate-500">Vorschau</p>
                 <p className="text-sm font-medium text-slate-200">{name || "Ablageort"}</p>
