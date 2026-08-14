@@ -115,7 +115,7 @@ export default async function ItemDetailPage({ params }: Props) {
     src={item.image_url}
     alt={item.name}
     className="w-full rounded-2xl object-cover"
-    style={{ maxHeight: "600px", aspectRatio: "16/9" }}
+    style={{ maxHeight: "80vh" }}
   />
 )}
       </div>
