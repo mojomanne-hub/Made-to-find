@@ -4,30 +4,30 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { Minus, Plus } from "lucide-react";
-import { createBrowserClient }                 from "@/lib/supabase/client";
-import { itemSchema }                          from "@/lib/validations";
+import { createBrowserClient } from "@/lib/supabase/client";
+import { itemSchema } from "@/lib/validations";
 import { ROUTES, ITEM_ICONS, LOCATION_COLORS } from "@/lib/constants";
-import { Button }    from "@/components/ui/Button";
-import { Input }     from "@/components/ui/Input";
-import { Textarea }  from "@/components/ui/Textarea";
-import { Card }      from "@/components/ui/Card";
-import { Alert }     from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
+import { Card } from "@/components/ui/Card";
+import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
-import { cn }        from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
 interface LocationOption {
-  id:    string;
-  name:  string;
+  id: string;
+  name: string;
   color: string | null;
 }
 
 interface ItemFormProps {
-  item?:                  Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null };
-  locations:              LocationOption[];
+  item?: Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null };
+  locations: LocationOption[];
   preselectedLocationId?: string;
-  userId:                 string;
-  groupId:                string | null;
+  userId: string;
+  groupId: string | null;
 }
 
 type IconTab = "emoji" | "icon" | "photo";
@@ -47,34 +47,33 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
   return <Icon className={className} />;
 }
 
-const MAX_SIZE_B = 1 * 1024 * 1024; // 1 MB
+const MAX_SIZE_B = 1 * 1024 * 1024;
 const BUCKET = "item-images";
 
 export function ItemForm({ item, locations, preselectedLocationId, userId, groupId }: ItemFormProps) {
   const isEditing = !!item;
-  const router    = useRouter();
+  const router = useRouter();
 
-  const savedIcon   = item?.icon ?? "";
-  const isEmoji     = savedIcon && !LUCIDE_ICONS.includes(savedIcon);
+  const savedIcon = item?.icon ?? "";
+  const isEmoji = savedIcon && !LUCIDE_ICONS.includes(savedIcon);
   const initialTab: IconTab = isEmoji ? "emoji" : "icon";
 
-  const [name,        setName]        = useState(item?.name        ?? "");
+  const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
-  const [quantity,    setQuantity]    = useState(item?.quantity     ?? 1);
-  const [locationId,  setLocationId]  = useState(
+  const [quantity, setQuantity] = useState(item?.quantity ?? 1);
+  const [locationId, setLocationId] = useState(
     item?.location_id ?? preselectedLocationId ?? locations[0]?.id ?? ""
   );
-  const [iconTab,     setIconTab]     = useState<IconTab>(initialTab);
-  const [emoji,       setEmoji]       = useState(isEmoji ? savedIcon : "📦");
-  const [lucideIcon,  setLucideIcon]  = useState(!isEmoji ? (savedIcon || "Package") : "Package");
-  const [color,       setColor]       = useState(item?.color ?? LOCATION_COLORS[0].value);
-  const [hasExpiry,   setHasExpiry]   = useState(!!item?.expires_at);
-  const [expiresAt,   setExpiresAt]   = useState(item?.expires_at ?? "");
-  const [isLoading,   setIsLoading]   = useState(false);
-  const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [iconTab, setIconTab] = useState<IconTab>(initialTab);
+  const [emoji, setEmoji] = useState(isEmoji ? savedIcon : "📦");
+  const [lucideIcon, setLucideIcon] = useState(!isEmoji ? (savedIcon || "Package") : "Package");
+  const [color, setColor] = useState(item?.color ?? LOCATION_COLORS[0].value);
+  const [hasExpiry, setHasExpiry] = useState(!!item?.expires_at);
+  const [expiresAt, setExpiresAt] = useState(item?.expires_at ?? "");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Cropper & Upload
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(null);
   const [showCompressionDialog, setShowCompressionDialog] = useState(false);
@@ -82,7 +81,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
 
   const currentIcon = iconTab === "emoji" ? emoji : iconTab === "icon" ? lucideIcon : null;
 
-  // Komprimieren
   async function compressImage(file: File): Promise<Blob> {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -91,17 +89,14 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
         img.onload = () => {
           const canvas = document.createElement("canvas");
           let { width, height } = img;
-          
           if (width > 1920) {
             height = Math.round((height * 1920) / width);
             width = 1920;
           }
-          
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext("2d")!;
           ctx.drawImage(img, 0, 0, width, height);
-          
           canvas.toBlob((blob) => {
             resolve(blob || new Blob());
           }, "image/jpeg", 0.75);
@@ -117,7 +112,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
       setPendingFile(file);
       setShowCompressionDialog(true);
     } else {
-      // Direkt zum Cropper
       const objectUrl = URL.createObjectURL(file);
       setCropSrc(objectUrl);
     }
@@ -126,12 +120,9 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   async function handleCompressAndUpload() {
     if (!pendingFile) return;
     setShowCompressionDialog(false);
-    
     try {
       const compressed = await compressImage(pendingFile);
       const compressedFile = new File([compressed], "image.jpg", { type: "image/jpeg" });
-      
-      // Jetzt zum Cropper
       const objectUrl = URL.createObjectURL(compressedFile);
       setCropSrc(objectUrl);
     } catch (err) {
@@ -141,11 +132,22 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
     }
   }
 
+  async function handleEditPhoto() {
+    if (!photoImageUrl) return;
+    try {
+      const response = await fetch(photoImageUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setCropSrc(objectUrl);
+    } catch {
+      setServerError("Foto konnte nicht bearbeitet werden.");
+    }
+  }
+
   async function handleCropDone(blob: Blob) {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
     setIsLoading(true);
-    
     try {
       const file = new File([blob], "image.jpg", { type: "image/jpeg" });
       const supabase = createBrowserClient();
@@ -154,15 +156,11 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
 
       const itemId = item?.id ?? crypto.randomUUID();
       const path = `${user.id}/${itemId}.jpg`;
-      
       await supabase.storage.from(BUCKET).remove([path]);
-      
       const { error } = await supabase.storage
         .from(BUCKET)
         .upload(path, file, { upsert: true, contentType: "image/jpeg" });
-      
       if (error) throw error;
-      
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
       setPhotoImageUrl(`${data.publicUrl}?t=${Date.now()}`);
     } catch {
@@ -176,19 +174,6 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
   }
-
-async function handleEditPhoto() {
-  if (!imageUrl) return;
-  try {
-    // Fetch die externe imageUrl
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    setCropSrc(objectUrl);
-  } catch {
-    setServerError("Foto konnte nicht bearbeitet werden.");
-  }
-}
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -213,14 +198,14 @@ async function handleEditPhoto() {
       if (!user) { router.push(ROUTES.login); return; }
 
       const payload = {
-        name:        result.data.name,
+        name: result.data.name,
         description: result.data.description ?? null,
-        quantity:    result.data.quantity,
+        quantity: result.data.quantity,
         location_id: result.data.location_id,
-        icon:        currentIcon,
-        image_url:   iconTab === "photo" ? photoImageUrl : null,
-        color:       iconTab === "icon" ? color : "#1e2a3a",
-        expires_at:  hasExpiry && expiresAt ? expiresAt : null,
+        icon: currentIcon,
+        image_url: iconTab === "photo" ? photoImageUrl : null,
+        color: iconTab === "icon" ? color : "#1e2a3a",
+        expires_at: hasExpiry && expiresAt ? expiresAt : null,
       };
 
       if (isEditing) {
@@ -245,7 +230,6 @@ async function handleEditPhoto() {
 
   return (
     <>
-      {/* Komprimierungs-Dialog */}
       {showCompressionDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-sm">
@@ -281,13 +265,8 @@ async function handleEditPhoto() {
         </div>
       )}
 
-      {/* ImageCropper */}
       {cropSrc && (
-        <ImageCropper
-          imageSrc={cropSrc}
-          onCrop={handleCropDone}
-          onCancel={handleCropCancel}
-        />
+        <ImageCropper imageSrc={cropSrc} onCrop={handleCropDone} onCancel={handleCropCancel} />
       )}
 
       <Card>
@@ -385,20 +364,31 @@ async function handleEditPhoto() {
               </button>
             </div>
 
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
-              <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: iconTab === "icon" ? color : "#2d3f55" }}>
-                {iconTab === "emoji"
-                  ? <span className="text-2xl">{emoji}</span>
-                  : iconTab === "icon"
-                  ? <DynIcon name={lucideIcon} className="h-5 w-5 text-white" />
-                  : photoImageUrl ? <img src={photoImageUrl} alt="" className="h-full w-full object-cover rounded-lg" /> : <LucideIcons.ImagePlus className="h-5 w-5 text-slate-400" />
-                }
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
+              <div className="flex items-center gap-3 flex-1">
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: iconTab === "icon" ? color : "#2d3f55" }}>
+                  {iconTab === "emoji"
+                    ? <span className="text-2xl">{emoji}</span>
+                    : iconTab === "icon"
+                    ? <DynIcon name={lucideIcon} className="h-5 w-5 text-white" />
+                    : photoImageUrl ? <img src={photoImageUrl} alt="" className="h-full w-full object-cover rounded-lg" /> : <LucideIcons.ImagePlus className="h-5 w-5 text-slate-400" />
+                  }
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Vorschau</p>
+                  <p className="text-sm font-medium text-slate-200">{name || "Gegenstand"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-slate-500">Vorschau</p>
-                <p className="text-sm font-medium text-slate-200">{name || "Gegenstand"}</p>
-              </div>
+              {iconTab === "photo" && photoImageUrl && (
+                <button
+                  type="button"
+                  onClick={handleEditPhoto}
+                  className="h-8 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium transition-colors flex items-center gap-1.5 flex-shrink-0">
+                  <LucideIcons.Edit2 className="h-3.5 w-3.5" />
+                  Bearbeiten
+                </button>
+              )}
             </div>
 
             {iconTab === "emoji" && (
