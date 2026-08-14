@@ -75,7 +75,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(null);
+ const [photoImageUrl, setPhotoImageUrl] = useState<string | null>(item?.image_url ?? null);
   const [showCompressionDialog, setShowCompressionDialog] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
