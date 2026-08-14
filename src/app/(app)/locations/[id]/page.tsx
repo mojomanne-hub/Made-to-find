@@ -18,7 +18,8 @@ export const metadata: Metadata = {
   title: "Ablageort",
 };
 
-export default async function LocationDetailPage({ params }: { params: { id: string } }) {
+export default async function LocationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -27,7 +28,7 @@ export default async function LocationDetailPage({ params }: { params: { id: str
   const { data: location } = await supabase
     .from("locations")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id)
     .single();
 

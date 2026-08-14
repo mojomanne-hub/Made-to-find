@@ -5,7 +5,6 @@ import * as LucideIcons from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
 import { ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
-import { Alert } from "@/components/ui/Alert";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
@@ -19,7 +18,8 @@ export const metadata: Metadata = {
   title: "Gegenstand",
 };
 
-export default async function ItemDetailPage({ params }: { params: { id: string } }) {
+export default async function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -28,7 +28,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   const { data: item } = await supabase
     .from("items")
     .select("*, locations!inner(name, color)")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id)
     .single();
 
