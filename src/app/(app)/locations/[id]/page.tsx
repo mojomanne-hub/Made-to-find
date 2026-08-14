@@ -1,47 +1,80 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { ChevronLeft, Edit, Plus } from "lucide-react";
 import * as LucideIcons from "lucide-react";
-import { createServerClient } from "@/lib/supabase/server";
-import { ROUTES } from "@/lib/constants";
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
-import type { Location } from "@/lib/types";
+import { createServerClient }   from "@/lib/supabase/server";
+import { Badge }                from "@/components/ui/Badge";
+import { ItemList }             from "@/components/items/ItemList";
+import { LocationDeleteButton } from "@/components/locations/LocationDeleteButton";
+import { ROUTES }               from "@/lib/constants";
+import { Button }               from "@/components/ui/Button";
 
-function DynIcon({ name, className }: { name: string; className?: string }) {
+interface Props { params: Promise<{ id: string }> }
+
+function DynIcon({ name, className }: { name: string | null; className?: string }) {
+  if (!name) return <LucideIcons.MapPin className={className} />;
+  
+  // Emoji-Erkennung: max 4 Zeichen und nicht mit Großbuchstaben (Lucide-Icon-Namen)
+  const isEmoji = name.length <= 4 && !/^[A-Z]/.test(name);
+  
+  if (isEmoji) {
+    return <span className="text-9xl leading-none">{name}</span>;
+  }
+  
   const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
-  if (!Icon) return <LucideIcons.Box className={className} />;
-  return <Icon className={className} />;
+  const Comp = Icon ?? LucideIcons.MapPin;
+  return <Comp className={className} />;
 }
 
-export const metadata: Metadata = {
-  title: "Ablageort",
-};
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createServerClient();
+  const { data } = await supabase.from("locations").select("name").eq("id", id).returns<{ name: string }[]>().maybeSingle();
+  return { title: data?.name ?? "Ablageort" };
+}
 
-export default async function LocationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LocationDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) redirect(ROUTES.login);
 
-  const { data: location } = await supabase
-    .from("locations")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  type LocationRow = {
+    id: string; name: string; description: string | null;
+    color: string | null; icon: string | null; image_url: string | null;
+    updated_at: string; deleted_at: string | null; user_id: string; created_at: string;
+  };
+  type ItemRow = {
+    id: string; name: string; description: string | null; quantity: number;
+    updated_at: string; location_id: string; user_id: string;
+    created_at: string; deleted_at: string | null;
+    icon: string | null; image_url: string | null; color: string | null;
+  };
 
-  if (!location) redirect(ROUTES.locations);
+  const [{ data: location }, { data: items }] = await Promise.all([
+    supabase.from("locations").select("*").eq("id", id).is("deleted_at", null).returns<LocationRow[]>().maybeSingle(),
+    supabase.from("items").select("*").eq("location_id", id).is("deleted_at", null).returns<ItemRow[]>().order("name"),
+  ]);
 
-  const locationColor = location.color || "#1a2535";
+  if (!location) notFound();
+
+  const color = location.color ?? "#3b82f6";
 
   return (
-    <div className="bg-gradient-to-b from-slate-900 to-slate-950">
+    <>
+      {/* Zurück */}
+      <Link
+        href={ROUTES.locations}
+        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4 transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" /> Alle Ablageorte
+      </Link>
+
       {/* Hero Banner */}
       <div
-        className="w-full"
-        style={{ backgroundColor: locationColor }}
+        className="rounded-2xl overflow-hidden mb-5 w-full"
+        style={{ backgroundColor: color }}
       >
         {location.image_url ? (
           <img
@@ -50,49 +83,46 @@ export default async function LocationDetailPage({ params }: { params: Promise<{
             className="w-full rounded-2xl object-contain"
           />
         ) : location.icon ? (
-          <div className="w-full flex items-center justify-center py-16 rounded-2xl">
-            {location.icon.length <= 4 && !/^[A-Z]/.test(location.icon) ? (
-              <span className="text-9xl">{location.icon}</span>
-            ) : (
-              <DynIcon name={location.icon} className="h-32 w-32 text-white" />
-            )}
+          <div className="w-full flex items-center justify-center py-12 rounded-2xl" style={{ backgroundColor: location.color || "#1a2535" }}>
+            <DynIcon name={location.icon} className="h-32 w-32 text-white" />
           </div>
         ) : null}
       </div>
 
-      {/* Content */}
-      <div className="px-4 py-6 space-y-6">
+      {/* Name + Aktionen */}
+      <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-3xl font-bold text-white">{location.name}</h1>
-        </div>
-
-        {location.description && (
-          <div>
-            <p className="text-sm font-medium text-slate-300 mb-2">Beschreibung</p>
-            <p className="text-slate-400 whitespace-pre-wrap">{location.description}</p>
+          <h1 className="text-2xl font-bold text-slate-100">{location.name}</h1>
+          {location.description && (
+            <p className="text-sm text-slate-400 mt-1">{location.description}</p>
+          )}
+          <div className="mt-2">
+            <Badge variant="primary">{items?.length ?? 0} Artikel</Badge>
           </div>
-        )}
-
-        <div className="flex gap-3 pt-4">
-          <Button variant="secondary" asChild>
-            <Link href={ROUTES.locationEdit(location.id)}>
-              <LucideIcons.Edit2 className="h-4 w-4 mr-1.5" />
-              Bearbeiten
-            </Link>
-          </Button>
-          <Button variant="danger" asChild>
-            <Link href={ROUTES.locationDelete(location.id)}>
-              <LucideIcons.Trash2 className="h-4 w-4 mr-1.5" />
-              Löschen
-            </Link>
-          </Button>
         </div>
 
-        <Link href={ROUTES.locations} className="inline-flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300 transition-colors mt-6">
-          <LucideIcons.ChevronLeft className="h-4 w-4" />
-          Zurück zur Übersicht
+        {/* Icon-Buttons */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <LocationDeleteButton locationId={id} locationName={location.name} />
+          <Link href={ROUTES.locationEdit(id)}>
+            <button className="h-9 w-9 rounded-xl border border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-all">
+              <Edit className="h-4 w-4" />
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Gegenstand hinzufügen */}
+      <div className="mb-4">
+        <Link href={ROUTES.itemNewAtLocation(id)}>
+          <Button size="sm" variant="secondary">
+            <Plus className="h-4 w-4" /> Gegenstand hinzufügen
+          </Button>
         </Link>
       </div>
-    </div>
+
+      {/* Gegenstände-Liste */}
+      <ItemList items={items ?? []} showLocation={false} />
+    </>
   );
 }
