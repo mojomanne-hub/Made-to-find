@@ -72,16 +72,21 @@ export default async function LocationDetailPage({ params }: Props) {
       </Link>
 
       {/* Hero Banner */}
-<div className="bg-gradient-to-b from-slate-900 to-slate-950"
-  style={{ backgroundColor: color }}>
-  {location.image_url && (
-    <img
-      src={location.image_url}
-      alt={location.name}
-      className="w-full rounded-2xl object-contain"
-    />
-  )}
-</div>
+{location.image_url ? (
+  <img
+    src={location.image_url}
+    alt={location.name}
+    className="w-full rounded-2xl object-contain"
+  />
+) : location.icon ? (
+  <div className="w-full flex items-center justify-center py-12 rounded-2xl" style={{ backgroundColor: location.color || "#1a2535" }}>
+    {location.icon.length <= 4 && !/^[A-Z]/.test(location.icon) ? (
+      <span className="text-9xl">{location.icon}</span>
+    ) : (
+      <DynIcon name={location.icon} className="h-32 w-32 text-white" />
+    )}
+  </div>
+) : null}
 
       {/* Name + Aktionen */}
       <div className="flex items-start justify-between gap-3 mb-5">

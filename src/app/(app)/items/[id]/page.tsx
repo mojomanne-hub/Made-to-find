@@ -108,16 +108,21 @@ export default async function ItemDetailPage({ params }: Props) {
       </Link>
 
    {/* Hero Banner */}
-<div className="bg-gradient-to-b from-slate-900 to-slate-950"
-  style={{ backgroundColor: color }}>
-  {item.image_url && (
-    <img
-      src={item.image_url}
-      alt={item.name}
-      className="w-full rounded-2xl object-contain"
-    />
-  )}
-</div>
+{item.image_url ? (
+  <img
+    src={item.image_url}
+    alt={item.name}
+    className="w-full rounded-2xl object-contain"
+  />
+) : item.icon ? (
+  <div className="w-full flex items-center justify-center py-12 rounded-2xl" style={{ backgroundColor: item.color || "#1a2535" }}>
+    {item.icon.length <= 4 && !/^[A-Z]/.test(item.icon) ? (
+      <span className="text-9xl">{item.icon}</span>
+    ) : (
+      <DynIcon name={item.icon} className="h-32 w-32 text-white" />
+    )}
+  </div>
+) : null}
 
       {/* Name + Aktionen */}
       <div className="flex items-start justify-between gap-3 mb-5">
