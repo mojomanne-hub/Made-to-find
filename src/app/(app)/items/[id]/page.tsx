@@ -114,8 +114,8 @@ export default async function ItemDetailPage({ params }: Props) {
   <img
     src={item.image_url}
     alt={item.name}
-    className="w-full max-w-2xl mx-auto rounded-2xl object-cover"
-    style={{ maxHeight: "400px", aspectRatio: "16/9" }}
+    className="w-full rounded-2xl object-cover"
+    style={{ maxHeight: "600px", aspectRatio: "16/9" }}
   />
 )}
       </div>
