@@ -71,25 +71,17 @@ export default async function LocationDetailPage({ params }: Props) {
         <ChevronLeft className="h-4 w-4" /> Alle Ablageorte
       </Link>
 
-      {/* Hero Banner – 16:9 */}
-      <div
-        className="rounded-2xl overflow-hidden mb-5 w-full"
-        style={{ backgroundColor: color, maxHeight: "280px", aspectRatio: "16/9" }}
-      >
-        {location.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={location.image_url}
-            alt={location.name}
-            className="w-full max-w-2xl mx-auto rounded-2xl object-cover"
-    style={{ maxHeight: "400px", aspectRatio: "16/9" }}
-  />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <DynIcon name={location.icon} className="h-20 w-20 text-white/70" />
-          </div>
-        )}
-      </div>
+      {/* Hero Banner */}
+<div className="bg-gradient-to-b from-slate-900 to-slate-950"
+  style={{ backgroundColor: color }}>
+  {location.image_url && (
+    <img
+      src={location.image_url}
+      alt={location.name}
+      className="w-full rounded-2xl object-contain"
+    />
+  )}
+</div>
 
       {/* Name + Aktionen */}
       <div className="flex items-start justify-between gap-3 mb-5">
