@@ -9,6 +9,13 @@ import { ItemList }             from "@/components/items/ItemList";
 import { LocationDeleteButton } from "@/components/locations/LocationDeleteButton";
 import { ROUTES }               from "@/lib/constants";
 import { Button }               from "@/components/ui/Button";
+import * as LucideIcons from "lucide-react";
+
+function DynIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
+  if (!Icon) return <LucideIcons.Box className={className} />;
+  return <Icon className={className} />;
+}
 
 interface Props { params: Promise<{ id: string }> }
 

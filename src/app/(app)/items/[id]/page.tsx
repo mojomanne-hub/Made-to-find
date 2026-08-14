@@ -8,6 +8,13 @@ import { Badge }            from "@/components/ui/Badge";
 import { Card }             from "@/components/ui/Card";
 import { ItemDeleteButton } from "@/components/items/ItemDeleteButton";
 import { ROUTES }           from "@/lib/constants";
+import * as LucideIcons from "lucide-react";
+
+function DynIcon({ name, className }: { name: string; className?: string }) {
+  const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
+  if (!Icon) return <LucideIcons.Box className={className} />;
+  return <Icon className={className} />;
+}
 
 interface Props { params: Promise<{ id: string }> }
 
