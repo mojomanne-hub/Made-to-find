@@ -217,9 +217,10 @@ export function SettingsForm({ userEmail, displayName: initialDisplayName }: Set
           </Button>
         </CardContent>
       </Card>
-    </>
-  );
 
 {/* ── Gefahrenzone ── */}
 <DeleteAccountCard />
+    </>
+  );
+
 }
