@@ -204,7 +204,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
         location_id: result.data.location_id,
         icon: currentIcon,
         image_url: iconTab === "photo" ? photoImageUrl : null,
-        color: iconTab === "icon" ? color : "#1e2a3a",
+        color: iconTab === "icon" || iconTab === "emoji" ? color : "#1e2a3a",
         expires_at: hasExpiry && expiresAt ? expiresAt : null,
       };
 
@@ -367,7 +367,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
               <div className="flex items-center gap-3 flex-1">
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: iconTab === "icon" ? color : "#2d3f55" }}>
+  style={{ backgroundColor: iconTab === "icon" || iconTab === "emoji" ? color : "#2d3f55" }}>
                   {iconTab === "emoji"
                     ? <span className="text-2xl">{emoji}</span>
                     : iconTab === "icon"
@@ -448,9 +448,9 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             )}
           </div>
 
-          {iconTab === "icon" && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
+          {(iconTab === "icon" || iconTab === "emoji") && (
+  <div className="flex flex-col gap-2">
+    <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
               <div className="flex flex-wrap gap-2">
                 {LOCATION_COLORS.map((col) => (
                   <button key={col.value} type="button" onClick={() => setColor(col.value)} title={col.label}
