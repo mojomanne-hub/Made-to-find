@@ -33,6 +33,11 @@ export const LOCATION_COLORS: { label: string; value: string }[] = [
   { label: "Gelb",    value: "#eab308" },
   { label: "Grau",    value: "#6b7280" },
   { label: "Schwarz", value: "#171717" },
+  { label: "Türkis",  value: "#14b8a6" },
+  { label: "Indigo",  value: "#6366f1" },
+  { label: "Braun",   value: "#92400e" },
+  { label: "Limette", value: "#84cc16" },
+  { label: "Weiß",    value: "#e5e7eb" },
 ];
 
 // ---- Routen -----------------------------------------------
