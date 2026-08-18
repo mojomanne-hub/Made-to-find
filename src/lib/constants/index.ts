@@ -95,7 +95,6 @@ export const LOCATION_EMOJIS = {
     { label: "Büro/Arbeitszimmer", emoji: "🖥️" },
     { label: "Flur/Diele", emoji: "🚪" },
     { label: "Treppe", emoji: "🪜" },
-    { label: "Kammer", emoji: "🗄️" },
   ],
   lagerung: [
     { label: "Keller", emoji: "🏚️" },
@@ -144,25 +143,36 @@ export const ITEM_ICONS = {
     { label: "Handy", emoji: "📱" },
     { label: "Kamera", emoji: "📷" },
     { label: "Kopfhörer", emoji: "🎧" },
+    { label: "Radio", emoji: "📻" },
     { label: "Batterie", emoji: "🔋" },
+  ],
+  werkzeug: [
+    { label: "Reifen", emoji: "🛞" },
+    { label: "Werkzeug", emoji: "🔧" },
+    { label: "Verlängerungskabel", emoji: "🔌" },
+    { label: "Glühbirnen", emoji: "💡" },
+
   ],
   wohnen: [
     { label: "Stuhl", emoji: "🪑" },
     { label: "Regal", emoji: "📚" },
     { label: "Bett", emoji: "🛏️" },
     { label: "Schrank", emoji: "🗄️" },
+    { label: "Ordner", emoji: "📂" },
   ],
   kleidung: [
     { label: "Shirt", emoji: "👕" },
     { label: "Schuhe", emoji: "👟" },
+    { label: "Schmuck", emoji: "💍" },
     { label: "Uhr", emoji: "⌚" },
     { label: "Koffer", emoji: "🧳" },
   ],
-  spiele: [
+  spiele/hobby: [
     { label: "Kartenspiel", emoji: "🃏" },
     { label: "Würfelspiel", emoji: "🎲" },
     { label: "Videospiel", emoji: "🎮" },
     { label: "Ball", emoji: "⚽" },
+    { label: "Instrumente", emoji: "🎸" },
   ],
 };
 
