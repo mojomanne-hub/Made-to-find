@@ -167,7 +167,7 @@ export const ITEM_ICONS = {
     { label: "Uhr", emoji: "⌚" },
     { label: "Koffer", emoji: "🧳" },
   ],
-  spiele/hobby: [
+  "spiele/hobby": [
     { label: "Kartenspiel", emoji: "🃏" },
     { label: "Würfelspiel", emoji: "🎲" },
     { label: "Videospiel", emoji: "🎮" },
