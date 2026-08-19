@@ -341,12 +341,72 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             required autoFocus maxLength={100}
           />
 
+          {/* ── Fach / Ebene ── */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={toggleHasShelves}
+                className={cn(
+                  "relative h-6 w-11 rounded-full transition-colors flex-shrink-0",
+                  hasShelves ? "bg-brand-600" : "bg-slate-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform",
+                    hasShelves ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+              <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <LucideIcons.Rows3 className="h-4 w-4 text-slate-400" />
+                Fach / Ebene
+              </span>
+            </div>
+
+            {hasShelves ? (
+              <div className="flex flex-col gap-2">
+                {shelves.map((shelf, idx) => (
+                  <div key={shelf.id} className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-5 flex-shrink-0 text-right">{idx + 1}.</span>
+                    <input
+                      type="text"
+                      value={shelf.name}
+                      onChange={(e) => updateShelfName(shelf.id, e.target.value)}
+                      placeholder="z.B. Oben, Mitte, Unten..."
+                      maxLength={50}
+                      className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeShelf(shelf.id)}
+                      className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center text-slate-400 hover:text-danger-400 hover:border-danger-500/50 transition-colors flex-shrink-0"
+                    >
+                      <LucideIcons.Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" size="sm" onClick={addShelf} className="self-start">
+                  <LucideIcons.Plus className="h-4 w-4" /> Fach hinzufügen
+                </Button>
+                <p className="text-xs text-slate-500">
+                  Beim Hinzufügen von Gegenständen muss hier ein Fach ausgewählt werden.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-600">
+                Aktivieren, um diesen Ablageort in Fächer/Ebenen zu unterteilen (z.B. für Regale).
+              </p>
+            )}
+          </div>
+
           <Textarea
             label="Beschreibung"
             placeholder="Optionale Beschreibung des Ablageortes..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={3}
+            rows={2}
             maxLength={500}
             hint="Optional – hilft beim Wiederfinden"
           />
@@ -499,66 +559,6 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
                 />
               ))}
             </div>
-          </div>
-
-          {/* ── Fachböden ── */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={toggleHasShelves}
-                className={cn(
-                  "relative h-6 w-11 rounded-full transition-colors flex-shrink-0",
-                  hasShelves ? "bg-brand-600" : "bg-slate-700"
-                )}
-              >
-                <span
-                  className={cn(
-                    "absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform",
-                    hasShelves ? "translate-x-5" : "translate-x-0"
-                  )}
-                />
-              </button>
-              <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                <LucideIcons.Rows3 className="h-4 w-4 text-slate-400" />
-                Fachböden
-              </span>
-            </div>
-
-            {hasShelves ? (
-              <div className="flex flex-col gap-2">
-                {shelves.map((shelf, idx) => (
-                  <div key={shelf.id} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 w-5 flex-shrink-0 text-right">{idx + 1}.</span>
-                    <input
-                      type="text"
-                      value={shelf.name}
-                      onChange={(e) => updateShelfName(shelf.id, e.target.value)}
-                      placeholder="z.B. Oben, Mitte, Unten..."
-                      maxLength={50}
-                      className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeShelf(shelf.id)}
-                      className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center text-slate-400 hover:text-danger-400 hover:border-danger-500/50 transition-colors flex-shrink-0"
-                    >
-                      <LucideIcons.Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                <Button type="button" variant="secondary" size="sm" onClick={addShelf} className="self-start">
-                  <LucideIcons.Plus className="h-4 w-4" /> Fachboden hinzufügen
-                </Button>
-                <p className="text-xs text-slate-500">
-                  Beim Hinzufügen von Gegenständen muss hier ein Fachboden ausgewählt werden.
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-600">
-                Aktivieren, um diesen Ablageort in Fachböden zu unterteilen (z.B. für Regale).
-              </p>
-            )}
           </div>
 
           <div className="flex gap-3 pt-1">
