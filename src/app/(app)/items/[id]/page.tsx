@@ -83,7 +83,7 @@ export default async function ItemDetailPage({ params }: Props) {
     id: string; name: string; description: string | null;
     quantity: number; updated_at: string; location_id: string;
     image_url: string | null; icon: string | null; color: string | null;
-    expires_at: string | null;
+    expires_at: string | null; shelf_id: string | null;
     locations: { id: string; name: string; color: string | null } | null;
   };
 
@@ -99,6 +99,10 @@ export default async function ItemDetailPage({ params }: Props) {
 
   const location = item.locations;
   const color    = item.color ?? location?.color ?? "#6b7280";
+
+  const { data: shelf } = item.shelf_id
+    ? await supabase.from("shelves").select("name").eq("id", item.shelf_id).maybeSingle()
+    : { data: null };
 
   return (
     <>
@@ -132,6 +136,9 @@ export default async function ItemDetailPage({ params }: Props) {
               className="flex items-center gap-1 mt-1 text-sm text-brand-400 hover:text-brand-300 transition-colors">
               <MapPin className="h-3.5 w-3.5" style={{ color: location.color ?? "#3b82f6" }} />
               {location.name}
+              {shelf && (
+                <span className="text-slate-500"> · Fach: {shelf.name}</span>
+              )}
             </Link>
           )}
           <div className="mt-2">

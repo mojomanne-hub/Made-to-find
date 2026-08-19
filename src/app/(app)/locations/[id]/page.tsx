@@ -50,16 +50,33 @@ export default async function LocationDetailPage({ params }: Props) {
     updated_at: string; location_id: string; user_id: string;
     created_at: string; deleted_at: string | null;
     icon: string | null; image_url: string | null; color: string | null;
+    shelf_id: string | null;
   };
+  type ShelfRow = { id: string; name: string; position: number };
 
-  const [{ data: location }, { data: items }] = await Promise.all([
+  const [{ data: location }, { data: items }, { data: shelfList }] = await Promise.all([
     supabase.from("locations").select("*").eq("id", id).is("deleted_at", null).returns<LocationRow[]>().maybeSingle(),
     supabase.from("items").select("*").eq("location_id", id).is("deleted_at", null).returns<ItemRow[]>().order("name"),
+    supabase.from("shelves").select("id, name, position").eq("location_id", id).order("position").returns<ShelfRow[]>(),
   ]);
 
   if (!location) notFound();
 
   const color = location.color ?? "#3b82f6";
+  const allItems = items ?? [];
+  const shelves = shelfList ?? [];
+  const hasShelves = shelves.length > 0;
+
+  // Items nach Fach gruppieren (nur relevant, wenn der Ablageort Fächer hat)
+  const itemsByShelf = hasShelves
+    ? shelves.map((shelf) => ({
+        shelf,
+        items: allItems.filter((it) => it.shelf_id === shelf.id),
+      }))
+    : [];
+  const itemsWithoutShelf = hasShelves
+    ? allItems.filter((it) => !it.shelf_id)
+    : [];
 
   return (
     <>
@@ -97,7 +114,7 @@ export default async function LocationDetailPage({ params }: Props) {
             <p className="text-sm text-slate-400 mt-1">{location.description}</p>
           )}
           <div className="mt-2">
-            <Badge variant="primary">{items?.length ?? 0} Artikel</Badge>
+            <Badge variant="primary">{allItems.length} Artikel</Badge>
           </div>
         </div>
 
@@ -122,7 +139,37 @@ export default async function LocationDetailPage({ params }: Props) {
       </div>
 
       {/* Gegenstände-Liste */}
-      <ItemList items={items ?? []} showLocation={false} />
+      {hasShelves ? (
+        <div className="space-y-6">
+          {itemsByShelf.map(({ shelf, items: shelfItems }) => (
+            <div key={shelf.id}>
+              <div className="flex items-center gap-2 mb-2">
+                <LucideIcons.Rows3 className="h-3.5 w-3.5 text-slate-500" />
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{shelf.name}</h2>
+                <span className="text-xs text-slate-600">({shelfItems.length})</span>
+              </div>
+              {shelfItems.length > 0 ? (
+                <ItemList items={shelfItems} showLocation={false} />
+              ) : (
+                <p className="text-xs text-slate-600 pl-1">Keine Gegenstände in diesem Fach.</p>
+              )}
+            </div>
+          ))}
+
+          {itemsWithoutShelf.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <LucideIcons.HelpCircle className="h-3.5 w-3.5 text-slate-500" />
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Ohne Fach</h2>
+                <span className="text-xs text-slate-600">({itemsWithoutShelf.length})</span>
+              </div>
+              <ItemList items={itemsWithoutShelf} showLocation={false} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <ItemList items={allItems} showLocation={false} />
+      )}
     </>
   );
 }
