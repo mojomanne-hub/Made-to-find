@@ -24,16 +24,23 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
 type MediaTab = "emoji" | "icon" | "photo";
 type IconTab = "emoji" | "icon";
 
+interface ShelfRow {
+  id: string;
+  name: string;
+  isNew?: boolean;
+}
+
 interface LocationFormProps {
   location?: Location & { icon?: string | null; image_url?: string | null };
   userId: string;
   groupId: string | null;
+  initialShelves?: { id: string; name: string }[];
 }
 
 const BUCKET = "location-images";
 const MAX_SIZE_B = 1 * 1024 * 1024;
 
-export function LocationForm({ location, userId, groupId }: LocationFormProps) {
+export function LocationForm({ location, userId, groupId, initialShelves = [] }: LocationFormProps) {
   const isEditing = !!location;
   const router = useRouter();
 
@@ -54,6 +61,42 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const [tempLocId] = useState(location?.id ?? crypto.randomUUID());
+
+  // ── Fachböden ──────────────────────────────────────────────
+  const [hasShelves, setHasShelves] = useState(initialShelves.length > 0);
+  const [shelves, setShelves] = useState<ShelfRow[]>(
+    initialShelves.length > 0 ? initialShelves.map((s) => ({ id: s.id, name: s.name })) : []
+  );
+  const [removedShelfIds, setRemovedShelfIds] = useState<string[]>([]);
+
+  function addShelf() {
+    setShelves((prev) => [...prev, { id: crypto.randomUUID(), name: "", isNew: true }]);
+  }
+
+  function updateShelfName(id: string, value: string) {
+    setShelves((prev) => prev.map((s) => (s.id === id ? { ...s, name: value } : s)));
+  }
+
+  function removeShelf(id: string) {
+    setShelves((prev) => prev.filter((s) => s.id !== id));
+    const wasExisting = initialShelves.some((s) => s.id === id);
+    if (wasExisting) setRemovedShelfIds((prev) => [...prev, id]);
+  }
+
+  function toggleHasShelves() {
+    setHasShelves((v) => {
+      const next = !v;
+      if (!next) {
+        // Alle vorhandenen Fachböden zum Löschen markieren, Liste leeren
+        const existingIds = shelves.filter((s) => !s.isNew).map((s) => s.id);
+        setRemovedShelfIds((prev) => [...prev, ...existingIds]);
+        setShelves([]);
+      } else if (shelves.length === 0) {
+        addShelf();
+      }
+      return next;
+    });
+  }
 
   const savedIcon = location?.icon ?? "";
   const isEmojiSaved = savedIcon && !LOCATION_ICONS.map(i => i.name).includes(savedIcon);
@@ -149,6 +192,37 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
     setCropSrc(null);
   }
 
+  async function syncShelves(supabase: ReturnType<typeof createBrowserClient>, locationId: string) {
+    // Entfernte Fachböden löschen
+    if (removedShelfIds.length > 0) {
+      await supabase.from("shelves").delete().in("id", removedShelfIds);
+    }
+
+    if (!hasShelves) return;
+
+    const trimmed = shelves
+      .map((s, idx) => ({ ...s, name: s.name.trim(), position: idx }))
+      .filter((s) => s.name.length > 0);
+
+    const toInsert = trimmed.filter((s) => s.isNew);
+    const toUpdate = trimmed.filter((s) => !s.isNew);
+
+    if (toInsert.length > 0) {
+      await supabase.from("shelves").insert(
+        toInsert.map((s) => ({
+          location_id: locationId,
+          user_id: userId,
+          name: s.name,
+          position: s.position,
+        }))
+      );
+    }
+
+    for (const s of toUpdate) {
+      await supabase.from("shelves").update({ name: s.name, position: s.position }).eq("id", s.id);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
@@ -162,6 +236,11 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
         if (!fieldErrors[field]) fieldErrors[field] = err.message;
       }
       setErrors(fieldErrors);
+      return;
+    }
+
+    if (hasShelves && shelves.filter((s) => s.name.trim().length > 0).length === 0) {
+      setServerError("Füge mindestens einen Fachboden hinzu oder deaktiviere die Fachboden-Option.");
       return;
     }
 
@@ -189,6 +268,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
       if (isEditing) {
         const { error } = await supabase.from("locations").update(payload).eq("id", location.id);
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
+        await syncShelves(supabase, location.id);
         router.push(ROUTES.locationDetail(location.id));
       } else {
         const { data, error } = await supabase
@@ -196,6 +276,7 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
           .insert({ ...payload, user_id: userId, ...(groupId ? { group_id: groupId } : {}) })
           .select().single();
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
+        await syncShelves(supabase, data.id);
         router.push(ROUTES.locationDetail(data.id));
       }
       router.refresh();
@@ -418,6 +499,66 @@ export function LocationForm({ location, userId, groupId }: LocationFormProps) {
                 />
               ))}
             </div>
+          </div>
+
+          {/* ── Fachböden ── */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={toggleHasShelves}
+                className={cn(
+                  "relative h-6 w-11 rounded-full transition-colors flex-shrink-0",
+                  hasShelves ? "bg-brand-600" : "bg-slate-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform",
+                    hasShelves ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+              <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <LucideIcons.Rows3 className="h-4 w-4 text-slate-400" />
+                Fachböden
+              </span>
+            </div>
+
+            {hasShelves ? (
+              <div className="flex flex-col gap-2">
+                {shelves.map((shelf, idx) => (
+                  <div key={shelf.id} className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-5 flex-shrink-0 text-right">{idx + 1}.</span>
+                    <input
+                      type="text"
+                      value={shelf.name}
+                      onChange={(e) => updateShelfName(shelf.id, e.target.value)}
+                      placeholder="z.B. Oben, Mitte, Unten..."
+                      maxLength={50}
+                      className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeShelf(shelf.id)}
+                      className="h-10 w-10 rounded-xl border border-slate-600 flex items-center justify-center text-slate-400 hover:text-danger-400 hover:border-danger-500/50 transition-colors flex-shrink-0"
+                    >
+                      <LucideIcons.Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" variant="secondary" size="sm" onClick={addShelf} className="self-start">
+                  <LucideIcons.Plus className="h-4 w-4" /> Fachboden hinzufügen
+                </Button>
+                <p className="text-xs text-slate-500">
+                  Beim Hinzufügen von Gegenständen muss hier ein Fachboden ausgewählt werden.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-600">
+                Aktivieren, um diesen Ablageort in Fachböden zu unterteilen (z.B. für Regale).
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-1">
