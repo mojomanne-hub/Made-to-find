@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
@@ -50,6 +50,7 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
   const [sharingModal, setSharingModal] = useState(false);
   const [shareTarget,  setShareTarget]  = useState<Group | null>(null);
   const [manageTarget, setManageTarget] = useState<Group | null>(null);
+  const [membersTarget, setMembersTarget] = useState<Group | null>(null);
 
   // Body scroll sperren wenn offen
   useEffect(() => {
@@ -164,6 +165,13 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
                   <span className="text-sm text-slate-300 truncate">{group.name}</span>
                 </div>
                 <button
+                  onClick={() => { setMembersTarget(group); setSharingModal(true); }}
+                  className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
+                  title="Mitglieder anzeigen"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+                <button
                   onClick={() => { setManageTarget(group); setSharingModal(true); }}
                   className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
                   title="Bearbeiten"
@@ -228,9 +236,10 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
       {/* Geteilter Zugriff Modal */}
       <SharedAccessModal
         isOpen={sharingModal}
-        onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); }}
+        onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); setMembersTarget(null); }}
         initialGroup={shareTarget}
         initialManageGroup={manageTarget}
+        initialMembersGroup={membersTarget}
         groups={groups}
         onGroupsChange={setGroups}
         userId={user.id}

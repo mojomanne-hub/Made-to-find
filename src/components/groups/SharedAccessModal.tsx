@@ -192,19 +192,31 @@ export function SharedAccessModal({
     setError(null);
     try {
       const supabase = createBrowserClient();
-      const { data, error: mErr } = await supabase
+      const { data: memberRows, error: mErr } = await supabase
         .from("group_members")
-        .select("user_id, profiles(display_name)")
+        .select("user_id")
         .eq("group_id", group.id);
       if (mErr) throw mErr;
-      const list: GroupMember[] = (data ?? []).map((row) => {
-        const profile = row.profiles as unknown as { display_name: string | null } | { display_name: string | null }[] | null;
-        const displayName = Array.isArray(profile) ? profile[0]?.display_name ?? null : profile?.display_name ?? null;
-        return { user_id: row.user_id as string, display_name: displayName };
+
+      const userIds = (memberRows ?? []).map((r) => r.user_id as string);
+      if (userIds.length === 0) {
+        setMembers([]);
+        return;
+      }
+
+      const { data: profileRows, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      if (pErr) throw pErr;
+
+      const list: GroupMember[] = userIds.map((uid) => {
+        const profile = profileRows?.find((p) => p.id === uid);
+        return { user_id: uid, display_name: profile?.display_name ?? null };
       });
       setMembers(list);
-    } catch {
-      setError("Mitglieder konnten nicht geladen werden.");
+    } catch (err) {
+      setError(err instanceof Error ? `Mitglieder konnten nicht geladen werden: ${err.message}` : "Mitglieder konnten nicht geladen werden.");
     } finally {
       setMembersLoading(false);
     }
