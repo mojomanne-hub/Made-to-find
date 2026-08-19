@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { Minus, Plus } from "lucide-react";
@@ -22,9 +22,16 @@ interface LocationOption {
   color: string | null;
 }
 
+interface ShelfOption {
+  id: string;
+  location_id: string;
+  name: string;
+}
+
 interface ItemFormProps {
-  item?: Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null };
+  item?: Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null; shelf_id?: string | null };
   locations: LocationOption[];
+  shelves?: ShelfOption[];
   preselectedLocationId?: string;
   userId: string;
   groupId: string | null;
@@ -50,7 +57,7 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
 const MAX_SIZE_B = 1 * 1024 * 1024;
 const BUCKET = "item-images";
 
-export function ItemForm({ item, locations, preselectedLocationId, userId, groupId }: ItemFormProps) {
+export function ItemForm({ item, locations, shelves = [], preselectedLocationId, userId, groupId }: ItemFormProps) {
   const isEditing = !!item;
   const router = useRouter();
 
@@ -64,6 +71,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [locationId, setLocationId] = useState(
     item?.location_id ?? preselectedLocationId ?? locations[0]?.id ?? ""
   );
+  const [shelfId, setShelfId] = useState(item?.shelf_id ?? "");
   const [iconTab, setIconTab] = useState<IconTab>(initialTab);
   const [emoji, setEmoji] = useState(isEmoji ? savedIcon : "📦");
   const [lucideIcon, setLucideIcon] = useState(!isEmoji ? (savedIcon || "Package") : "Package");
@@ -80,6 +88,20 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const currentIcon = iconTab === "emoji" ? emoji : iconTab === "icon" ? lucideIcon : null;
+
+  // ── Fach / Ebene ───────────────────────────────────────────
+  const shelvesForLocation = useMemo(
+    () => shelves.filter((s) => s.location_id === locationId),
+    [shelves, locationId]
+  );
+  const locationHasShelves = shelvesForLocation.length > 0;
+
+  function handleLocationChange(newLocationId: string) {
+    setLocationId(newLocationId);
+    // Fach zurücksetzen, wenn der neue Ablageort das gewählte Fach nicht hat
+    const stillValid = shelves.some((s) => s.location_id === newLocationId && s.id === shelfId);
+    if (!stillValid) setShelfId("");
+  }
 
   async function compressImage(file: File): Promise<Blob> {
     return new Promise((resolve) => {
@@ -191,6 +213,11 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
       return;
     }
 
+    if (locationHasShelves && !shelfId) {
+      setErrors((prev) => ({ ...prev, shelf_id: "Bitte ein Fach auswählen." }));
+      return;
+    }
+
     setIsLoading(true);
     try {
       const supabase = createBrowserClient();
@@ -202,6 +229,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
         description: result.data.description ?? null,
         quantity: result.data.quantity,
         location_id: result.data.location_id,
+        shelf_id: locationHasShelves ? shelfId : null,
         icon: currentIcon,
         image_url: iconTab === "photo" ? photoImageUrl : null,
         color: iconTab === "icon" || iconTab === "emoji" ? color : "#1e2a3a",
@@ -291,12 +319,27 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
                 Erstelle zuerst einen <a href={ROUTES.locationNew} className="font-semibold underline">Ablageort</a>.
               </Alert>
             ) : (
-              <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className="input-base">
+              <select value={locationId} onChange={(e) => handleLocationChange(e.target.value)} className="input-base">
                 {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
             )}
             {errors.location_id && <p className="text-xs text-danger-400">{errors.location_id}</p>}
           </div>
+
+          {locationHasShelves && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-300">
+                Fach / Ebene <span className="text-danger-400">*</span>
+              </label>
+              <select value={shelfId} onChange={(e) => setShelfId(e.target.value)} className="input-base">
+                <option value="" disabled>Bitte auswählen…</option>
+                {shelvesForLocation.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              {errors.shelf_id && <p className="text-xs text-danger-400">{errors.shelf_id}</p>}
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-300">Menge</label>
@@ -367,7 +410,7 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
             <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
               <div className="flex items-center gap-3 flex-1">
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
-  style={{ backgroundColor: iconTab === "icon" || iconTab === "emoji" ? color : "#2d3f55" }}>
+                  style={{ backgroundColor: iconTab === "icon" || iconTab === "emoji" ? color : "#2d3f55" }}>
                   {iconTab === "emoji"
                     ? <span className="text-2xl">{emoji}</span>
                     : iconTab === "icon"
@@ -449,8 +492,8 @@ export function ItemForm({ item, locations, preselectedLocationId, userId, group
           </div>
 
           {(iconTab === "icon" || iconTab === "emoji") && (
-  <div className="flex flex-col gap-2">
-    <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-slate-300">Farbe auswählen</label>
               <div className="flex flex-wrap gap-2">
                 {LOCATION_COLORS.map((col) => (
                   <button key={col.value} type="button" onClick={() => setColor(col.value)} title={col.label}

@@ -7,39 +7,40 @@ import { getActiveGroupId }   from "@/lib/utils/group";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ItemForm }   from "@/components/items/ItemForm";
 import { ROUTES }     from "@/lib/constants";
-
 export const metadata: Metadata = { title: "Neuer Gegenstand" };
-
 interface Props { searchParams: Promise<{ location?: string }> }
-
 export default async function NewItemPage({ searchParams }: Props) {
   const { location: preselectedLocationId } = await searchParams;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
-
   // groupId direkt aus Cookie lesen
   const groupId = await getActiveGroupId();
-
   // Ablageorte passend zum Kontext laden
   let locQuery = supabase
     .from("locations")
     .select("id, name, color")
     .is("deleted_at", null)
     .order("name");
-
   if (groupId) {
     locQuery = locQuery.eq("group_id", groupId);
   } else {
     locQuery = locQuery.eq("user_id", user.id).is("group_id", null);
   }
-
   const { data: locations } = await locQuery;
+
+  const locationIds = (locations ?? []).map((l) => l.id);
+  const { data: shelves } = locationIds.length > 0
+    ? await supabase
+        .from("shelves")
+        .select("id, location_id, name")
+        .in("location_id", locationIds)
+        .order("position")
+    : { data: [] as { id: string; location_id: string; name: string }[] };
 
   const backHref = preselectedLocationId
     ? ROUTES.locationDetail(preselectedLocationId)
     : ROUTES.items;
-
   return (
     <>
       <Link
@@ -55,6 +56,7 @@ export default async function NewItemPage({ searchParams }: Props) {
       <div className="max-w-lg">
         <ItemForm
           locations={locations ?? []}
+          shelves={shelves ?? []}
           preselectedLocationId={preselectedLocationId}
           userId={user.id}
           groupId={groupId}

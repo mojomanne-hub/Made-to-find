@@ -6,24 +6,29 @@ import { createServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ItemForm }   from "@/components/items/ItemForm";
 import { ROUTES }     from "@/lib/constants";
-
 interface Props { params: Promise<{ id: string }> }
 export const metadata: Metadata = { title: "Gegenstand bearbeiten" };
-
 export default async function EditItemPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
-
   const [{ data: item }, { data: locations }] = await Promise.all([
     supabase.from("items").select("*").eq("id", id).is("deleted_at", null).maybeSingle(),
     supabase.from("locations").select("id, name, color").is("deleted_at", null).order("name"),
   ]);
-
   if (!item) notFound();
-  const groupId = (item as { group_id?: string | null }).group_id ?? null;
 
+  const locationIds = (locations ?? []).map((l) => l.id);
+  const { data: shelves } = locationIds.length > 0
+    ? await supabase
+        .from("shelves")
+        .select("id, location_id, name")
+        .in("location_id", locationIds)
+        .order("position")
+    : { data: [] as { id: string; location_id: string; name: string }[] };
+
+  const groupId = (item as { group_id?: string | null }).group_id ?? null;
   return (
     <>
       <Link
@@ -37,6 +42,7 @@ export default async function EditItemPage({ params }: Props) {
         <ItemForm
           item={item}
           locations={locations ?? []}
+          shelves={shelves ?? []}
           userId={user.id}
           groupId={groupId}
         />
