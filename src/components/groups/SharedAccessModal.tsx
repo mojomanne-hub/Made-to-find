@@ -4,14 +4,19 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   X, ChevronLeft, Users, Plus, LogIn,
-  Share2, Copy, Check, Loader2, Edit2, Trash2,
+  Share2, Copy, Check, Loader2, Edit2, Trash2, Info, Crown,
 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/Alert";
 import { cn } from "@/lib/utils";
 import type { Group } from "@/lib/context/GroupContext";
 
-type Screen = "menu" | "create" | "join" | "share" | "manage";
+type Screen = "menu" | "create" | "join" | "share" | "manage" | "members";
+
+interface GroupMember {
+  user_id: string;
+  display_name: string | null;
+}
 
 interface SharedAccessModalProps {
   isOpen:              boolean;
@@ -42,6 +47,9 @@ export function SharedAccessModal({
   const [error,       setError]       = useState<string | null>(null);
   const [success,     setSuccess]     = useState<string | null>(null);
   const [copied,      setCopied]      = useState(false);
+
+  const [members,        setMembers]        = useState<GroupMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -154,6 +162,7 @@ export function SharedAccessModal({
 
   async function handleDeleteGroup() {
     if (!manageGroup) return;
+    if (!isCreator(manageGroup)) return;
     if (!confirm("Gruppe \"" + manageGroup.name + "\" wirklich loeschen?")) return;
     setIsDeleting(true); setError(null);
     try {
@@ -166,6 +175,35 @@ export function SharedAccessModal({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler.");
     } finally { setIsDeleting(false); }
+  }
+
+  function isCreator(group: Group) {
+    return (group as Group & { created_by?: string }).created_by === userId;
+  }
+
+  async function openMembers(group: Group) {
+    setManageGroup(group);
+    setScreen("members");
+    setMembersLoading(true);
+    setError(null);
+    try {
+      const supabase = createBrowserClient();
+      const { data, error: mErr } = await supabase
+        .from("group_members")
+        .select("user_id, profiles(display_name)")
+        .eq("group_id", group.id);
+      if (mErr) throw mErr;
+      const list: GroupMember[] = (data ?? []).map((row) => {
+        const profile = row.profiles as unknown as { display_name: string | null } | { display_name: string | null }[] | null;
+        const displayName = Array.isArray(profile) ? profile[0]?.display_name ?? null : profile?.display_name ?? null;
+        return { user_id: row.user_id as string, display_name: displayName };
+      });
+      setMembers(list);
+    } catch {
+      setError("Mitglieder konnten nicht geladen werden.");
+    } finally {
+      setMembersLoading(false);
+    }
   }
 
   const inviteLink = shareGroup ? buildInviteLink(shareGroup.invite_token) : "";
@@ -185,7 +223,9 @@ export function SharedAccessModal({
             </button>
           )}
           <Users className="h-5 w-5 text-brand-400" />
-          <h2 className="text-sm font-semibold text-slate-100 flex-1">Geteilter Zugriff</h2>
+          <h2 className="text-sm font-semibold text-slate-100 flex-1">
+            {screen === "members" ? "Mitglieder" : "Geteilter Zugriff"}
+          </h2>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-200 transition-colors">
             <X className="h-4 w-4" />
           </button>
@@ -232,7 +272,13 @@ export function SharedAccessModal({
                       <p className="text-xs text-slate-500">Link teilen oder einladen</p>
                     </div>
                   </button>
+                  <button onClick={() => openMembers(group)}
+                    title="Mitglieder anzeigen"
+                    className="px-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-slate-400 hover:text-slate-200">
+                    <Info className="h-4 w-4" />
+                  </button>
                   <button onClick={() => { setManageGroup(group); setEditName(group.name); setScreen("manage"); setError(null); setSuccess(null); }}
+                    title="Gruppe verwalten"
                     className="px-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-slate-400 hover:text-slate-200">
                     <Edit2 className="h-4 w-4" />
                   </button>
@@ -324,6 +370,44 @@ export function SharedAccessModal({
             </div>
           )}
 
+          {/* Mitglieder anzeigen */}
+          {screen === "members" && manageGroup && (
+            <div className="space-y-3">
+              {error && <Alert variant="error">{error}</Alert>}
+              {membersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 text-slate-500 animate-spin" />
+                </div>
+              ) : members.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-6">Keine Mitglieder gefunden.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {members.map((m) => (
+                    <div key={m.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-700">
+                      <div className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-slate-300">
+                        {(m.display_name?.[0] ?? "?").toUpperCase()}
+                      </div>
+                      <span className="text-sm text-slate-200 flex-1">
+                        {m.display_name || "Unbenannt"}
+                        {m.user_id === userId && <span className="text-slate-500"> (Du)</span>}
+                      </span>
+                      {isCreator(manageGroup) && m.user_id === (manageGroup as Group & { created_by?: string }).created_by && (
+                        <span title="Ersteller" className="flex items-center gap-1 text-xs text-amber-400">
+                          <Crown className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                      {!isCreator(manageGroup) && m.user_id === (manageGroup as Group & { created_by?: string }).created_by && (
+                        <span title="Ersteller" className="flex items-center gap-1 text-xs text-amber-400">
+                          <Crown className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Gruppe verwalten */}
           {screen === "manage" && manageGroup && (
             <div className="space-y-4">
@@ -343,6 +427,17 @@ export function SharedAccessModal({
                 </div>
               </div>
 
+              <button onClick={() => openMembers(manageGroup)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-left">
+                <div className="h-8 w-8 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+                  <Info className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-200">Mitglieder anzeigen</p>
+                  <p className="text-xs text-slate-500">Wer ist alles in dieser Gruppe</p>
+                </div>
+              </button>
+
               <div className="h-px bg-slate-700" />
 
               <button onClick={handleLeaveGroup} disabled={isDeleting}
@@ -356,16 +451,22 @@ export function SharedAccessModal({
                 </div>
               </button>
 
-              <button onClick={handleDeleteGroup} disabled={isDeleting}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-danger-600/50 hover:bg-danger-900/20 transition-all text-left">
-                <div className="h-8 w-8 rounded-lg bg-danger-900/30 flex items-center justify-center flex-shrink-0">
-                  <Trash2 className="h-4 w-4 text-danger-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">Gruppe löschen</p>
-                  <p className="text-xs text-slate-500">Löscht die Gruppe für alle Mitglieder</p>
-                </div>
-              </button>
+              {isCreator(manageGroup) ? (
+                <button onClick={handleDeleteGroup} disabled={isDeleting}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-danger-600/50 hover:bg-danger-900/20 transition-all text-left">
+                  <div className="h-8 w-8 rounded-lg bg-danger-900/30 flex items-center justify-center flex-shrink-0">
+                    <Trash2 className="h-4 w-4 text-danger-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-200">Gruppe löschen</p>
+                    <p className="text-xs text-slate-500">Löscht die Gruppe für alle Mitglieder</p>
+                  </div>
+                </button>
+              ) : (
+                <p className="text-xs text-slate-600 px-1">
+                  Nur der Ersteller der Gruppe kann sie vollständig löschen.
+                </p>
+              )}
             </div>
           )}
 
