@@ -19,22 +19,23 @@ interface GroupMember {
 }
 
 interface SharedAccessModalProps {
-  isOpen:              boolean;
-  onClose:             () => void;
-  initialGroup:        Group | null;
-  initialManageGroup?: Group | null;
-  groups:              Group[];
-  onGroupsChange:      (groups: Group[]) => void;
-  userId:              string;
+  isOpen:               boolean;
+  onClose:              () => void;
+  initialGroup:         Group | null;
+  initialManageGroup?:  Group | null;
+  initialMembersGroup?: Group | null;
+  groups:               Group[];
+  onGroupsChange:       (groups: Group[]) => void;
+  userId:               string;
 }
 
 export function SharedAccessModal({
-  isOpen, onClose, initialGroup, initialManageGroup, groups, onGroupsChange, userId,
+  isOpen, onClose, initialGroup, initialManageGroup, initialMembersGroup, groups, onGroupsChange, userId,
 }: SharedAccessModalProps) {
   const router = useRouter();
 
   const [screen,      setScreen]      = useState<Screen>(
-    initialManageGroup ? "manage" : initialGroup ? "share" : "menu"
+    initialMembersGroup ? "members" : initialManageGroup ? "manage" : initialGroup ? "share" : "menu"
   );
   const [shareGroup,  setShareGroup]  = useState<Group | null>(initialGroup);
   const [manageGroup, setManageGroup] = useState<Group | null>(initialManageGroup ?? null);
@@ -53,7 +54,10 @@ export function SharedAccessModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    if (initialManageGroup) {
+    if (initialMembersGroup) {
+      setScreen("members");
+      openMembers(initialMembersGroup);
+    } else if (initialManageGroup) {
       setScreen("manage");
       setManageGroup(initialManageGroup);
       setEditName(initialManageGroup.name);
@@ -66,14 +70,14 @@ export function SharedAccessModal({
     setError(null);
     setSuccess(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialManageGroup, initialGroup]);
+  }, [isOpen, initialManageGroup, initialGroup, initialMembersGroup]);
 
   if (!isOpen) return null;
 
   function handleClose() {
-    setScreen(initialManageGroup ? "manage" : initialGroup ? "share" : "menu");
+    setScreen(initialMembersGroup ? "members" : initialManageGroup ? "manage" : initialGroup ? "share" : "menu");
     setShareGroup(initialGroup);
-    setManageGroup(initialManageGroup ?? null);
+    setManageGroup(initialManageGroup ?? initialMembersGroup ?? null);
     setEditName(initialManageGroup?.name ?? "");
     setGroupName("");
     setJoinLink("");

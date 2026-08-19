@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, MapPin, Package,
   Search, Settings, LogOut, Users,
-  ChevronDown, Check, Share2, Edit2,Crown, Sparkles, HelpCircle,
+  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -47,6 +47,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
   const [sharingModal,   setSharingModal]   = useState(false);
   const [shareTarget,    setShareTarget]    = useState<Group | null>(null);
   const [manageTarget,   setManageTarget]   = useState<Group | null>(null);
+  const [membersTarget,  setMembersTarget]  = useState<Group | null>(null);
 
   // Gruppen in Context laden
   useEffect(() => { setGroups(groups); }, [groups, setGroups]);
@@ -143,6 +144,14 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
                     {activeGroup?.id === group.id && (
                       <Check className="h-3.5 w-3.5 text-brand-400 flex-shrink-0" />
                     )}
+                  </button>
+                  {/* Info-Button (Mitglieder) */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMembersTarget(group); setSharingModal(true); setDropdownOpen(false); }}
+                    className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
+                    title="Mitglieder anzeigen"
+                  >
+                    <Info className="h-3.5 w-3.5" />
                   </button>
                   {/* Bearbeiten-Button */}
                   <button
@@ -277,9 +286,10 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
       {/* Geteilter Zugriff Modal */}
       <SharedAccessModal
         isOpen={sharingModal}
-        onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); }}
+        onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); setMembersTarget(null); }}
         initialGroup={shareTarget}
         initialManageGroup={manageTarget}
+        initialMembersGroup={membersTarget}
         groups={groups}
         onGroupsChange={setGroups}
         userId={user.id}
