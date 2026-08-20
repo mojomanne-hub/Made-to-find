@@ -458,7 +458,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             </div>
 
             <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-4 flex-1">
                 <div className="flex flex-col items-center gap-1">
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
                     style={{ backgroundColor: mediaTab === "icon" ? color : "#2d3f55" }}>
@@ -470,7 +470,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
                     }
                   </div>
                   {(mediaTab === "emoji" || mediaTab === "icon") && (
-                    <span className="text-[10px] text-slate-500 text-center leading-tight max-w-[56px] truncate">
+                    <span className="text-[11px] text-slate-500 text-center leading-tight max-w-[84px] whitespace-normal break-words">
                       {mediaTab === "emoji" ? (emojiLabel ?? "") : iconLabel}
                     </span>
                   )}
