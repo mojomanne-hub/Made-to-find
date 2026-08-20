@@ -104,6 +104,16 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
   const isEmojiSaved = savedIcon && !LOCATION_ICONS.map(i => i.name).includes(savedIcon);
   const initialTab: IconTab = isEmojiSaved ? "emoji" : "icon";
 
+  // ── Icon-Bedeutung für Vorschau ─────────────────────────────
+  const emojiLabel = (() => {
+    for (const items of Object.values(LOCATION_EMOJIS)) {
+      const found = (items as { label: string; emoji: string }[]).find((ic) => ic.emoji === emoji);
+      if (found) return found.label;
+    }
+    return null;
+  })();
+  const iconLabel = LOCATION_ICONS.find((ic) => ic.name === icon)?.label ?? icon;
+
   async function compressImage(file: File): Promise<Blob> {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -459,7 +469,9 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
                   }
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Vorschau</p>
+                  <p className="text-xs text-slate-500">
+                    {mediaTab === "emoji" ? (emojiLabel ?? "Vorschau") : mediaTab === "icon" ? iconLabel : "Vorschau"}
+                  </p>
                   <p className="text-sm font-medium text-slate-200">{name || "Ablageort"}</p>
                 </div>
               </div>

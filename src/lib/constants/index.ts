@@ -91,6 +91,44 @@ export const LOCATION_ICONS: { label: string; name: string }[] = [
   { label: "Spielzimmer",  name: "Dices" },
 ];
 
+// ---- Icons für Gegenstände (Lucide Icons) -------------------
+export const ITEM_ICON_OPTIONS: { label: string; name: string }[] = [
+  { label: "Schraubenschlüssel", name: "Wrench" },
+  { label: "Hammer",             name: "Hammer" },
+  { label: "Schraubendreher",    name: "Screwdriver" },
+  { label: "Paket",              name: "Package" },
+  { label: "Box",                name: "Box" },
+  { label: "Archiv",             name: "Archive" },
+  { label: "Laptop",             name: "Laptop" },
+  { label: "Handy",              name: "Smartphone" },
+  { label: "Kamera",             name: "Camera" },
+  { label: "Kopfhörer",          name: "Headphones" },
+  { label: "Batterie",           name: "Battery" },
+  { label: "Monitor",            name: "Monitor" },
+  { label: "Einkaufstasche",     name: "ShoppingBag" },
+  { label: "Geschenk",           name: "Gift" },
+  { label: "Stern",              name: "Star" },
+  { label: "Herz",               name: "Heart" },
+  { label: "Haus",               name: "Home" },
+  { label: "Auto",               name: "Car" },
+  { label: "Fahrrad",            name: "Bike" },
+  { label: "Hantel",             name: "Dumbbell" },
+  { label: "Musik",              name: "Music" },
+  { label: "Buch",               name: "Book" },
+  { label: "Stift",              name: "Pen" },
+  { label: "Schere",             name: "Scissors" },
+  { label: "Schlüssel",          name: "Key" },
+  { label: "Schloss",            name: "Lock" },
+  { label: "Taschenlampe",       name: "Flashlight" },
+  { label: "Thermometer",        name: "Thermometer" },
+  { label: "Uhr",                name: "Clock" },
+  { label: "Kalender",           name: "Calendar" },
+  { label: "Kuchenform",         name: "CakeSlice" },
+  { label: "Wein",               name: "Wine" },
+  { label: "Würfel",             name: "Dices" },
+  { label: "Blumentopf",         name: "Flower2" },
+];
+
 // ---- Emojis für Ablageorte (nach Kategorien) ----
 export const LOCATION_EMOJIS = {
   zimmer: [

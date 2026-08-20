@@ -6,7 +6,7 @@ import * as LucideIcons from "lucide-react";
 import { Minus, Plus } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { itemSchema } from "@/lib/validations";
-import { ROUTES, ITEM_ICONS, LOCATION_COLORS } from "@/lib/constants";
+import { ROUTES, ITEM_ICONS, ITEM_ICON_OPTIONS, LOCATION_COLORS } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -39,15 +39,6 @@ interface ItemFormProps {
 
 type IconTab = "emoji" | "icon" | "photo";
 
-const LUCIDE_ICONS = [
-  "Wrench","Hammer","Screwdriver","Package","Box","Archive",
-  "Laptop","Smartphone","Camera","Headphones","Battery","Monitor",
-  "ShoppingBag","Gift","Star","Heart","Home","Car",
-  "Bike","Dumbbell","Music","Book","Pen","Scissors",
-  "Key","Lock","Flashlight","Thermometer","Clock","Calendar",
-  "CakeSlice","Wine","Dices",
-];
-
 function DynIcon({ name, className }: { name: string; className?: string }) {
   const Icon = (LucideIcons as unknown as Record<string, React.FC<{ className?: string }>>)[name];
   if (!Icon) return <LucideIcons.Box className={className} />;
@@ -62,7 +53,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const router = useRouter();
 
   const savedIcon = item?.icon ?? "";
-  const isEmoji = savedIcon && !LUCIDE_ICONS.includes(savedIcon);
+  const isEmoji = savedIcon && !ITEM_ICON_OPTIONS.map((i) => i.name).includes(savedIcon);
   const initialTab: IconTab = isEmoji ? "emoji" : "icon";
 
   const [name, setName] = useState(item?.name ?? "");
@@ -88,6 +79,15 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Icon-Bedeutung für Vorschau ─────────────────────────────
+  const emojiLabel = useMemo(() => {
+    for (const items of Object.values(ITEM_ICONS)) {
+      const found = (items as { label: string; emoji: string }[]).find((ic) => ic.emoji === emoji);
+      if (found) return found.label;
+    }
+    return null;
+  }, [emoji]);
 
   const currentIcon = iconTab === "emoji" ? emoji : iconTab === "icon" ? lucideIcon : null;
 
@@ -421,7 +421,9 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
                   }
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Vorschau</p>
+                  <p className="text-xs text-slate-500">
+                    {iconTab === "emoji" ? (emojiLabel ?? "Vorschau") : iconTab === "icon" ? (ITEM_ICON_OPTIONS.find((ic) => ic.name === lucideIcon)?.label ?? lucideIcon) : "Vorschau"}
+                  </p>
                   <p className="text-sm font-medium text-slate-200">{name || "Gegenstand"}</p>
                 </div>
               </div>
@@ -459,13 +461,13 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
 
             {iconTab === "icon" && (
               <div className="grid grid-cols-8 gap-1.5">
-                {LUCIDE_ICONS.map((ic) => (
-                  <button key={ic} type="button" onClick={() => setLucideIcon(ic)} title={ic}
+                {ITEM_ICON_OPTIONS.map((ic) => (
+                  <button key={ic.name} type="button" onClick={() => setLucideIcon(ic.name)} title={ic.label}
                     className={cn("h-10 w-full rounded-xl flex items-center justify-center transition-all",
-                      lucideIcon === ic
+                      lucideIcon === ic.name
                         ? "bg-brand-600 border-2 border-brand-400"
                         : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
-                    <DynIcon name={ic} className={cn("h-4 w-4", lucideIcon === ic ? "text-white" : "text-slate-400")} />
+                    <DynIcon name={ic.name} className={cn("h-4 w-4", lucideIcon === ic.name ? "text-white" : "text-slate-400")} />
                   </button>
                 ))}
               </div>
