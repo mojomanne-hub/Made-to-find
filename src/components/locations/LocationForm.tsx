@@ -521,24 +521,44 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             )}
 
             {mediaTab === "photo" && (
-              <label className={cn(
-                "flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed cursor-pointer transition-colors",
+              <div className={cn(
+                "flex flex-col items-center justify-center gap-3 py-6 rounded-xl border-2 border-dashed transition-colors",
                 isUploading
                   ? "border-brand-500 bg-brand-900/20"
-                  : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/30"
+                  : "border-slate-600"
               )}>
                 {isUploading ? (
                   <><LucideIcons.Loader2 className="h-7 w-7 text-brand-400 animate-spin" /><span className="text-sm text-brand-400">Wird verarbeitet…</span></>
                 ) : (
-                  <><LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" /><span className="text-sm text-slate-400">Klicken zum Hochladen</span><span className="text-xs text-slate-600">JPG, PNG, WebP · max. 1 MB (wird komprimiert)</span></>
+                  <>
+                    <LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" />
+                    <span className="text-xs text-slate-600 -mt-1">JPG, PNG, WebP · max. 1 MB (wird komprimiert)</span>
+                    <div className="flex gap-2 w-full px-4">
+                      <label className="flex-1 h-10 rounded-xl border border-slate-600 hover:border-slate-500 hover:bg-slate-700/30 transition-colors flex items-center justify-center gap-2 text-sm text-slate-300 cursor-pointer">
+                        <LucideIcons.Camera className="h-4 w-4" />
+                        Foto aufnehmen
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
+                        />
+                      </label>
+                      <label className="flex-1 h-10 rounded-xl border border-slate-600 hover:border-slate-500 hover:bg-slate-700/30 transition-colors flex items-center justify-center gap-2 text-sm text-slate-300 cursor-pointer">
+                        <LucideIcons.ImagePlus className="h-4 w-4" />
+                        Datei wählen
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
+                        />
+                      </label>
+                    </div>
+                  </>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
-                />
-              </label>
+              </div>
             )}
           </div>
 
