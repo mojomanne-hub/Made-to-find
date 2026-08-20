@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -59,6 +59,8 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [showCompressionDialog, setShowCompressionDialog] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [tempLocId] = useState(location?.id ?? crypto.randomUUID());
 
@@ -534,27 +536,37 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
                     <LucideIcons.ImagePlus className="h-7 w-7 text-slate-500" />
                     <span className="text-xs text-slate-600 -mt-1">JPG, PNG, WebP · max. 1 MB (wird komprimiert)</span>
                     <div className="flex gap-2 w-full px-4">
-                      <label className="flex-1 h-10 rounded-xl border border-slate-600 hover:border-slate-500 hover:bg-slate-700/30 transition-colors flex items-center justify-center gap-2 text-sm text-slate-300 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex-1 h-10 rounded-xl border border-slate-600 hover:border-slate-500 hover:bg-slate-700/30 transition-colors flex items-center justify-center gap-2 text-sm text-slate-300"
+                      >
                         <LucideIcons.Camera className="h-4 w-4" />
                         Foto aufnehmen
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
-                        />
-                      </label>
-                      <label className="flex-1 h-10 rounded-xl border border-slate-600 hover:border-slate-500 hover:bg-slate-700/30 transition-colors flex items-center justify-center gap-2 text-sm text-slate-300 cursor-pointer">
+                      </button>
+                      <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); e.target.value = ""; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 h-10 rounded-xl border border-slate-600 hover:border-slate-500 hover:bg-slate-700/30 transition-colors flex items-center justify-center gap-2 text-sm text-slate-300"
+                      >
                         <LucideIcons.ImagePlus className="h-4 w-4" />
                         Datei wählen
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); }}
-                        />
-                      </label>
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoSelect(f); e.target.value = ""; }}
+                      />
                     </div>
                   </>
                 )}
