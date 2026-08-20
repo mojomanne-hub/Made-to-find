@@ -114,7 +114,6 @@ export const LOCATION_EMOJIS = {
   außen: [
     { label: "Garten", emoji: "🌳" },
     { label: "Terrasse", emoji: "🪑" },
-    { label: "Balkon", emoji: "🌿" },
     { label: "Hof", emoji: "🏡" },
     { label: "Parkplatz", emoji: "🅿️" },
     { label: "Schuppen/Geräteschuppen", emoji: "⚒️" },
@@ -151,12 +150,12 @@ export const ITEM_ICONS = {
     { label: "Radio", emoji: "📻" },
     { label: "Batterie", emoji: "🔋" },
   ],
-  werkzeug: [
+  "werkzeug/garten": [
     { label: "Reifen", emoji: "🛞" },
     { label: "Werkzeug", emoji: "🔧" },
     { label: "Verlängerungskabel", emoji: "🔌" },
     { label: "Glühbirnen", emoji: "💡" },
-
+    { label: "Blumentopf", emoji: "🪴" },
   ],
   wohnen: [
     { label: "Stuhl", emoji: "🪑" },

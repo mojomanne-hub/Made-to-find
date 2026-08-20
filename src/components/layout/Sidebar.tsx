@@ -71,7 +71,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
 
   return (
     <>
-      <aside className="hidden lg:flex flex-col w-64 min-h-screen sticky top-0 flex-shrink-0"
+      <aside className="hidden lg:flex flex-col w-64 min-h-screen sticky top-0 flex-shrink-0 overflow-y-auto"
         style={{ backgroundColor: "#0f1729", borderRight: "1px solid #1e2d4a" }}>
 
         {/* Logo */}
