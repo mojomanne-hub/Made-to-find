@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { getAuthError }   from "@/lib/utils";
 import { createBrowserClient }  from "@/lib/supabase/client";
@@ -20,9 +20,10 @@ import { Input }  from "@/components/ui/Input";
 import { Alert }  from "@/components/ui/Alert";
 import { Card }   from "@/components/ui/Card";
 
-type FormErrors = Partial<Record<"email" | "password" | "passwordConfirm" | "root", string>>;
+type FormErrors = Partial<Record<"email" | "password" | "passwordConfirm" | "displayName" | "root", string>>;
 
 export function RegisterForm() {
+  const [displayName,     setDisplayName]     = useState("");
   const [email,           setEmail]           = useState("");
   const [password,        setPassword]        = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -34,6 +35,12 @@ export function RegisterForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
+
+    const trimmedName = displayName.trim();
+    if (trimmedName.length < 2) {
+      setErrors({ displayName: "Bitte gib einen Anzeigenamen ein (mind. 2 Zeichen)." });
+      return;
+    }
 
     const result = registerSchema.safeParse({ email, password, passwordConfirm });
     if (!result.success) {
@@ -56,6 +63,9 @@ export function RegisterForm() {
         options: {
           // Redirect nach Bestätigung des E-Mail-Links
           emailRedirectTo: `${window.location.origin}${ROUTES.dashboard}`,
+          data: {
+            display_name: trimmedName,
+          },
         },
       });
 
@@ -106,6 +116,23 @@ export function RegisterForm() {
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {errors.root && <Alert variant="error">{errors.root}</Alert>}
 
+        {/* Anzeigename */}
+        <Input
+          type="text"
+          name="displayName"
+          label="Anzeigename"
+          placeholder="z.B. Max Mustermann"
+          autoComplete="name"
+          autoFocus
+          required
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          error={errors.displayName}
+          leftIcon={<User className="h-4 w-4" />}
+          hint="Wird in Gruppen für andere Mitglieder sichtbar sein"
+          maxLength={50}
+        />
+
         {/* E-Mail */}
         <Input
           type="email"
@@ -113,7 +140,6 @@ export function RegisterForm() {
           label="E-Mail"
           placeholder="name@beispiel.de"
           autoComplete="email"
-          autoFocus
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
