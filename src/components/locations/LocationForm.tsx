@@ -459,19 +459,24 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
 
             <div className="flex items-center justify-between px-3 py-2 rounded-xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
               <div className="flex items-center gap-3 flex-1">
-                <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-                  style={{ backgroundColor: mediaTab === "icon" ? color : "#2d3f55" }}>
-                  {mediaTab === "emoji"
-                    ? <span className="text-2xl">{emoji}</span>
-                    : mediaTab === "icon"
-                    ? <DynIcon name={icon} className="h-5 w-5 text-white" />
-                    : imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : <LucideIcons.ImagePlus className="h-5 w-5 text-slate-400" />
-                  }
+                <div className="flex flex-col items-center gap-1">
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+                    style={{ backgroundColor: mediaTab === "icon" ? color : "#2d3f55" }}>
+                    {mediaTab === "emoji"
+                      ? <span className="text-2xl">{emoji}</span>
+                      : mediaTab === "icon"
+                      ? <DynIcon name={icon} className="h-5 w-5 text-white" />
+                      : imageUrl ? <img src={imageUrl} alt="" className="h-full w-full object-cover" /> : <LucideIcons.ImagePlus className="h-5 w-5 text-slate-400" />
+                    }
+                  </div>
+                  {(mediaTab === "emoji" || mediaTab === "icon") && (
+                    <span className="text-[10px] text-slate-500 text-center leading-tight max-w-[56px] truncate">
+                      {mediaTab === "emoji" ? (emojiLabel ?? "") : iconLabel}
+                    </span>
+                  )}
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">
-                    {mediaTab === "emoji" ? (emojiLabel ?? "Vorschau") : mediaTab === "icon" ? iconLabel : "Vorschau"}
-                  </p>
+                  <p className="text-xs text-slate-500">Vorschau</p>
                   <p className="text-sm font-medium text-slate-200">{name || "Ablageort"}</p>
                 </div>
               </div>
