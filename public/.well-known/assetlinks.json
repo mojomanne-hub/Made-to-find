@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "de.madetofind.app",
+      "sha256_cert_fingerprints": [
+        "CF:39:8B:41:8E:B7:CC:E2:E0:20:C6:F6:95:8F:55:B7:F7:8D:04:B1:7F:6E:0B:57:E5:05:6D:C0:A4:17:4E:95"
+      ]
+    }
+  }
+]
