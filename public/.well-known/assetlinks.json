@@ -4,9 +4,8 @@
     "target": {
       "namespace": "android_app",
       "package_name": "de.madetofind.app",
-      "sha256_cert_fingerprints": [
-        "54:DF:61:39:BB:70:56:0C:94:50:EA:38:89:44:66:EC:1D:E7:2B:D8:A1:68:AE:47:C6:0D:AA:16:DF:36:4B:F4"
-      ]
+      "sha256_cert_fingerprints":
+        ["49:72:51:99:B7:A6:85:39:02:98:66:11:4D:40:BB:FC:58:39:F0:60:85:9E:45:24:1C:21:8F:F8:F4:05:D0:54"]
     }
   }
 ]
