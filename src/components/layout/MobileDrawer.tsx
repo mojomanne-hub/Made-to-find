@@ -81,7 +81,7 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
       {/* Drawer */}
       <div
         className={cn(
-          "lg:hidden fixed top-0 left-0 bottom-0 z-50 w-72 flex flex-col transition-transform duration-300 ease-in-out",
+          "lg:hidden fixed top-0 left-0 bottom-0 z-50 w-72 flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{ backgroundColor: "#0f1729", borderRight: "1px solid #1e2d4a" }}
