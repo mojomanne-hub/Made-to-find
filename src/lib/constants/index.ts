@@ -86,6 +86,7 @@ export const LOCATION_ICONS: { label: string; name: string }[] = [
   { label: "Einkauf",      name: "ShoppingBag" },
   { label: "Keller",       name: "Building2" },
   { label: "Kuchenform",   name: "CakeSlice" },
+  { label: "Blumentopf",   name: "flower-2" },
   { label: "Weinkeller",   name: "Wine" },
   { label: "Spielzimmer",  name: "Dices" },
 ];
@@ -156,6 +157,7 @@ export const ITEM_ICONS = {
     { label: "Verlängerungskabel", emoji: "🔌" },
     { label: "Glühbirnen", emoji: "💡" },
     { label: "Blumentopf", emoji: "🪴" },
+    { label: "Blume", emoji: "🌸" },
   ],
   wohnen: [
     { label: "Stuhl", emoji: "🪑" },
