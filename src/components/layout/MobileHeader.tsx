@@ -99,7 +99,7 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
         </button>
 
         {/* Gruppen-Dropdown */}
-        <div className="relative flex-1 min-w-0 max-w-[190px]">
+        <div className="relative min-w-0 max-w-[190px] w-full flex-shrink">
           <button
             onClick={() => { setDropdownOpen((v) => !v); setShowNotifs(false); }}
             className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors w-full"
@@ -155,16 +155,18 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
           )}
         </div>
 
-        {/* Logo */}
-        <Link href={ROUTES.dashboard} className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
-          <Image
-            src="/icons/icon-192x192.png"
-            alt="MaDe to find"
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-          />
-        </Link>
+        {/* Logo – mittig im verbleibenden Platz */}
+        <div className="flex-1 flex justify-center min-w-0">
+          <Link href={ROUTES.dashboard} className="h-9 w-9 rounded-xl overflow-hidden flex-shrink-0">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="MaDe to find"
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
+          </Link>
+        </div>
 
         {/* Glocke – ganz rechts */}
         <button
