@@ -95,7 +95,6 @@ export const LOCATION_ICONS: { label: string; name: string }[] = [
 export const ITEM_ICON_OPTIONS: { label: string; name: string }[] = [
   { label: "Schraubenschlüssel", name: "Wrench" },
   { label: "Hammer",             name: "Hammer" },
-  { label: "Schraubendreher",    name: "Screwdriver" },
   { label: "Paket",              name: "Package" },
   { label: "Box",                name: "Box" },
   { label: "Archiv",             name: "Archive" },
@@ -107,8 +106,6 @@ export const ITEM_ICON_OPTIONS: { label: string; name: string }[] = [
   { label: "Monitor",            name: "Monitor" },
   { label: "Einkaufstasche",     name: "ShoppingBag" },
   { label: "Geschenk",           name: "Gift" },
-  { label: "Stern",              name: "Star" },
-  { label: "Herz",               name: "Heart" },
   { label: "Haus",               name: "Home" },
   { label: "Auto",               name: "Car" },
   { label: "Fahrrad",            name: "Bike" },
@@ -124,9 +121,9 @@ export const ITEM_ICON_OPTIONS: { label: string; name: string }[] = [
   { label: "Uhr",                name: "Clock" },
   { label: "Kalender",           name: "Calendar" },
   { label: "Kuchenform",         name: "CakeSlice" },
+  { label: "Blumentopf",         name: "Flower2" },
   { label: "Wein",               name: "Wine" },
   { label: "Würfel",             name: "Dices" },
-  { label: "Blumentopf",         name: "Flower2" },
 ];
 
 // ---- Emojis für Ablageorte (nach Kategorien) ----
