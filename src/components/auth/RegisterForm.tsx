@@ -91,15 +91,15 @@ export function RegisterForm() {
         <div className="h-14 w-14 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="h-7 w-7 text-success-600" />
         </div>
-        <h2 className="text-base font-semibold text-neutral-900 mb-2">
+        <h2 className="text-base font-semibold mb-2" style={{ color: "#f1f5f9" }}>
           Fast geschafft!
         </h2>
-        <p className="text-sm text-neutral-500 leading-relaxed">
+        <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>
           Wir haben eine Bestätigungs-E-Mail an{" "}
-          <strong className="text-neutral-700 font-medium">{email}</strong>{" "}
+          <strong className="font-medium" style={{ color: "#cbd5e1" }}>{email}</strong>{" "}
           gesendet. Klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
         </p>
-        <p className="text-xs text-neutral-400 mt-4">
+        <p className="text-xs mt-4" style={{ color: "#64748b" }}>
           Kein E-Mail erhalten? Überprüfe deinen Spam-Ordner.
         </p>
         {getPendingInviteToken() && (
@@ -192,14 +192,14 @@ export function RegisterForm() {
 
         {/* Trenner */}
         <div className="flex items-center gap-3 py-1">
-          <div className="flex-1 h-px bg-neutral-200" />
-          <span className="text-xs text-neutral-400">oder</span>
-          <div className="flex-1 h-px bg-neutral-200" />
+          <div className="flex-1 h-px" style={{ backgroundColor: "#2d3f55" }} />
+          <span className="text-xs" style={{ color: "#64748b" }}>oder</span>
+          <div className="flex-1 h-px" style={{ backgroundColor: "#2d3f55" }} />
         </div>
 
         <GoogleSignInButton label="Mit Google registrieren" />
 
-        <p className="text-xs text-neutral-400 text-center">
+        <p className="text-xs text-center" style={{ color: "#64748b" }}>
           Mit der Registrierung stimmst du der Verarbeitung deiner Daten zu.
         </p>
       </form>
