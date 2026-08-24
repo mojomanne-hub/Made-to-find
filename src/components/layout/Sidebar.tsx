@@ -15,6 +15,7 @@ import { ROUTES } from "@/lib/constants";
 import type { User } from "@supabase/supabase-js";
 import { SharedAccessModal } from "@/components/groups/SharedAccessModal";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { joinPendingGroup } from "@/lib/utils/invite-token";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
@@ -58,6 +59,20 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
       setActiveGroup(null);
     }
   }, [groups, activeGroup, setActiveGroup]);
+
+  // Ausstehende Gruppen-Einladung einlösen (z.B. nach Google-OAuth-Login,
+  // wo der normale Login-Flow in LoginForm nicht durchlaufen wird)
+  useEffect(() => {
+    (async () => {
+      const supabase = createBrowserClient();
+      const groupId = await joinPendingGroup(supabase);
+      if (groupId) {
+        document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+        router.refresh();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleLogout() {
     const supabase = createBrowserClient();

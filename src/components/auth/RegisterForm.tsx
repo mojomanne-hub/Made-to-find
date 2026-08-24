@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Input }  from "@/components/ui/Input";
 import { Alert }  from "@/components/ui/Alert";
 import { Card }   from "@/components/ui/Card";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 type FormErrors = Partial<Record<"email" | "password" | "passwordConfirm" | "displayName" | "root", string>>;
 
@@ -188,6 +189,15 @@ export function RegisterForm() {
         <Button type="submit" fullWidth isLoading={isLoading} className="mt-2">
           Konto erstellen
         </Button>
+
+        {/* Trenner */}
+        <div className="flex items-center gap-3 py-1">
+          <div className="flex-1 h-px bg-neutral-200" />
+          <span className="text-xs text-neutral-400">oder</span>
+          <div className="flex-1 h-px bg-neutral-200" />
+        </div>
+
+        <GoogleSignInButton label="Mit Google registrieren" />
 
         <p className="text-xs text-neutral-400 text-center">
           Mit der Registrierung stimmst du der Verarbeitung deiner Daten zu.

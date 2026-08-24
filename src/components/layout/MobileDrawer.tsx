@@ -17,6 +17,7 @@ import { useGroup, type Group }   from "@/lib/context/GroupContext";
 import { ROUTES }                 from "@/lib/constants";
 import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
+import { joinPendingGroup }       from "@/lib/utils/invite-token";
 import { useState }               from "react";
 
 
@@ -60,6 +61,19 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
 
   // Schließen bei Route-Wechsel
   useEffect(() => { onClose(); }, [pathname]);
+
+  // Ausstehende Gruppen-Einladung einlösen (z.B. nach Google-OAuth-Login)
+  useEffect(() => {
+    (async () => {
+      const supabase = createBrowserClient();
+      const groupId = await joinPendingGroup(supabase);
+      if (groupId) {
+        document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+        router.refresh();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleLogout() {
     const supabase = createBrowserClient();

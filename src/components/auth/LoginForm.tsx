@@ -7,6 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { joinPendingGroup }     from "@/lib/utils/invite-token";
 import { getAuthError }         from "@/lib/utils";
 import { ROUTES }               from "@/lib/constants";
+import { GoogleSignInButton }   from "@/components/auth/GoogleSignInButton";
 
 export function LoginForm() {
   const router = useRouter();
@@ -109,6 +110,15 @@ export function LoginForm() {
           ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Anmelden…</>
           : "Anmelden"}
       </button>
+
+      {/* Trenner */}
+      <div className="flex items-center gap-3 py-1">
+        <div className="flex-1 h-px" style={{ backgroundColor: "#2d3f55" }} />
+        <span className="text-xs" style={{ color: "#64748b" }}>oder</span>
+        <div className="flex-1 h-px" style={{ backgroundColor: "#2d3f55" }} />
+      </div>
+
+      <GoogleSignInButton label="Mit Google anmelden" />
     </form>
   );
 }
