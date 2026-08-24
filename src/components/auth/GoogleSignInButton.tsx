@@ -17,7 +17,7 @@ export function GoogleSignInButton({ label = "Mit Google anmelden" }: GoogleSign
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}${ROUTES.dashboard}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(ROUTES.dashboard)}`,
       },
     });
     // Browser leitet weiter zu Google – kein weiterer Code nötig.
