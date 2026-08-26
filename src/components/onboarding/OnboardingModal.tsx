@@ -10,7 +10,28 @@ interface OnboardingModalProps {
   onComplete: () => void;
 }
 
-const STEPS = [
+interface StepMedia {
+  type: "image" | "video";
+  src: string;
+}
+
+interface Step {
+  icon: typeof MapPin | null;
+  title: string;
+  description: string;
+  color: string;
+  media?: StepMedia;
+}
+
+// ── Medien pro Schritt ──────────────────────────────────────
+// Lege Dateien unter /public/onboarding/ ab (z.B. /public/onboarding/step2.mp4)
+// und trage den Pfad hier ein. Ohne "media" wird einfach das Icon gezeigt.
+//
+// Beispiele:
+//   media: { type: "video", src: "/onboarding/ablageorte.mp4" }
+//   media: { type: "image", src: "/onboarding/gegenstaende.gif" }   // GIF oder animiertes WebP
+//
+const STEPS: Step[] = [
   {
     icon: null,
     title: "Willkommen bei\nMaDe to find!",
@@ -22,30 +43,35 @@ const STEPS = [
     title: "Ablageorte erstellen",
     description: "Erstelle Orte wie Keller, Garage oder Dachboden. Mit Farbe und Icon erkennst du alles auf einen Blick.",
     color: "#10b981",
+    // media: { type: "video", src: "/onboarding/ablageorte.mp4" },
   },
   {
     icon: Rows3,
     title: "Fach / Ebene",
     description: "Aktiviere Fach/Ebene um diesen Ablageort in Fächer/Ebenen zu unterteilen (z.B. für Regale oder Schränke).",
     color: "#06b6d4",
+    // media: { type: "video", src: "/onboarding/fach-ebene.mp4" },
   },
   {
     icon: Package,
     title: "Gegenstände hinzufügen",
     description: "Füge Gegenstände hinzu und weise sie einem Ablageort zu. Optional mit Menge, Beschreibung und Ablaufdatum.",
     color: "#8b5cf6",
+    // media: { type: "video", src: "/onboarding/gegenstaende.mp4" },
   },
   {
     icon: Search,
     title: "Alles sofort finden",
     description: "Suche nach jedem Gegenstand und sieh sofort wo er liegt. Nie wieder suchen!",
     color: "#f59e0b",
+    // media: { type: "video", src: "/onboarding/suche.mp4" },
   },
   {
     icon: Users,
     title: "Gemeinsam organisieren",
     description: "Teile deine Ablageorte mit Familie, Mitbewohnern oder Vereinsmitgliedern. Alle sehen dasselbe — keine Missverständnisse mehr.",
     color: "#ec4899",
+    // media: { type: "video", src: "/onboarding/gruppen.mp4" },
   },
 ];
 
@@ -95,41 +121,67 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
         style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55" }}
       >
-        {/* Farbiger Header */}
+        {/* Farbiger Header (oder Medien-Header) */}
         <div
-          className="h-48 flex flex-col items-center justify-center relative transition-colors duration-500"
+          className="h-48 flex flex-col items-center justify-center relative transition-colors duration-500 overflow-hidden"
           style={{ backgroundColor: current.color }}
         >
-          {/* Dezenter Glow */}
-          <div className="absolute inset-0 opacity-20"
-            style={{ background: "radial-gradient(circle at 50% 0%, #ffffff, transparent 70%)" }} />
+          {current.media ? (
+            /* Screenshot / GIF / Video statt Icon */
+            current.media.type === "video" ? (
+              <video
+                key={current.media.src}
+                src={current.media.src}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={current.media.src}
+                src={current.media.src}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )
+          ) : (
+            <>
+              {/* Dezenter Glow (nur ohne Medien) */}
+              <div className="absolute inset-0 opacity-20"
+                style={{ background: "radial-gradient(circle at 50% 0%, #ffffff, transparent 70%)" }} />
 
-          {isFirst ? (
-            /* Erster Schritt — Logo */
-            <div className="flex flex-col items-center gap-3 relative">
-              <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl">
-                <Image src="/icons/icon-192x192.png" alt="MaDe to find" width={80} height={80} />
-              </div>
-              <p className="text-white/80 text-sm font-medium tracking-wide">MaDe to find</p>
-            </div>
-          ) : Icon ? (
-            /* Andere Schritte — Icon */
-            <div className="relative flex items-center justify-center">
-              <div className="h-24 w-24 rounded-full bg-white/20 flex items-center justify-center">
-                <Icon className="h-12 w-12 text-white" />
-              </div>
-            </div>
-          ) : null}
+              {isFirst ? (
+                /* Erster Schritt — Logo */
+                <div className="flex flex-col items-center gap-3 relative">
+                  <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl">
+                    <Image src="/icons/icon-192x192.png" alt="MaDe to find" width={80} height={80} />
+                  </div>
+                  <p className="text-white/80 text-sm font-medium tracking-wide">MaDe to find</p>
+                </div>
+              ) : Icon ? (
+                /* Andere Schritte — Icon */
+                <div className="relative flex items-center justify-center">
+                  <div className="h-24 w-24 rounded-full bg-white/20 flex items-center justify-center">
+                    <Icon className="h-12 w-12 text-white" />
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
 
           {/* Step Dots */}
-          <div className="absolute bottom-4 flex items-center gap-1.5">
+          <div className="absolute bottom-4 flex items-center gap-1.5 z-10">
             {STEPS.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setStep(i)}
                 className={cn(
                   "rounded-full transition-all duration-300",
-                  i === step ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40"
+                  i === step ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40",
+                  current.media && "shadow-[0_0_4px_rgba(0,0,0,0.6)]"
                 )}
               />
             ))}
