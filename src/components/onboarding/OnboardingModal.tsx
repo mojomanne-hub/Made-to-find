@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { MapPin, Package, Users, Search, ArrowRight, Check } from "lucide-react";
+import { MapPin, Package, Users, Search, ArrowRight, Check, Rows3 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,12 @@ const STEPS = [
     title: "Ablageorte erstellen",
     description: "Erstelle Orte wie Keller, Garage oder Dachboden. Mit Farbe und Icon erkennst du alles auf einen Blick.",
     color: "#10b981",
+  },
+  {
+    icon: Rows3,
+    title: "Fach / Ebene",
+    description: "Aktiviere Fach/Ebene um diesen Ablageort in Fächer/Ebenen zu unterteilen (z.B. für Regale oder Schränke).",
+    color: "#06b6d4",
   },
   {
     icon: Package,
