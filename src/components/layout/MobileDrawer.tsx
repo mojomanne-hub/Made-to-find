@@ -18,6 +18,7 @@ import { ROUTES }                 from "@/lib/constants";
 import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
 import { joinPendingGroup }       from "@/lib/utils/invite-token";
+import { OnboardingModal }        from "@/components/onboarding/OnboardingModal";
 import { useState }               from "react";
 
 
@@ -52,6 +53,7 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
   const [shareTarget,  setShareTarget]  = useState<Group | null>(null);
   const [manageTarget, setManageTarget] = useState<Group | null>(null);
   const [membersTarget, setMembersTarget] = useState<Group | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Body scroll sperren wenn offen
   useEffect(() => {
@@ -227,6 +229,15 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
     <Sparkles className="h-3.5 w-3.5 ml-auto" />
   </button>
 
+          {/* Erste Schritte */}
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+          >
+            <Sparkles className="h-4 w-4 flex-shrink-0" />
+            Erste Schritte
+          </button>
+
           {/* Einstellungen */}
           <Link
             href={ROUTES.settings}
@@ -258,6 +269,11 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
         onGroupsChange={setGroups}
         userId={user.id}
       />
+
+      {/* Erste Schritte / Onboarding erneut anzeigen */}
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
     </>
   );
 }

@@ -16,6 +16,7 @@ import type { User } from "@supabase/supabase-js";
 import { SharedAccessModal } from "@/components/groups/SharedAccessModal";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { joinPendingGroup } from "@/lib/utils/invite-token";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
@@ -49,6 +50,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
   const [shareTarget,    setShareTarget]    = useState<Group | null>(null);
   const [manageTarget,   setManageTarget]   = useState<Group | null>(null);
   const [membersTarget,  setMembersTarget]  = useState<Group | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Gruppen in Context laden
   useEffect(() => { setGroups(groups); }, [groups, setGroups]);
@@ -262,6 +264,15 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
     Support kontaktieren
   </button>
 
+  {/* Erste Schritte */}
+  <button
+    onClick={() => setShowOnboarding(true)}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+  >
+    <Sparkles className="h-4 w-4 flex-shrink-0" />
+    Erste Schritte
+  </button>
+
   <div className="h-px mx-3" style={{ backgroundColor: "#1e2d4a" }} />
 
   {/* Benutzer-Info */}
@@ -309,6 +320,11 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
         onGroupsChange={setGroups}
         userId={user.id}
       />
+
+      {/* Erste Schritte / Onboarding erneut anzeigen */}
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
     </>
   );
 }
