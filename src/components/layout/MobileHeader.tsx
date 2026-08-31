@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
+import { IOSInstallButton } from "@/components/layout/IOSInstallButton";
 
 const GROUP_COLORS = [
   "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
@@ -167,6 +168,9 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
             />
           </Link>
         </div>
+
+        {/* iOS-Installations-Button (nur auf iPhone/iPad sichtbar) */}
+        <IOSInstallButton />
 
         {/* Glocke – ganz rechts */}
         <button
