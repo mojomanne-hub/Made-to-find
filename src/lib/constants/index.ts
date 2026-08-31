@@ -172,11 +172,12 @@ export const LOCATION_EMOJIS = {
 export const ITEM_ICONS = {
   kueche: [
     { label: "Kuchenform", emoji: "🍰" },
-    { label: "Glas/Krug", emoji: "🥤" },
-    { label: "Topf", emoji: "🍳" },
+    { label: "Becher", emoji: "🥤" },
+    { label: "Pfanne", emoji: "🍳" },
     { label: "Besteck", emoji: "🍴" },
     { label: "Thermometer", emoji: "🌡️" },
-    { label: "Wein", emoji: "🍷" },
+    { label: "Gläser", emoji: "🍷" },
+    { label: "Vase", emoji: "🏺" },
   ],
   elektronik: [
     { label: "Laptop", emoji: "💻" },
@@ -193,6 +194,8 @@ export const ITEM_ICONS = {
     { label: "Glühbirnen", emoji: "💡" },
     { label: "Blumentopf", emoji: "🪴" },
     { label: "Blume", emoji: "🌸" },
+    { label: "Besen", emoji: "🧹" },
+    { label: "Gartengeräte", emoji: "🧑‍🌾" },
   ],
   wohnen: [
     { label: "Stuhl", emoji: "🪑" },
