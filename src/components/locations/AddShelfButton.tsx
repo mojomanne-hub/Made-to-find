@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, X } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 
 interface AddShelfButtonProps {
@@ -66,13 +66,13 @@ export function AddShelfButton({ locationId, userId, nextPosition }: AddShelfBut
           placeholder="z.B. Oben, Mitte, Unten..."
           maxLength={50}
           autoFocus
-          className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="flex-1 min-w-0 h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <button
           type="button"
           onClick={handleSave}
           disabled={isLoading}
-          className="h-10 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+          className="h-10 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5 flex-shrink-0"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
         </button>
@@ -80,9 +80,10 @@ export function AddShelfButton({ locationId, userId, nextPosition }: AddShelfBut
           type="button"
           onClick={() => { setIsOpen(false); setName(""); setError(null); }}
           disabled={isLoading}
-          className="h-10 px-3 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors text-sm"
+          title="Abbrechen"
+          className="h-10 w-10 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center flex-shrink-0"
         >
-          Abbrechen
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>
