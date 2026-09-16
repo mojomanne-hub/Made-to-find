@@ -7,6 +7,7 @@ import { createServerClient }   from "@/lib/supabase/server";
 import { Badge }                from "@/components/ui/Badge";
 import { ItemList }             from "@/components/items/ItemList";
 import { LocationDeleteButton } from "@/components/locations/LocationDeleteButton";
+import { AddShelfButton }       from "@/components/locations/AddShelfButton";
 import { ROUTES }               from "@/lib/constants";
 import { Button }               from "@/components/ui/Button";
 
@@ -130,12 +131,17 @@ export default async function LocationDetailPage({ params }: Props) {
       </div>
 
       {/* Gegenstand hinzufügen */}
-      <div className="mb-4">
+      <div className="mb-3">
         <Link href={ROUTES.itemNewAtLocation(id)}>
           <Button size="sm" variant="secondary">
             <Plus className="h-4 w-4" /> Gegenstand hinzufügen
           </Button>
         </Link>
+      </div>
+
+      {/* Fach / Ebene hinzufügen */}
+      <div className="mb-4">
+        <AddShelfButton locationId={id} userId={user.id} nextPosition={shelves.length} />
       </div>
 
       {/* Gegenstände-Liste */}
