@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Bell, X, Package, MapPin, Users, Check, Clock } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -42,12 +43,27 @@ function notifBg(type: string): string {
   return "bg-slate-700";
 }
 
+interface Coords {
+  top:    number;
+  left:   number;
+  openUp: boolean; // falls unten nicht genug Platz ist
+}
+
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [isOpen,        setIsOpen]        = useState(false);
   const [isLoading,     setIsLoading]     = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [coords,        setCoords]        = useState<Coords | null>(null);
+  const [mounted,       setMounted]       = useState(false);
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef  = useRef<HTMLDivElement>(null);
+
+  const PANEL_WIDTH  = 320; // entspricht w-80
+  const PANEL_MARGIN = 8;
+
+  useEffect(() => setMounted(true), []);
 
   // Nur ungelesene Anzahl laden beim Start
   async function loadUnreadCount() {
@@ -85,11 +101,39 @@ export function NotificationBell() {
     setUnreadCount(0);
   }
 
+  // Position relativ zum Button berechnen (immer innerhalb des sichtbaren Viewports)
+  function updateCoords() {
+    const btn = buttonRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    // Horizontal: versuche rechts neben dem Button, sonst links davon, sonst an den rechten Rand geklemmt
+    let left = rect.right + PANEL_MARGIN;
+    if (left + PANEL_WIDTH > viewportW - PANEL_MARGIN) {
+      left = rect.left - PANEL_WIDTH - PANEL_MARGIN;
+    }
+    if (left < PANEL_MARGIN) {
+      left = Math.max(PANEL_MARGIN, viewportW - PANEL_WIDTH - PANEL_MARGIN);
+    }
+
+    // Vertikal: öffnet standardmäßig auf Höhe des Buttons, bei wenig Platz nach oben ausklappen
+    const estimatedHeight = 420; // max-h-96 Liste + Header
+    const openUp = rect.top + estimatedHeight > viewportH && rect.top > estimatedHeight;
+    const top = openUp
+      ? Math.max(PANEL_MARGIN, rect.bottom - estimatedHeight)
+      : rect.top;
+
+    setCoords({ top, left, openUp });
+  }
+
   // Beim Öffnen: laden + nach 2 Sek als gelesen markieren
   async function handleOpen() {
     const newOpen = !isOpen;
     setIsOpen(newOpen);
     if (newOpen) {
+      updateCoords();
       await loadNotifications();
       setTimeout(markAllRead, 2000);
     }
@@ -123,10 +167,26 @@ export function NotificationBell() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Klick außerhalb schließt Dropdown
+  // Position bei Resize/Scroll neu berechnen, solange offen
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleReposition() { updateCoords(); }
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+    return () => {
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [isOpen]);
+
+  // Klick außerhalb schließt Dropdown (Button ODER Panel zählen als "innerhalb")
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        panelRef.current  && !panelRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -134,10 +194,88 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const panel = isOpen && coords && (
+    <div
+      ref={panelRef}
+      className="fixed w-80 rounded-2xl shadow-2xl overflow-hidden z-[999]"
+      style={{
+        top:  coords.top,
+        left: coords.left,
+        backgroundColor: "#1a2535",
+        border: "1px solid #2d3f55",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #2d3f55" }}>
+        <h3 className="text-sm font-semibold text-slate-100">Benachrichtigungen</h3>
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
+            >
+              <Check className="h-3 w-3" /> Alle gelesen
+            </button>
+          )}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Liste */}
+      <div className="max-h-96 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+            <Bell className="h-8 w-8 text-slate-600 mb-3" />
+            <p className="text-sm font-medium text-slate-400">Keine Benachrichtigungen</p>
+            <p className="text-xs text-slate-600 mt-1">Aktivitäten in deinen Gruppen erscheinen hier</p>
+          </div>
+        ) : (
+          <ul>
+            {notifications.map((notif) => (
+              <li
+                key={notif.id}
+                className={cn(
+                  "border-b border-slate-700/50 last:border-0 transition-colors",
+                  !notif.is_read && "bg-brand-900/10"
+                )}
+              >
+                <div className="w-full flex items-start gap-3 px-4 py-3 text-left">
+                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", notifBg(notif.type))}>
+                    <NotifIcon type={notif.type} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-slate-200 truncate">{notif.title}</p>
+                      {!notif.is_read && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand-400 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{notif.message}</p>
+                    <p className="text-[10px] text-slate-600 mt-1">{timeAgo(notif.created_at)}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       {/* Glocken-Button */}
       <button
+        ref={buttonRef}
         onClick={handleOpen}
         className={cn(
           "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
@@ -162,77 +300,8 @@ export function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div
-          className="absolute left-full top-0 ml-2 w-80 rounded-2xl shadow-2xl overflow-hidden z-50"
-          style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55" }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #2d3f55" }}>
-            <h3 className="text-sm font-semibold text-slate-100">Benachrichtigungen</h3>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
-                >
-                  <Check className="h-3 w-3" /> Alle gelesen
-                </button>
-              )}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Liste */}
-          <div className="max-h-96 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                <Bell className="h-8 w-8 text-slate-600 mb-3" />
-                <p className="text-sm font-medium text-slate-400">Keine Benachrichtigungen</p>
-                <p className="text-xs text-slate-600 mt-1">Aktivitäten in deinen Gruppen erscheinen hier</p>
-              </div>
-            ) : (
-              <ul>
-                {notifications.map((notif) => (
-                  <li
-                    key={notif.id}
-                    className={cn(
-                      "border-b border-slate-700/50 last:border-0 transition-colors",
-                      !notif.is_read && "bg-brand-900/10"
-                    )}
-                  >
-                    <div className="w-full flex items-start gap-3 px-4 py-3 text-left">
-                      <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", notifBg(notif.type))}>
-                        <NotifIcon type={notif.type} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold text-slate-200 truncate">{notif.title}</p>
-                          {!notif.is_read && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-brand-400 flex-shrink-0" />
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{notif.message}</p>
-                        <p className="text-[10px] text-slate-600 mt-1">{timeAgo(notif.created_at)}</p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Dropdown als Portal — entkommt jedem overflow:hidden/auto der Eltern-Container */}
+      {mounted && panel ? createPortal(panel, document.body) : null}
     </div>
   );
 }
