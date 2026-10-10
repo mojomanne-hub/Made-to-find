@@ -14,6 +14,7 @@ import { ROUTES, SEARCH_MIN_LENGTH, SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 import { formatRelativeDate }  from "@/lib/utils";
 import { Card }   from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { AdBanner } from "@/components/ads/AdBanner";
 
 // Dynamisches Icon-Rendering mit Emoji-Unterstützung
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
@@ -237,6 +238,9 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
           </div>
         </Link>
       </div>
+
+      {/* ── Werbung ── */}
+      <AdBanner slot="7854537267" />
 
 {/* ── Bald ablaufend ── */}
 {expiringItems.length > 0 && (

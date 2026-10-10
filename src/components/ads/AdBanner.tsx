@@ -1,19 +1,10 @@
 "use client";
 
-/**
- * AdBanner – Google AdSense Banner Komponente
- * Wird nur angezeigt wenn AdSense genehmigt ist.
- * 
- * Verwendung:
- * <AdBanner slot="DEIN-SLOT-ID" />
- */
-
 import { useEffect, useRef } from "react";
 
 interface AdBannerProps {
-  slot:   string;          // AdSense Anzeigenblock-ID
-  format?: "auto" | "rectangle" | "horizontal" | "vertical";
-  style?:  React.CSSProperties;
+  /** Die data-ad-slot ID aus deinem AdSense-Dashboard */
+  slot: string;
 }
 
 declare global {
@@ -22,32 +13,30 @@ declare global {
   }
 }
 
-export function AdBanner({ slot, format = "auto", style }: AdBannerProps) {
-  const adRef = useRef<HTMLModElement>(null);
-  const initialized = useRef(false);
+export function AdBanner({ slot }: AdBannerProps) {
+  const insRef = useRef<HTMLModElement>(null);
+  const pushed = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    // Verhindert doppeltes Laden derselben Anzeige (z.B. bei React Strict Mode)
+    if (pushed.current) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (err) {
-      console.error("AdSense error:", err);
+      pushed.current = true;
+    } catch {
+      // AdSense-Skript evtl. noch nicht geladen – kein Fehler werfen
     }
   }, []);
 
   return (
-    <div
-      className="w-full overflow-hidden rounded-xl"
-      style={{ minHeight: "60px", ...style }}
-    >
+    <div className="w-full flex justify-center my-4">
       <ins
-        ref={adRef}
+        ref={insRef}
         className="adsbygoogle"
-        style={{ display: "block" }}
+        style={{ display: "block", width: "100%" }}
         data-ad-client="ca-pub-8085473899262156"
         data-ad-slot={slot}
-        data-ad-format={format}
+        data-ad-format="auto"
         data-full-width-responsive="true"
       />
     </div>
