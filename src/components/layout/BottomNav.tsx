@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MapPin, Package } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
@@ -12,7 +12,12 @@ const NAV_ITEMS = [
   { href: ROUTES.items,     label: "Gegenstände", icon: Package },
 ];
 
-export function BottomNav() {
+interface BottomNavProps {
+  /** Öffnet das Menü (Drawer) */
+  onMenuClick?: () => void;
+}
+
+export function BottomNav({ onMenuClick }: BottomNavProps) {
   const pathname = usePathname();
 
   return (
@@ -21,6 +26,17 @@ export function BottomNav() {
       style={{ backgroundColor: "#0f1729", borderTop: "1px solid #1e2d4a" }}
     >
       <div className="flex items-stretch h-16">
+        {/* Menü-Button ganz links */}
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="flex-1 flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-slate-500 hover:text-white transition-colors"
+          aria-label="Menü öffnen"
+        >
+          <Menu className="h-5 w-5" />
+          Menü
+        </button>
+
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive =
             pathname === href ||

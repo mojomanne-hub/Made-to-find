@@ -7,7 +7,6 @@ import { cookies }  from "next/headers";
 import { createServerClient }  from "@/lib/supabase/server";
 import { GroupProvider }       from "@/lib/context/GroupContext";
 import { Sidebar }             from "@/components/layout/Sidebar";
-import { BottomNav }           from "@/components/layout/BottomNav";
 import { MobileLayoutWrapper } from "@/components/layout/MobileLayoutWrapper";
 import { ROUTES }              from "@/lib/constants";
 import { OnboardingWrapper } from "@/components/onboarding/OnboardingWrapper";
@@ -61,9 +60,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {children}
           </div>
         </main>
-
-        {/* Mobile Bottom Nav */}
-        <BottomNav />
 
      <OnboardingWrapper />  {/* ← NEU */}
       </div>

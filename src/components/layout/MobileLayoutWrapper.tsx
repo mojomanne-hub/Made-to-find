@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileDrawer } from "@/components/layout/MobileDrawer";
+import { BottomNav }    from "@/components/layout/BottomNav";
 import type { User }    from "@supabase/supabase-js";
 import type { Group }   from "@/lib/context/GroupContext";
 
@@ -18,7 +19,6 @@ export function MobileLayoutWrapper({ user, groups, displayName }: Props) {
   return (
     <>
       <MobileHeader
-        onMenuOpen={() => setDrawerOpen(true)}
         groups={groups}
         displayName={displayName}
       />
@@ -29,6 +29,7 @@ export function MobileLayoutWrapper({ user, groups, displayName }: Props) {
         groups={groups}
         displayName={displayName}
       />
+      <BottomNav onMenuClick={() => setDrawerOpen(true)} />
     </>
   );
 }

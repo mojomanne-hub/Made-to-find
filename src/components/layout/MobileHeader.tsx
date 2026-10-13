@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, ChevronDown, Check, Bell, X } from "lucide-react";
+import { ChevronDown, Check, Bell, X } from "lucide-react";
 import { useGroup, type Group } from "@/lib/context/GroupContext";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -22,12 +22,13 @@ function groupColor(id: string) {
 }
 
 interface MobileHeaderProps {
-  onMenuOpen:  () => void;
+  /** Nicht mehr genutzt – das Menü wird jetzt über die BottomNav geöffnet */
+  onMenuOpen?: () => void;
   groups:      Group[];
   displayName: string;
 }
 
-export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderProps) {
+export function MobileHeader({ groups, displayName }: MobileHeaderProps) {
   const router = useRouter();
   const { activeGroup, setActiveGroup } = useGroup();
   const [dropdownOpen,  setDropdownOpen]  = useState(false);
@@ -91,14 +92,6 @@ export function MobileHeader({ onMenuOpen, groups, displayName }: MobileHeaderPr
         className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-3 h-14"
         style={{ backgroundColor: "#0f1729", borderBottom: "1px solid #1e2d4a" }}
       >
-        {/* Hamburger */}
-        <button
-          onClick={onMenuOpen}
-          className="h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
         {/* Gruppen-Dropdown */}
         <div className="relative min-w-0 max-w-[190px] w-full flex-shrink">
           <button
