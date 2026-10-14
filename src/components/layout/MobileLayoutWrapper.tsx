@@ -21,6 +21,7 @@ export function MobileLayoutWrapper({ user, groups, displayName }: Props) {
       <MobileHeader
         groups={groups}
         displayName={displayName}
+        userId={user.id}
       />
       <MobileDrawer
         isOpen={drawerOpen}
