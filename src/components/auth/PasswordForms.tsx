@@ -5,9 +5,10 @@
  * ResetPasswordForm  – setzt das Passwort nach Klick auf den Link.
  */
 
-import { useState }    from "react";
+import { useState, useEffect } from "react";
 import { useRouter }   from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Mail, Lock, Eye, EyeOff, Check, Inbox, MousePointerClick, KeyRound, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations";
 import { getAuthError } from "@/lib/utils";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -26,6 +27,28 @@ export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [sent,      setSent]      = useState(false);
+  const [sentEmail, setSentEmail] = useState("");
+
+  const [cooldown,    setCooldown]    = useState(0);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  // Sperre für „Erneut senden“ herunterzählen
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  async function sendResetMail(address: string) {
+    const supabase = createBrowserClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(address, {
+      redirectTo: `${window.location.origin}${ROUTES.resetPassword}`,
+    });
+    // Kein Fehler nach außen bei nicht-existenter E-Mail (verhindert User-Enumeration)
+    if (error && error.message !== "User not found") {
+      throw new Error(getAuthError(error.message));
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,45 +63,133 @@ export function ForgotPasswordForm() {
     setIsLoading(true);
 
     try {
-      const supabase = createBrowserClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        result.data.email,
-        { redirectTo: `${window.location.origin}${ROUTES.resetPassword}` },
-      );
-
-      // Kein Fehler nach außen bei nicht-existenter E-Mail
-      // (verhindert User-Enumeration)
-      if (error && error.message !== "User not found") {
-        setError(getAuthError(error.message));
-        return;
-      }
-
+      await sendResetMail(result.data.email);
+      setSentEmail(result.data.email);
+      setCooldown(60);
       setSent(true);
-    } catch {
-      setError("Ein unerwarteter Fehler ist aufgetreten.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ein unerwarteter Fehler ist aufgetreten.");
     } finally {
       setIsLoading(false);
     }
   }
 
+  async function handleResend() {
+    if (cooldown > 0 || resendState === "sending") return;
+    setResendState("sending");
+    try {
+      await sendResetMail(sentEmail);
+      setResendState("sent");
+    } catch {
+      setResendState("error");
+    } finally {
+      setCooldown(60);
+    }
+  }
+
+  function handleOtherAddress() {
+    setSent(false);
+    setResendState("idle");
+    setCooldown(0);
+    setEmail("");
+  }
+
   if (sent) {
+    const steps = [
+      { icon: Inbox,             text: "Öffne dein E-Mail-Postfach" },
+      { icon: MousePointerClick, text: "Klicke in der Mail auf „Neues Passwort festlegen“" },
+      { icon: KeyRound,          text: "Vergib ein neues Passwort und leg wieder los" },
+    ];
+
     return (
-      <Card className="text-center py-8 px-6">
-        <div className="h-14 w-14 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="h-7 w-7 text-success-600" />
+      <div
+        className="rounded-2xl px-6 py-8 text-center"
+        style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55", boxShadow: "0 25px 50px rgba(0,0,0,0.4)" }}
+      >
+        {/* Icon */}
+        <div className="relative mx-auto mb-5 h-20 w-20">
+          <span className="absolute inset-0 rounded-full animate-ping" style={{ backgroundColor: "rgba(59,130,246,0.15)" }} />
+          <div
+            className="relative h-20 w-20 rounded-full flex items-center justify-center"
+            style={{ background: "linear-gradient(135deg,#3b82f6,#1e3a6e)", boxShadow: "0 8px 30px rgba(59,130,246,0.35)" }}
+          >
+            <Mail className="h-9 w-9 text-white" />
+          </div>
+          <span
+            className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#10b981", border: "3px solid #1a2535" }}
+          >
+            <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+          </span>
         </div>
-        <h2 className="text-base font-semibold text-neutral-900 mb-2">
-          E-Mail gesendet
-        </h2>
-        <p className="text-sm text-neutral-500 leading-relaxed">
-          Falls ein Konto mit{" "}
-          <strong className="text-neutral-700 font-medium">{email}</strong>{" "}
-          existiert, haben wir einen Reset-Link gesendet.
+
+        <h2 className="text-2xl font-bold mb-2" style={{ color: "#f1f5f9" }}>Mail ist unterwegs!</h2>
+        <p className="text-sm mb-3" style={{ color: "#94a3b8" }}>
+          Falls ein Konto existiert, haben wir einen Link zum Zurücksetzen gesendet an
         </p>
-        <p className="text-xs text-neutral-400 mt-4">
-          Der Link ist 1 Stunde gültig. Überprüfe auch deinen Spam-Ordner.
-        </p>
-      </Card>
+        <div
+          className="inline-block max-w-full truncate rounded-full px-4 py-1.5 text-sm font-medium mb-6"
+          style={{ backgroundColor: "#0f1729", border: "1px solid #2d3f55", color: "#60a5fa" }}
+        >
+          {sentEmail}
+        </div>
+
+        {/* Schritte */}
+        <ol className="mb-5 space-y-2.5 text-left">
+          {steps.map(({ icon: Icon, text }, i) => (
+            <li key={text} className="flex items-center gap-3">
+              <span
+                className="h-8 w-8 rounded-lg flex-shrink-0 flex items-center justify-center"
+                style={{ backgroundColor: "rgba(59,130,246,0.12)" }}
+              >
+                <Icon className="h-4 w-4" style={{ color: "#60a5fa" }} />
+              </span>
+              <span className="text-sm" style={{ color: "#cbd5e1" }}>
+                <span className="font-semibold" style={{ color: "#60a5fa" }}>{i + 1}.</span> {text}
+              </span>
+            </li>
+          ))}
+        </ol>
+
+        {/* Spam-Hinweis */}
+        <div
+          className="mb-5 flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-left"
+          style={{ backgroundColor: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)" }}
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#fbbf24" }} />
+          <p className="text-xs leading-relaxed" style={{ color: "#fcd34d" }}>
+            Nichts angekommen? Schau auch im <strong>Spam-Ordner</strong> nach und markiere die Mail dort als „Kein Spam“. Der Link ist 1 Stunde gültig.
+          </p>
+        </div>
+
+        {/* Erneut senden */}
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={cooldown > 0 || resendState === "sending"}
+          className="w-full h-11 rounded-xl border border-slate-600 text-slate-200 hover:bg-slate-700 disabled:opacity-50 disabled:hover:bg-transparent transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          {resendState === "sending"
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : <RefreshCw className="h-4 w-4" />}
+          {cooldown > 0 ? `Erneut senden in ${cooldown} s` : "Mail erneut senden"}
+        </button>
+        {resendState === "sent" && (
+          <p className="text-xs mt-2" style={{ color: "#34d399" }}>Die Mail wurde erneut gesendet.</p>
+        )}
+        {resendState === "error" && (
+          <p className="text-xs mt-2 text-red-300">Das hat leider nicht geklappt. Bitte versuche es gleich noch einmal.</p>
+        )}
+
+        <div className="mt-5 flex items-center justify-center gap-5 text-sm">
+          <button type="button" onClick={handleOtherAddress} className="transition-colors hover:text-slate-200" style={{ color: "#94a3b8" }}>
+            Andere Adresse
+          </button>
+          <Link href={ROUTES.login} className="font-medium transition-colors hover:text-blue-300" style={{ color: "#60a5fa" }}>
+            Zur Anmeldung
+          </Link>
+        </div>
+      </div>
     );
   }
 
