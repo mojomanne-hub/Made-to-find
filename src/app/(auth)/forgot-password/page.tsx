@@ -12,17 +12,18 @@ export default function ForgotPasswordPage() {
       {/* Zurück-Link */}
       <Link
         href={ROUTES.login}
-        className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 mb-7 transition-colors"
+        className="inline-flex items-center gap-1 text-sm mb-7 transition-colors hover:text-slate-200"
+        style={{ color: "#94a3b8" }}
       >
         <ChevronLeft className="h-4 w-4" />
         Zurück zum Login
       </Link>
 
-      <div className="mb-7">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-1">
+      <div className="mb-7 text-center">
+        <h1 className="text-2xl font-bold mb-2" style={{ color: "#f1f5f9" }}>
           Passwort zurücksetzen
         </h1>
-        <p className="text-sm text-neutral-500 leading-relaxed">
+        <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>
           Gib deine E-Mail-Adresse ein. Wir senden dir einen Link,
           mit dem du ein neues Passwort festlegen kannst.
         </p>
