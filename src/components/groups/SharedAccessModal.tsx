@@ -4,35 +4,38 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   X, ChevronLeft, Users, Plus, LogIn,
-  Share2, Copy, Check, Loader2, Edit2, Trash2,
+  Share2, Copy, Check, Loader2, Edit2, Trash2, Info, Crown,
 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/Alert";
 import { cn } from "@/lib/utils";
 import type { Group } from "@/lib/context/GroupContext";
 
-// Einladungslinks zeigen immer auf die eigene Domain (nicht auf vercel.app)
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.madetofind.de";
+type Screen = "menu" | "create" | "join" | "share" | "manage" | "members";
 
-type Screen = "menu" | "create" | "join" | "share" | "manage";
+interface GroupMember {
+  user_id: string;
+  display_name: string | null;
+}
 
 interface SharedAccessModalProps {
-  isOpen:              boolean;
-  onClose:             () => void;
-  initialGroup:        Group | null;
-  initialManageGroup?: Group | null;
-  groups:              Group[];
-  onGroupsChange:      (groups: Group[]) => void;
-  userId:              string;
+  isOpen:               boolean;
+  onClose:              () => void;
+  initialGroup:         Group | null;
+  initialManageGroup?:  Group | null;
+  initialMembersGroup?: Group | null;
+  groups:               Group[];
+  onGroupsChange:       (groups: Group[]) => void;
+  userId:               string;
 }
 
 export function SharedAccessModal({
-  isOpen, onClose, initialGroup, initialManageGroup, groups, onGroupsChange, userId,
+  isOpen, onClose, initialGroup, initialManageGroup, initialMembersGroup, groups, onGroupsChange, userId,
 }: SharedAccessModalProps) {
   const router = useRouter();
 
   const [screen,      setScreen]      = useState<Screen>(
-    initialManageGroup ? "manage" : initialGroup ? "share" : "menu"
+    initialMembersGroup ? "members" : initialManageGroup ? "manage" : initialGroup ? "share" : "menu"
   );
   const [shareGroup,  setShareGroup]  = useState<Group | null>(initialGroup);
   const [manageGroup, setManageGroup] = useState<Group | null>(initialManageGroup ?? null);
@@ -46,9 +49,15 @@ export function SharedAccessModal({
   const [success,     setSuccess]     = useState<string | null>(null);
   const [copied,      setCopied]      = useState(false);
 
+  const [members,        setMembers]        = useState<GroupMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
-    if (initialManageGroup) {
+    if (initialMembersGroup) {
+      setScreen("members");
+      openMembers(initialMembersGroup);
+    } else if (initialManageGroup) {
       setScreen("manage");
       setManageGroup(initialManageGroup);
       setEditName(initialManageGroup.name);
@@ -61,14 +70,14 @@ export function SharedAccessModal({
     setError(null);
     setSuccess(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialManageGroup, initialGroup]);
+  }, [isOpen, initialManageGroup, initialGroup, initialMembersGroup]);
 
   if (!isOpen) return null;
 
   function handleClose() {
-    setScreen(initialManageGroup ? "manage" : initialGroup ? "share" : "menu");
+    setScreen(initialMembersGroup ? "members" : initialManageGroup ? "manage" : initialGroup ? "share" : "menu");
     setShareGroup(initialGroup);
-    setManageGroup(initialManageGroup ?? null);
+    setManageGroup(initialManageGroup ?? initialMembersGroup ?? null);
     setEditName(initialManageGroup?.name ?? "");
     setGroupName("");
     setJoinLink("");
@@ -78,7 +87,7 @@ export function SharedAccessModal({
   }
 
   function buildInviteLink(token: string) {
-    return APP_URL + "/join/" + token;
+    return window.location.origin + "/join/" + token;
   }
 
   async function handleCopy(text: string) {
@@ -157,6 +166,7 @@ export function SharedAccessModal({
 
   async function handleDeleteGroup() {
     if (!manageGroup) return;
+    if (!isCreator(manageGroup)) return;
     if (!confirm("Gruppe \"" + manageGroup.name + "\" wirklich loeschen?")) return;
     setIsDeleting(true); setError(null);
     try {
@@ -169,6 +179,47 @@ export function SharedAccessModal({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler.");
     } finally { setIsDeleting(false); }
+  }
+
+  function isCreator(group: Group) {
+    return (group as Group & { created_by?: string }).created_by === userId;
+  }
+
+  async function openMembers(group: Group) {
+    setManageGroup(group);
+    setScreen("members");
+    setMembersLoading(true);
+    setError(null);
+    try {
+      const supabase = createBrowserClient();
+      const { data: memberRows, error: mErr } = await supabase
+        .from("group_members")
+        .select("user_id")
+        .eq("group_id", group.id);
+      if (mErr) throw mErr;
+
+      const userIds = (memberRows ?? []).map((r) => r.user_id as string);
+      if (userIds.length === 0) {
+        setMembers([]);
+        return;
+      }
+
+      const { data: profileRows, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      if (pErr) throw pErr;
+
+      const list: GroupMember[] = userIds.map((uid) => {
+        const profile = profileRows?.find((p) => p.id === uid);
+        return { user_id: uid, display_name: profile?.display_name ?? null };
+      });
+      setMembers(list);
+    } catch (err) {
+      setError(err instanceof Error ? `Mitglieder konnten nicht geladen werden: ${err.message}` : "Mitglieder konnten nicht geladen werden.");
+    } finally {
+      setMembersLoading(false);
+    }
   }
 
   const inviteLink = shareGroup ? buildInviteLink(shareGroup.invite_token) : "";
@@ -188,7 +239,9 @@ export function SharedAccessModal({
             </button>
           )}
           <Users className="h-5 w-5 text-brand-400" />
-          <h2 className="text-sm font-semibold text-slate-100 flex-1">Geteilter Zugriff</h2>
+          <h2 className="text-sm font-semibold text-slate-100 flex-1">
+            {screen === "members" ? "Mitglieder" : "Geteilter Zugriff"}
+          </h2>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-200 transition-colors">
             <X className="h-4 w-4" />
           </button>
@@ -235,7 +288,13 @@ export function SharedAccessModal({
                       <p className="text-xs text-slate-500">Link teilen oder einladen</p>
                     </div>
                   </button>
+                  <button onClick={() => openMembers(group)}
+                    title="Mitglieder anzeigen"
+                    className="px-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-slate-400 hover:text-slate-200">
+                    <Info className="h-4 w-4" />
+                  </button>
                   <button onClick={() => { setManageGroup(group); setEditName(group.name); setScreen("manage"); setError(null); setSuccess(null); }}
+                    title="Gruppe verwalten"
                     className="px-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-slate-400 hover:text-slate-200">
                     <Edit2 className="h-4 w-4" />
                   </button>
@@ -327,6 +386,44 @@ export function SharedAccessModal({
             </div>
           )}
 
+          {/* Mitglieder anzeigen */}
+          {screen === "members" && manageGroup && (
+            <div className="space-y-3">
+              {error && <Alert variant="error">{error}</Alert>}
+              {membersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 text-slate-500 animate-spin" />
+                </div>
+              ) : members.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-6">Keine Mitglieder gefunden.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {members.map((m) => (
+                    <div key={m.user_id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-700">
+                      <div className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-slate-300">
+                        {(m.display_name?.[0] ?? "?").toUpperCase()}
+                      </div>
+                      <span className="text-sm text-slate-200 flex-1">
+                        {m.display_name || "Unbenannt"}
+                        {m.user_id === userId && <span className="text-slate-500"> (Du)</span>}
+                      </span>
+                      {isCreator(manageGroup) && m.user_id === (manageGroup as Group & { created_by?: string }).created_by && (
+                        <span title="Ersteller" className="flex items-center gap-1 text-xs text-amber-400">
+                          <Crown className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                      {!isCreator(manageGroup) && m.user_id === (manageGroup as Group & { created_by?: string }).created_by && (
+                        <span title="Ersteller" className="flex items-center gap-1 text-xs text-amber-400">
+                          <Crown className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Gruppe verwalten */}
           {screen === "manage" && manageGroup && (
             <div className="space-y-4">
@@ -346,6 +443,17 @@ export function SharedAccessModal({
                 </div>
               </div>
 
+              <button onClick={() => openMembers(manageGroup)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-left">
+                <div className="h-8 w-8 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+                  <Info className="h-4 w-4 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-200">Mitglieder anzeigen</p>
+                  <p className="text-xs text-slate-500">Wer ist alles in dieser Gruppe</p>
+                </div>
+              </button>
+
               <div className="h-px bg-slate-700" />
 
               <button onClick={handleLeaveGroup} disabled={isDeleting}
@@ -359,16 +467,22 @@ export function SharedAccessModal({
                 </div>
               </button>
 
-              <button onClick={handleDeleteGroup} disabled={isDeleting}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-danger-600/50 hover:bg-danger-900/20 transition-all text-left">
-                <div className="h-8 w-8 rounded-lg bg-danger-900/30 flex items-center justify-center flex-shrink-0">
-                  <Trash2 className="h-4 w-4 text-danger-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">Gruppe löschen</p>
-                  <p className="text-xs text-slate-500">Löscht die Gruppe für alle Mitglieder</p>
-                </div>
-              </button>
+              {isCreator(manageGroup) ? (
+                <button onClick={handleDeleteGroup} disabled={isDeleting}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-danger-600/50 hover:bg-danger-900/20 transition-all text-left">
+                  <div className="h-8 w-8 rounded-lg bg-danger-900/30 flex items-center justify-center flex-shrink-0">
+                    <Trash2 className="h-4 w-4 text-danger-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-200">Gruppe löschen</p>
+                    <p className="text-xs text-slate-500">Löscht die Gruppe für alle Mitglieder</p>
+                  </div>
+                </button>
+              ) : (
+                <p className="text-xs text-slate-600 px-1">
+                  Nur der Ersteller der Gruppe kann sie vollständig löschen.
+                </p>
+              )}
             </div>
           )}
 
