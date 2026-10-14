@@ -8,8 +8,9 @@
  * bestätigen, bevor er sich einloggen kann.
  */
 
-import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Eye, EyeOff, Mail, Lock, User, Check, RefreshCw, ArrowLeft, Info, Users } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { getAuthError }   from "@/lib/utils";
 import { createBrowserClient }  from "@/lib/supabase/client";
@@ -32,6 +33,35 @@ export function RegisterForm() {
   const [isLoading,       setIsLoading]       = useState(false);
   const [errors,          setErrors]          = useState<FormErrors>({});
   const [confirmed,       setConfirmed]       = useState(false);
+  const [sentEmail,       setSentEmail]       = useState("");
+  const [cooldown,        setCooldown]        = useState(0);
+  const [resendState,     setResendState]     = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  // Sekunden-Countdown für "Mail erneut senden"
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  async function handleResend() {
+    if (cooldown > 0 || resendState === "sending") return;
+    setResendState("sending");
+    try {
+      const supabase = createBrowserClient();
+      const { error } = await supabase.auth.resend({
+        type:  "signup",
+        email: sentEmail,
+        options: { emailRedirectTo: `${window.location.origin}${ROUTES.dashboard}` },
+      });
+      if (error) throw error;
+      setResendState("sent");
+    } catch {
+      setResendState("error");
+    } finally {
+      setCooldown(60);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +106,9 @@ export function RegisterForm() {
       }
 
       // Bestätigungshinweis anzeigen
+      setSentEmail(result.data.email);
+      setResendState("idle");
+      setCooldown(60);
       setConfirmed(true);
     } catch {
       setErrors({ root: "Ein unerwarteter Fehler ist aufgetreten." });
@@ -86,28 +119,139 @@ export function RegisterForm() {
 
   // ---- Erfolgs-Zustand: E-Mail-Bestätigung ausstehend ------
   if (confirmed) {
+    const steps = [
+      "Öffne dein E-Mail-Postfach",
+      "Klicke in der Mail auf „E-Mail bestätigen“",
+      "Melde dich an und leg los",
+    ];
+
     return (
-      <Card className="text-center py-8 px-6">
-        <div className="h-14 w-14 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="h-7 w-7 text-success-600" />
+      <div
+        className="rounded-2xl px-6 py-8 text-center"
+        style={{
+          backgroundColor: "#1a2535",
+          border: "1px solid #2d3f55",
+          boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
+        }}
+      >
+        {/* Icon mit Glow und Haken */}
+        <div className="relative mx-auto mb-5 h-20 w-20">
+          <span
+            className="absolute inset-0 rounded-full animate-ping"
+            style={{ backgroundColor: "rgba(59,130,246,0.15)" }}
+          />
+          <div
+            className="relative h-20 w-20 rounded-full flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, #1e3a6e, #2563eb)",
+              boxShadow: "0 8px 30px rgba(37,99,235,0.35)",
+            }}
+          >
+            <Mail className="h-9 w-9 text-white" />
+          </div>
+          <span
+            className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#10b981", border: "3px solid #1a2535" }}
+          >
+            <Check className="h-4 w-4 text-white" strokeWidth={3} />
+          </span>
         </div>
-        <h2 className="text-base font-semibold mb-2" style={{ color: "#f1f5f9" }}>
+
+        <h2 className="text-xl font-bold mb-2" style={{ color: "#f1f5f9" }}>
           Fast geschafft!
         </h2>
         <p className="text-sm leading-relaxed" style={{ color: "#94a3b8" }}>
-          Wir haben eine Bestätigungs-E-Mail an{" "}
-          <strong className="font-medium" style={{ color: "#cbd5e1" }}>{email}</strong>{" "}
-          gesendet. Klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
+          Wir haben dir eine Bestätigungs-Mail geschickt an
         </p>
-        <p className="text-xs mt-4" style={{ color: "#64748b" }}>
-          Kein E-Mail erhalten? Überprüfe deinen Spam-Ordner.
-        </p>
-        {getPendingInviteToken() && (
-          <p className="text-xs text-emerald-400 mt-2">
-            ✓ Nach der Bestätigung wirst du automatisch der Gruppe beitreten.
+        <div className="mt-3 flex justify-center">
+          <span
+            className="inline-block max-w-full truncate rounded-lg px-3 py-1.5 text-sm font-medium"
+            style={{ backgroundColor: "#0f1729", border: "1px solid #2d3f55", color: "#e2e8f0" }}
+          >
+            {sentEmail}
+          </span>
+        </div>
+
+        {/* Schritte */}
+        <ol className="mt-6 space-y-3 text-left">
+          {steps.map((text, i) => (
+            <li key={text} className="flex items-center gap-3">
+              <span
+                className="h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                style={{ backgroundColor: "rgba(59,130,246,0.15)", color: "#60a5fa" }}
+              >
+                {i + 1}
+              </span>
+              <span className="text-sm" style={{ color: "#cbd5e1" }}>{text}</span>
+            </li>
+          ))}
+        </ol>
+
+        {/* Spam-Hinweis */}
+        <div
+          className="mt-6 flex items-start gap-3 rounded-xl px-4 py-3 text-left"
+          style={{ backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}
+        >
+          <Info className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#fbbf24" }} />
+          <p className="text-xs leading-relaxed" style={{ color: "#fde68a" }}>
+            Nichts angekommen? Schau im <strong>Spam-Ordner</strong> nach und markiere die Mail
+            dort als „Kein Spam“. Die Zustellung kann ein bis zwei Minuten dauern.
           </p>
+        </div>
+
+        {/* Gruppen-Einladung */}
+        {getPendingInviteToken() && (
+          <div
+            className="mt-3 flex items-start gap-3 rounded-xl px-4 py-3 text-left"
+            style={{ backgroundColor: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)" }}
+          >
+            <Users className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#34d399" }} />
+            <p className="text-xs leading-relaxed" style={{ color: "#a7f3d0" }}>
+              Nach der Bestätigung trittst du automatisch der Gruppe bei.
+            </p>
+          </div>
         )}
-      </Card>
+
+        {/* Aktionen */}
+        <div className="mt-6 space-y-3">
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={cooldown > 0 || resendState === "sending"}
+            className="w-full h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors hover:bg-slate-800/60 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: "#0f1729", border: "1px solid #2d3f55", color: "#e2e8f0" }}
+          >
+            <RefreshCw className={`h-4 w-4 ${resendState === "sending" ? "animate-spin" : ""}`} />
+            {cooldown > 0 ? `Erneut senden in ${cooldown} s` : "Mail erneut senden"}
+          </button>
+
+          {resendState === "sent" && (
+            <p className="text-xs" style={{ color: "#34d399" }}>
+              Wir haben dir die Mail noch einmal geschickt.
+            </p>
+          )}
+          {resendState === "error" && (
+            <p className="text-xs" style={{ color: "#f87171" }}>
+              Das hat leider nicht geklappt. Bitte versuche es in einer Minute erneut.
+            </p>
+          )}
+
+          <div className="flex items-center justify-center gap-5 text-sm pt-1">
+            <button
+              type="button"
+              onClick={() => { setConfirmed(false); setResendState("idle"); }}
+              className="inline-flex items-center gap-1.5 hover:text-slate-200 transition-colors"
+              style={{ color: "#94a3b8" }}
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Andere Adresse
+            </button>
+            <Link href={ROUTES.login} className="font-medium" style={{ color: "#60a5fa" }}>
+              Zur Anmeldung
+            </Link>
+          </div>
+        </div>
+      </div>
     );
   }
 
