@@ -33,13 +33,13 @@ const STEPS: Step[] = [
   {
     icon: MapPin,
     title: "Ablageorte erstellen",
-    description: "Erstelle Orte wie Keller, Garage oder Dachboden. Mit Farbe und Icon erkennst du alles auf einen Blick.",
+    description: "Erstelle Orte wie Keller, Garage oder Dachboden. Mit Farbe, Icon oder Foto erkennst du alles auf einen Blick.",
     color: "#10b981",
     image: "/onboarding/ablageorte.png",
     howTo: [
       "Öffne „Ablageorte“ in der Leiste",
       "Tippe auf „+“ und gib einen Namen ein",
-      "Wähle Farbe und Icon aus",
+      "Wähle Farbe, Icon oder Foto aus",
     ],
   },
   {
@@ -75,7 +75,7 @@ const STEPS: Step[] = [
     howTo: [
       "Tippe oben auf das Gruppen-Menü und wähle „Gruppe erstellen“",
       "Teile den Einladungslink per WhatsApp oder E-Mail",
-      "Wer den Link öffnet, tritt der Gruppe bei",
+      "Wer den Link bestätigt, tritt der Gruppe bei",
     ],
   },
 ];
