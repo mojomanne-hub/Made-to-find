@@ -10,6 +10,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/Alert";
 import { cn } from "@/lib/utils";
 import type { Group } from "@/lib/context/GroupContext";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.madetofind.de";
 
 type Screen = "menu" | "create" | "join" | "share" | "manage" | "members";
 
@@ -87,7 +88,7 @@ export function SharedAccessModal({
   }
 
   function buildInviteLink(token: string) {
-    return window.location.origin + "/join/" + token;
+  return "https://app.madetofind.de/join/" + token;
   }
 
   async function handleCopy(text: string) {
