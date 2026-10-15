@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { MapPin, Package, Users, Search, ArrowRight, Check, Rows3 } from "lucide-react";
+import { MapPin, Package, Users, Search, ArrowRight, Check } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -10,27 +10,19 @@ interface OnboardingModalProps {
   onComplete: () => void;
 }
 
-interface StepMedia {
-  type: "image" | "video";
-  src: string;
-}
-
 interface Step {
-  icon: typeof MapPin | null;
-  title: string;
+  icon:        typeof MapPin | null;
+  title:       string;
   description: string;
-  color: string;
-  media?: StepMedia;
+  color:       string;
+  /** Screenshot aus /public/onboarding/ (optional – ohne Datei wird das Icon gezeigt) */
+  image?:      string;
+  /** Kurzes Video (mp4/webm) aus /public/onboarding/ (optional, hat Vorrang vor image) */
+  video?:      string;
+  /** Kurze Anleitung in 2–3 Schritten */
+  howTo?:      string[];
 }
 
-// ── Medien pro Schritt ──────────────────────────────────────
-// Lege Dateien unter /public/onboarding/ ab (z.B. /public/onboarding/step2.mp4)
-// und trage den Pfad hier ein. Ohne "media" wird einfach das Icon gezeigt.
-//
-// Beispiele:
-//   media: { type: "video", src: "/onboarding/ablageorte.mp4" }
-//   media: { type: "image", src: "/onboarding/gegenstaende.gif" }   // GIF oder animiertes WebP
-//
 const STEPS: Step[] = [
   {
     icon: null,
@@ -43,41 +35,56 @@ const STEPS: Step[] = [
     title: "Ablageorte erstellen",
     description: "Erstelle Orte wie Keller, Garage oder Dachboden. Mit Farbe und Icon erkennst du alles auf einen Blick.",
     color: "#10b981",
-    // media: { type: "video", src: "/onboarding/ablageorte.mp4" },
-  },
-  {
-    icon: Rows3,
-    title: "Fach / Ebene",
-    description: "Aktiviere Fach/Ebene um diesen Ablageort in Fächer/Ebenen zu unterteilen (z.B. für Regale oder Schränke).",
-    color: "#06b6d4",
-    // media: { type: "video", src: "/onboarding/fach-ebene.mp4" },
+    image: "/onboarding/ablageorte.png",
+    howTo: [
+      "Öffne „Ablageorte“ in der Leiste",
+      "Tippe auf „+“ und gib einen Namen ein",
+      "Wähle Farbe und Icon aus",
+    ],
   },
   {
     icon: Package,
     title: "Gegenstände hinzufügen",
     description: "Füge Gegenstände hinzu und weise sie einem Ablageort zu. Optional mit Menge, Beschreibung und Ablaufdatum.",
     color: "#8b5cf6",
-    // media: { type: "video", src: "/onboarding/gegenstaende.mp4" },
+    image: "/onboarding/gegenstaende.png",
+    howTo: [
+      "Öffne „Gegenstände“ und tippe auf „+“",
+      "Gib Namen und Ablageort an",
+      "Optional: Menge, Beschreibung, Ablaufdatum",
+    ],
   },
   {
     icon: Search,
     title: "Alles sofort finden",
     description: "Suche nach jedem Gegenstand und sieh sofort wo er liegt. Nie wieder suchen!",
     color: "#f59e0b",
-    // media: { type: "video", src: "/onboarding/suche.mp4" },
+    image: "/onboarding/suche.png",
+    howTo: [
+      "Öffne die Suche",
+      "Tippe den Namen des Gegenstands ein",
+      "Du siehst sofort, wo er liegt",
+    ],
   },
   {
     icon: Users,
     title: "Gemeinsam organisieren",
     description: "Teile deine Ablageorte mit Familie, Mitbewohnern oder Vereinsmitgliedern. Alle sehen dasselbe — keine Missverständnisse mehr.",
     color: "#ec4899",
-    // media: { type: "video", src: "/onboarding/gruppen.mp4" },
+    image: "/onboarding/gruppe.png",
+    howTo: [
+      "Tippe oben auf das Gruppen-Menü und wähle „Gruppe erstellen“",
+      "Teile den Einladungslink per WhatsApp oder E-Mail",
+      "Wer den Link öffnet, tritt der Gruppe bei",
+    ],
   },
 ];
 
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step,      setStep]      = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  // Schritte, deren Bild/Video nicht geladen werden konnte, zeigen wieder das Icon
+  const [mediaFailed, setMediaFailed] = useState<Record<number, boolean>>({});
 
   const current   = STEPS[step];
   const isLast    = step === STEPS.length - 1;
@@ -109,7 +116,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     handleComplete();
   }
 
-  const Icon = current.icon;
+  const Icon     = current.icon;
+  const hasMedia = !!(current.video || current.image) && !mediaFailed[step];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -118,70 +126,72 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-sm max-h-[94vh] overflow-y-auto rounded-3xl shadow-2xl"
         style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55" }}
       >
-        {/* Farbiger Header (oder Medien-Header) */}
+        {/* Farbiger Header */}
         <div
-          className="h-48 flex flex-col items-center justify-center relative transition-colors duration-500 overflow-hidden"
+          className={cn(
+            "flex flex-col items-center justify-center relative transition-all duration-500",
+            hasMedia ? "pt-6 pb-10" : "h-48"
+          )}
           style={{ backgroundColor: current.color }}
         >
-          {current.media ? (
-            /* Screenshot / GIF / Video statt Icon */
-            current.media.type === "video" ? (
-              <video
-                key={current.media.src}
-                src={current.media.src}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={current.media.src}
-                src={current.media.src}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            )
-          ) : (
-            <>
-              {/* Dezenter Glow (nur ohne Medien) */}
-              <div className="absolute inset-0 opacity-20"
-                style={{ background: "radial-gradient(circle at 50% 0%, #ffffff, transparent 70%)" }} />
+          {/* Dezenter Glow */}
+          <div className="absolute inset-0 opacity-20"
+            style={{ background: "radial-gradient(circle at 50% 0%, #ffffff, transparent 70%)" }} />
 
-              {isFirst ? (
-                /* Erster Schritt — Logo */
-                <div className="flex flex-col items-center gap-3 relative">
-                  <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl">
-                    <Image src="/icons/icon-192x192.png" alt="MaDe to find" width={80} height={80} />
-                  </div>
-                  <p className="text-white/80 text-sm font-medium tracking-wide">MaDe to find</p>
-                </div>
-              ) : Icon ? (
-                /* Andere Schritte — Icon */
-                <div className="relative flex items-center justify-center">
-                  <div className="h-24 w-24 rounded-full bg-white/20 flex items-center justify-center">
-                    <Icon className="h-12 w-12 text-white" />
-                  </div>
-                </div>
-              ) : null}
-            </>
-          )}
+          {hasMedia ? (
+            /* Screenshot / Video im Handy-Rahmen */
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-2xl bg-black"
+              style={{ border: "4px solid rgba(0,0,0,0.55)", width: 140, height: 300 }}
+            >
+              {current.video ? (
+                <video
+                  key={current.video}
+                  src={current.video}
+                  autoPlay loop muted playsInline
+                  onError={() => setMediaFailed((m) => ({ ...m, [step]: true }))}
+                  className="h-full w-full object-cover object-top"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={current.image}
+                  src={current.image}
+                  alt={current.title.replace("\n", " ")}
+                  onError={() => setMediaFailed((m) => ({ ...m, [step]: true }))}
+                  className="h-full w-full object-cover object-top"
+                />
+              )}
+            </div>
+          ) : isFirst ? (
+            /* Erster Schritt — Logo */
+            <div className="flex flex-col items-center gap-3 relative">
+              <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl">
+                <Image src="/icons/icon-192x192.png" alt="MaDe to find" width={80} height={80} />
+              </div>
+              <p className="text-white/80 text-sm font-medium tracking-wide">MaDe to find</p>
+            </div>
+          ) : Icon ? (
+            /* Andere Schritte — Icon */
+            <div className="relative flex items-center justify-center">
+              <div className="h-24 w-24 rounded-full bg-white/20 flex items-center justify-center">
+                <Icon className="h-12 w-12 text-white" />
+              </div>
+            </div>
+          ) : null}
 
           {/* Step Dots */}
-          <div className="absolute bottom-4 flex items-center gap-1.5 z-10">
+          <div className="absolute bottom-4 flex items-center gap-1.5">
             {STEPS.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setStep(i)}
                 className={cn(
                   "rounded-full transition-all duration-300",
-                  i === step ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40",
-                  current.media && "shadow-[0_0_4px_rgba(0,0,0,0.6)]"
+                  i === step ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/40"
                 )}
               />
             ))}
@@ -189,13 +199,30 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 pt-5">
           <h2 className="text-xl font-bold text-white text-center whitespace-pre-line mb-3">
             {current.title}
           </h2>
-          <p className="text-sm text-slate-400 text-center leading-relaxed mb-6">
+          <p className="text-sm text-slate-400 text-center leading-relaxed mb-4">
             {current.description}
           </p>
+
+          {/* Kurze Anleitung */}
+          {current.howTo && (
+            <ol className="mb-6 space-y-2 rounded-2xl px-4 py-3" style={{ backgroundColor: "#0f1729", border: "1px solid #2d3f55" }}>
+              {current.howTo.map((text, i) => (
+                <li key={text} className="flex items-start gap-2.5 text-left">
+                  <span
+                    className="mt-0.5 h-5 w-5 flex-shrink-0 rounded-full text-[11px] font-bold text-white flex items-center justify-center"
+                    style={{ backgroundColor: current.color }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-slate-300 leading-snug">{text}</span>
+                </li>
+              ))}
+            </ol>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3">
