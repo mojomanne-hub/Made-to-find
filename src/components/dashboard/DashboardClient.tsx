@@ -285,7 +285,7 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
 )}
 
       {/* ── Werbung ── */}
-      <AdBanner slot="7854537267" />
+      {<AdBanner slot="7854537267" />}
 
       {/* ── Untere Sektion ── */}
       <div className="grid lg:grid-cols-2 gap-4">
