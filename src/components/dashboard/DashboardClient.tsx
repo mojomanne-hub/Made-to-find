@@ -239,9 +239,6 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
         </Link>
       </div>
 
-      {/* ── Werbung ── */}
-      <AdBanner slot="7854537267" />
-
 {/* ── Bald ablaufend ── */}
 {expiringItems.length > 0 && (
   <div className="rounded-2xl border border-amber-800/50 overflow-hidden" style={{ backgroundColor: "#1a2535" }}>
@@ -286,6 +283,9 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
     </div>
   </div>
 )}
+
+      {/* ── Werbung ── */}
+      <AdBanner slot="7854537267" />
 
       {/* ── Untere Sektion ── */}
       <div className="grid lg:grid-cols-2 gap-4">
