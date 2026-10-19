@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
@@ -228,6 +228,15 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
     Premium Mitglied *bald*
     <Sparkles className="h-3.5 w-3.5 ml-auto" />
   </button>
+
+          {/* Support */}
+          <a
+            href="mailto:madetofind@web.de?subject=Support"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+          >
+            <HelpCircle className="h-4 w-4 flex-shrink-0" />
+            Support kontaktieren
+          </a>
 
           {/* Erste Schritte */}
           <button
