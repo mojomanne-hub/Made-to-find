@@ -14,7 +14,7 @@ import { ROUTES, SEARCH_MIN_LENGTH, SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 import { formatRelativeDate }  from "@/lib/utils";
 import { Card }   from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { AdBanner } from "@/components/ads/AdBanner";
+// import { AdBanner } from "@/components/ads/AdBanner"; // Banner pausiert bis AdSense freigegeben ist
 
 // Dynamisches Icon-Rendering mit Emoji-Unterstützung
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
@@ -285,7 +285,7 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
 )}
 
       {/* ── Werbung ── */}
-      {<AdBanner slot="7854537267" />}
+      {/* <AdBanner slot="7854537267" /> */}
 
       {/* ── Untere Sektion ── */}
       <div className="grid lg:grid-cols-2 gap-4">
