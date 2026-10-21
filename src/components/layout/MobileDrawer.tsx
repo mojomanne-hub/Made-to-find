@@ -19,6 +19,7 @@ import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
 import { joinPendingGroup }       from "@/lib/utils/invite-token";
 import { OnboardingModal }        from "@/components/onboarding/OnboardingModal";
+import { SupportModal }           from "@/components/support/SupportModal";
 import { useState }               from "react";
 
 
@@ -54,6 +55,7 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
   const [manageTarget, setManageTarget] = useState<Group | null>(null);
   const [membersTarget, setMembersTarget] = useState<Group | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSupport,    setShowSupport]    = useState(false);
 
   // Body scroll sperren wenn offen
   useEffect(() => {
@@ -230,13 +232,13 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
   </button>
 
           {/* Support */}
-          <a
-            href="mailto:madetofind@web.de?subject=Support"
+          <button
+            onClick={() => setShowSupport(true)}
             className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
           >
             <HelpCircle className="h-4 w-4 flex-shrink-0" />
             Support kontaktieren
-          </a>
+          </button>
 
           {/* Erste Schritte */}
           <button
@@ -277,6 +279,13 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
         groups={groups}
         onGroupsChange={setGroups}
         userId={user.id}
+      />
+
+      {/* Support-Formular */}
+      <SupportModal
+        isOpen={showSupport}
+        onClose={() => setShowSupport(false)}
+        userEmail={user.email ?? ""}
       />
 
       {/* Erste Schritte / Onboarding erneut anzeigen */}

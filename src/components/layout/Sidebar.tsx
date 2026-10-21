@@ -17,6 +17,7 @@ import { SharedAccessModal } from "@/components/groups/SharedAccessModal";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { joinPendingGroup } from "@/lib/utils/invite-token";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { SupportModal } from "@/components/support/SupportModal";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
@@ -51,6 +52,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
   const [manageTarget,   setManageTarget]   = useState<Group | null>(null);
   const [membersTarget,  setMembersTarget]  = useState<Group | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSupport,    setShowSupport]    = useState(false);
 
   // Gruppen in Context laden
   useEffect(() => { setGroups(groups); }, [groups, setGroups]);
@@ -257,7 +259,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
 
   {/* Support */}
   <button
-    onClick={() => window.open("mailto:madetofind@web.de?subject=Support", "_blank")}
+    onClick={() => setShowSupport(true)}
     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
   >
     <HelpCircle className="h-4 w-4 flex-shrink-0" />
@@ -319,6 +321,13 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
         groups={groups}
         onGroupsChange={setGroups}
         userId={user.id}
+      />
+
+      {/* Support-Formular */}
+      <SupportModal
+        isOpen={showSupport}
+        onClose={() => setShowSupport(false)}
+        userEmail={user.email ?? ""}
       />
 
       {/* Erste Schritte / Onboarding erneut anzeigen */}
