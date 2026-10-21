@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
 import { Check, X, ZoomIn, ZoomOut, RotateCcw, RotateCw } from "lucide-react";
@@ -11,6 +11,15 @@ interface ImageCropperProps {
   onCancel:  () => void;
   aspect?:   number; // optional – ohne = freies Zuschneiden
 }
+
+type AspectMode = "original" | "square" | "wide" | "tall";
+
+const ASPECT_OPTIONS: { id: AspectMode; label: string }[] = [
+  { id: "original", label: "Original" },
+  { id: "square",   label: "Quadrat" },
+  { id: "wide",     label: "Breit 4:3" },
+  { id: "tall",     label: "Hoch 3:4" },
+];
 
 function getRadianAngle(degreeValue: number) {
   return (degreeValue * Math.PI) / 180;
@@ -65,6 +74,44 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
   const [rotation,    setRotation]    = useState(0);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [isLoading,   setIsLoading]   = useState(false);
+  const [mode,        setMode]        = useState<AspectMode>("original");
+  const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
+
+  // Seitenverhältnis des Bildes ermitteln, damit der Rahmen standardmäßig das ganze Bild umfasst
+  useEffect(() => {
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (!cancelled) setNaturalAspect(img.naturalWidth / img.naturalHeight);
+    };
+    img.onerror = () => {
+      if (!cancelled) setNaturalAspect(4 / 3);
+    };
+    img.src = imageSrc;
+    return () => { cancelled = true; };
+  }, [imageSrc]);
+
+  // Bei Drehung um 90°/270° tauschen Breite und Höhe
+  const quarterTurn = rotation === 90 || rotation === 270;
+
+  let aspectValue: number | undefined;
+  if (aspect !== undefined) {
+    aspectValue = aspect; // fest vorgegeben, Auswahl wird ausgeblendet
+  } else if (mode === "square") {
+    aspectValue = 1;
+  } else if (mode === "wide") {
+    aspectValue = 4 / 3;
+  } else if (mode === "tall") {
+    aspectValue = 3 / 4;
+  } else if (naturalAspect) {
+    aspectValue = quarterTurn ? 1 / naturalAspect : naturalAspect;
+  }
+
+  function changeMode(next: AspectMode) {
+    setMode(next);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+  }
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedArea(croppedAreaPixels);
@@ -79,7 +126,7 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
   }
 
   async function handleConfirm() {
-    if (!croppedArea) return;
+    if (!croppedArea || aspectValue === undefined) return;
     setIsLoading(true);
     try {
       const blob = await getCroppedImage(imageSrc, croppedArea, rotation);
@@ -95,12 +142,17 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "#000" }}>
       {/* Cropper */}
       <div className="relative flex-1">
+        {aspectValue === undefined ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />
+          </div>
+        ) : (
         <Cropper
           image={imageSrc}
           crop={crop}
           zoom={zoom}
           rotation={rotation}
-          aspect={aspect ?? undefined}
+          aspect={aspectValue}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onRotationChange={setRotation}
@@ -110,10 +162,32 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
             cropAreaStyle:  { borderColor: "#3b82f6", borderWidth: 2 },
           }}
         />
+        )}
       </div>
 
       {/* Controls */}
       <div style={{ backgroundColor: "#0f1729", borderTop: "1px solid #1e2d4a" }}>
+        {/* Format */}
+        {aspect === undefined && (
+          <div className="flex items-center justify-center gap-2 px-4 pt-3 flex-wrap">
+            {ASPECT_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => changeMode(o.id)}
+                className={
+                  "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors " +
+                  (mode === o.id
+                    ? "bg-brand-600 border-brand-500 text-white"
+                    : "border-slate-600 text-slate-300 hover:bg-slate-700")
+                }
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Drehen */}
         <div className="flex items-center justify-center gap-4 px-4 pt-3">
           <button
