@@ -1,135 +1,139 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import Cropper from "react-easy-crop";
-import type { Area, Point } from "react-easy-crop";
-import { Check, X, ZoomIn, ZoomOut, RotateCcw, RotateCw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import ReactCrop, {
+  centerCrop,
+  makeAspectCrop,
+  type Crop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+import { Check, X, RotateCcw, RotateCw } from "lucide-react";
 
 interface ImageCropperProps {
   imageSrc:  string;
   onCrop:    (blob: Blob) => void;
   onCancel:  () => void;
-  aspect?:   number; // optional – ohne = freies Zuschneiden
+  aspect?:   number; // optional – ohne = freier Rahmen, der sich per Ziehen anpassen lässt
 }
 
-type AspectMode = "original" | "square" | "wide" | "tall";
+type Mode = "free" | "square" | "wide" | "tall";
 
-const ASPECT_OPTIONS: { id: AspectMode; label: string }[] = [
-  { id: "original", label: "Original" },
-  { id: "square",   label: "Quadrat" },
-  { id: "wide",     label: "Breit 4:3" },
-  { id: "tall",     label: "Hoch 3:4" },
+const MODES: { id: Mode; label: string; aspect?: number }[] = [
+  { id: "free",   label: "Frei" },
+  { id: "square", label: "Quadrat",   aspect: 1 },
+  { id: "wide",   label: "Breit 4:3", aspect: 4 / 3 },
+  { id: "tall",   label: "Hoch 3:4",  aspect: 3 / 4 },
 ];
 
-function getRadianAngle(degreeValue: number) {
-  return (degreeValue * Math.PI) / 180;
-}
+// Längste Seite des fertigen Bildes (hält Uploads klein, Qualität bleibt für die App mehr als ausreichend)
+const MAX_OUTPUT_SIDE = 2000;
 
-// Berechnet die Bounding-Box-Größe des Bildes nach Rotation
-function rotatedSize(width: number, height: number, rotation: number) {
-  const rotRad = getRadianAngle(rotation);
-  return {
-    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
-    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
-  };
-}
+export function ImageCropper({ imageSrc, onCrop, onCancel, aspect: fixedAspect }: ImageCropperProps) {
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
-async function getCroppedImage(imageSrc: string, pixelCrop: Area, rotation: number): Promise<Blob> {
-  const image = await createImageBitmap(await fetch(imageSrc).then((r) => r.blob()));
+  const [rotation,   setRotation]   = useState(0);
+  const [displaySrc, setDisplaySrc] = useState<string | null>(null);
+  const [crop,       setCrop]       = useState<Crop>();
+  const [mode,       setMode]       = useState<Mode>("free");
+  const [isLoading,  setIsLoading]  = useState(false);
 
-  // 1) Bild in voller Größe auf eine Canvas zeichnen, die groß genug für die Rotation ist
-  const { width: bBoxWidth, height: bBoxHeight } = rotatedSize(image.width, image.height, rotation);
-  const rotatedCanvas = document.createElement("canvas");
-  rotatedCanvas.width  = bBoxWidth;
-  rotatedCanvas.height = bBoxHeight;
-  const rotatedCtx = rotatedCanvas.getContext("2d")!;
+  const aspect: number | undefined =
+    fixedAspect ?? MODES.find((m) => m.id === mode)?.aspect;
 
-  rotatedCtx.translate(bBoxWidth / 2, bBoxHeight / 2);
-  rotatedCtx.rotate(getRadianAngle(rotation));
-  rotatedCtx.translate(-image.width / 2, -image.height / 2);
-  rotatedCtx.drawImage(image, 0, 0);
-
-  // 2) Aus der rotierten Canvas den gewählten Ausschnitt herausschneiden
-  const canvas = document.createElement("canvas");
-  canvas.width  = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(
-    rotatedCanvas,
-    pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
-    0, 0, pixelCrop.width, pixelCrop.height
-  );
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => blob ? resolve(blob) : reject(new Error("toBlob failed")),
-      "image/jpeg", 0.85
-    );
-  });
-}
-
-export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCropperProps) {
-  const [crop,        setCrop]        = useState<Point>({ x: 0, y: 0 });
-  const [zoom,        setZoom]        = useState(1);
-  const [rotation,    setRotation]    = useState(0);
-  const [croppedArea, setCroppedArea] = useState<Area | null>(null);
-  const [isLoading,   setIsLoading]   = useState(false);
-  const [mode,        setMode]        = useState<AspectMode>("original");
-  const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
-
-  // Seitenverhältnis des Bildes ermitteln, damit der Rahmen standardmäßig das ganze Bild umfasst
+  // Bild nach Drehung neu aufbereiten (Drehung in 90°-Schritten)
   useEffect(() => {
     let cancelled = false;
-    const img = new Image();
-    img.onload = () => {
-      if (!cancelled) setNaturalAspect(img.naturalWidth / img.naturalHeight);
-    };
-    img.onerror = () => {
-      if (!cancelled) setNaturalAspect(4 / 3);
-    };
-    img.src = imageSrc;
-    return () => { cancelled = true; };
-  }, [imageSrc]);
+    let objectUrl: string | null = null;
 
-  // Bei Drehung um 90°/270° tauschen Breite und Höhe
-  const quarterTurn = rotation === 90 || rotation === 270;
+    (async () => {
+      if (rotation === 0) {
+        setDisplaySrc(imageSrc);
+        return;
+      }
+      setDisplaySrc(null);
+      try {
+        const bmp = await createImageBitmap(await fetch(imageSrc).then((r) => r.blob()));
+        const swap = rotation === 90 || rotation === 270;
+        const canvas = document.createElement("canvas");
+        canvas.width  = swap ? bmp.height : bmp.width;
+        canvas.height = swap ? bmp.width  : bmp.height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+        const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.92));
+        if (!blob || cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setDisplaySrc(objectUrl);
+      } catch (err) {
+        console.error("Rotate error:", err);
+        if (!cancelled) setDisplaySrc(imageSrc);
+      }
+    })();
 
-  let aspectValue: number | undefined;
-  if (aspect !== undefined) {
-    aspectValue = aspect; // fest vorgegeben, Auswahl wird ausgeblendet
-  } else if (mode === "square") {
-    aspectValue = 1;
-  } else if (mode === "wide") {
-    aspectValue = 4 / 3;
-  } else if (mode === "tall") {
-    aspectValue = 3 / 4;
-  } else if (naturalAspect) {
-    aspectValue = quarterTurn ? 1 / naturalAspect : naturalAspect;
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [imageSrc, rotation]);
+
+  // Startrahmen setzen: frei = ganzes Bild, mit Seitenverhältnis = größtmöglicher Ausschnitt mittig
+  function initCrop(img: HTMLImageElement, a: number | undefined) {
+    const { width, height } = img;
+    if (!a) {
+      setCrop({ unit: "%", x: 0, y: 0, width: 100, height: 100 });
+      return;
+    }
+    // Breite so wählen, dass der Rahmen höchstens 90 % der Höhe belegt
+    const maxWidthPct = ((height * 0.9 * a) / width) * 100;
+    const widthPct = Math.min(90, maxWidthPct);
+    setCrop(
+      centerCrop(
+        makeAspectCrop({ unit: "%", width: widthPct }, a, width, height),
+        width,
+        height
+      )
+    );
   }
 
-  function changeMode(next: AspectMode) {
+  function changeMode(next: Mode) {
     setMode(next);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
+    const nextAspect = MODES.find((m) => m.id === next)?.aspect;
+    if (imgRef.current) initCrop(imgRef.current, nextAspect);
   }
 
-  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
-    setCroppedArea(croppedAreaPixels);
-  }, []);
-
-  function rotateLeft() {
-    setRotation((r) => (r - 90 + 360) % 360);
-  }
-
-  function rotateRight() {
-    setRotation((r) => (r + 90) % 360);
-  }
+  function rotateLeft()  { setRotation((r) => (r - 90 + 360) % 360); }
+  function rotateRight() { setRotation((r) => (r + 90) % 360); }
 
   async function handleConfirm() {
-    if (!croppedArea || aspectValue === undefined) return;
+    const img = imgRef.current;
+    if (!img || !crop) return;
     setIsLoading(true);
     try {
-      const blob = await getCroppedImage(imageSrc, croppedArea, rotation);
+      const nW = img.naturalWidth;
+      const nH = img.naturalHeight;
+
+      // Rahmen in Pixel des Originalbildes umrechnen
+      const toNatX = (v: number) => (crop.unit === "%" ? (v / 100) * nW : v * (nW / img.width));
+      const toNatY = (v: number) => (crop.unit === "%" ? (v / 100) * nH : v * (nH / img.height));
+
+      const sx = Math.max(0, Math.round(toNatX(crop.x)));
+      const sy = Math.max(0, Math.round(toNatY(crop.y)));
+      const sw = Math.max(1, Math.min(nW - sx, Math.round(toNatX(crop.width))));
+      const sh = Math.max(1, Math.min(nH - sy, Math.round(toNatY(crop.height))));
+
+      const scale = Math.min(1, MAX_OUTPUT_SIDE / Math.max(sw, sh));
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.max(1, Math.round(sw * scale));
+      canvas.height = Math.max(1, Math.round(sh * scale));
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff"; // für Bilder mit transparentem Hintergrund
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.85)
+      );
       onCrop(blob);
     } catch (err) {
       console.error("Crop error:", err);
@@ -140,49 +144,55 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "#000" }}>
-      {/* Cropper */}
-      <div className="relative flex-1">
-        {aspectValue === undefined ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />
-          </div>
+      {/* Bildbereich */}
+      <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-auto p-4">
+        {displaySrc ? (
+          <ReactCrop
+            crop={crop}
+            onChange={(_, percentCrop) => setCrop(percentCrop)}
+            aspect={aspect}
+            keepSelection
+            ruleOfThirds
+            minWidth={30}
+            minHeight={30}
+            style={{ maxWidth: "100%" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              ref={imgRef}
+              src={displaySrc}
+              alt=""
+              onLoad={(e) => initCrop(e.currentTarget, aspect)}
+              style={{ maxWidth: "100%", maxHeight: "calc(100dvh - 290px)", display: "block" }}
+            />
+          </ReactCrop>
         ) : (
-        <Cropper
-          image={imageSrc}
-          crop={crop}
-          zoom={zoom}
-          rotation={rotation}
-          aspect={aspectValue}
-          onCropChange={setCrop}
-          onZoomChange={setZoom}
-          onRotationChange={setRotation}
-          onCropComplete={onCropComplete}
-          style={{
-            containerStyle: { backgroundColor: "#000" },
-            cropAreaStyle:  { borderColor: "#3b82f6", borderWidth: 2 },
-          }}
-        />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />
         )}
       </div>
 
-      {/* Controls */}
+      {/* Steuerung */}
       <div style={{ backgroundColor: "#0f1729", borderTop: "1px solid #1e2d4a" }}>
+        <p className="text-center text-[11px] pt-3 px-4" style={{ color: "#64748b" }}>
+          Ziehe an den Ecken und Kanten, um den Ausschnitt anzupassen, oder verschiebe ihn mit dem Finger oder der Maus.
+        </p>
+
         {/* Format */}
-        {aspect === undefined && (
+        {fixedAspect === undefined && (
           <div className="flex items-center justify-center gap-2 px-4 pt-3 flex-wrap">
-            {ASPECT_OPTIONS.map((o) => (
+            {MODES.map((m) => (
               <button
-                key={o.id}
+                key={m.id}
                 type="button"
-                onClick={() => changeMode(o.id)}
+                onClick={() => changeMode(m.id)}
                 className={
                   "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors " +
-                  (mode === o.id
+                  (mode === m.id
                     ? "bg-brand-600 border-brand-500 text-white"
                     : "border-slate-600 text-slate-300 hover:bg-slate-700")
                 }
               >
-                {o.label}
+                {m.label}
               </button>
             ))}
           </div>
@@ -207,30 +217,7 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
           </button>
         </div>
 
-        {/* Zoom */}
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => setZoom(Math.max(1, zoom - 0.1))}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <input
-            type="range"
-            min={1} max={3} step={0.05}
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className="flex-1 accent-brand-500"
-          />
-          <button
-            onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex gap-3 px-4 pb-6">
+        <div className="flex gap-3 px-4 pt-3 pb-6">
           <button
             onClick={onCancel}
             className="flex-1 h-11 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
@@ -239,7 +226,7 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect }: ImageCroppe
           </button>
           <button
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || !crop}
             className="flex-1 h-11 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white transition-colors flex items-center justify-center gap-2 text-sm font-medium"
           >
             {isLoading
