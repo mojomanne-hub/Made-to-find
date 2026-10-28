@@ -301,9 +301,9 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
   <button
     onClick={handleLogout}
     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-    style={{ color: "#64748b" }}
-    onMouseEnter={(e) => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.backgroundColor = "rgba(220,38,38,0.1)"; }}
-    onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.backgroundColor = ""; }}
+    style={{ color: "#f87171", backgroundColor: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.30)" }}
+    onMouseEnter={(e) => { e.currentTarget.style.color = "#fca5a5"; e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.20)"; }}
+    onMouseLeave={(e) => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.10)"; }}
   >
     <LogOut className="h-4 w-4 flex-shrink-0" />
     Abmelden

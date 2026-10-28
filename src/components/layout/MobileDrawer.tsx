@@ -261,7 +261,8 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
           {/* Abmelden */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-danger-400 hover:bg-danger-900/20 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-3 mt-2 rounded-xl text-sm font-medium transition-all active:opacity-80"
+            style={{ color: "#f87171", backgroundColor: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.30)" }}
           >
             <LogOut className="h-4 w-4 flex-shrink-0" />
             Abmelden
