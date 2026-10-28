@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
+import { storagePathFromUrl, removeStorageImage } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
 import type { Location } from "@/lib/types";
 
@@ -22,7 +23,6 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
 }
 
 type MediaTab = "emoji" | "icon" | "photo";
-type IconTab = "emoji" | "icon";
 
 interface ShelfRow {
   id: string;
@@ -44,13 +44,17 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
   const isEditing = !!location;
   const router = useRouter();
 
+  const savedIcon = location?.icon ?? "";
+  const isEmojiSaved = !!savedIcon && !LOCATION_ICONS.map((i) => i.name).includes(savedIcon);
+  const initialMediaTab: MediaTab = location?.image_url ? "photo" : isEmojiSaved ? "emoji" : "icon";
+
   const [name, setName] = useState(location?.name ?? "");
   const [description, setDescription] = useState(location?.description ?? "");
   const [color, setColor] = useState(location?.color ?? LOCATION_COLORS[0].value);
-  const [icon, setIcon] = useState(location?.icon ?? LOCATION_ICONS[0].name);
+  const [icon, setIcon] = useState(!isEmojiSaved && location?.icon ? location.icon : LOCATION_ICONS[0].name);
   const [imageUrl, setImageUrl] = useState<string | null>(location?.image_url ?? null);
-  const [mediaTab, setMediaTab] = useState<MediaTab>("icon");
-  const [emoji, setEmoji] = useState("🏠");
+  const [mediaTab, setMediaTab] = useState<MediaTab>(initialMediaTab);
+  const [emoji, setEmoji] = useState(isEmojiSaved ? savedIcon : "🏠");
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -99,10 +103,6 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
       return next;
     });
   }
-
-  const savedIcon = location?.icon ?? "";
-  const isEmojiSaved = savedIcon && !LOCATION_ICONS.map(i => i.name).includes(savedIcon);
-  const initialTab: IconTab = isEmojiSaved ? "emoji" : "icon";
 
   // ── Icon-Bedeutung für Vorschau ─────────────────────────────
   const emojiLabel = (() => {
@@ -204,6 +204,16 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
     setCropSrc(null);
   }
 
+  // Abbrechen: ein in dieser Sitzung hochgeladenes, aber nicht gespeichertes Foto wieder entfernen
+  async function handleCancel() {
+    const keepPath    = storagePathFromUrl(location?.image_url, BUCKET);
+    const currentPath = storagePathFromUrl(imageUrl, BUCKET);
+    if (currentPath && currentPath !== keepPath) {
+      await removeStorageImage(createBrowserClient(), BUCKET, imageUrl);
+    }
+    router.back();
+  }
+
   async function syncShelves(supabase: ReturnType<typeof createBrowserClient>, locationId: string) {
     // Entfernte Fachböden löschen
     if (removedShelfIds.length > 0) {
@@ -277,10 +287,26 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
         image_url: mediaTab === "photo" ? imageUrl : null,
       };
 
+      // Nicht mehr verwendete Fotodateien nach dem Speichern aus dem Storage entfernen
+      const finalPath = storagePathFromUrl(payload.image_url, BUCKET);
+      const cleanupStalePhotos = async () => {
+        try {
+          const stale = new Set<string>();
+          for (const u of [location?.image_url, imageUrl]) {
+            const p = storagePathFromUrl(u, BUCKET);
+            if (p && p !== finalPath) stale.add(p);
+          }
+          if (stale.size > 0) await supabase.storage.from(BUCKET).remove(Array.from(stale));
+        } catch (err) {
+          console.error("Alte Fotos konnten nicht entfernt werden:", err);
+        }
+      };
+
       if (isEditing) {
         const { error } = await supabase.from("locations").update(payload).eq("id", location.id);
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
         await syncShelves(supabase, location.id);
+        await cleanupStalePhotos();
         router.push(ROUTES.locationDetail(location.id));
       } else {
         const { data, error } = await supabase
@@ -289,6 +315,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
           .select().single();
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
         await syncShelves(supabase, data.id);
+        await cleanupStalePhotos();
         router.push(ROUTES.locationDetail(data.id));
       }
       router.refresh();
@@ -611,7 +638,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
           </div>
 
           <div className="flex gap-3 pt-1">
-            <Button type="button" variant="secondary" onClick={() => router.back()} disabled={isLoading}>
+            <Button type="button" variant="secondary" onClick={handleCancel} disabled={isLoading}>
               Abbrechen
             </Button>
             <Button type="submit" isLoading={isLoading}>

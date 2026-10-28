@@ -7,6 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Button }        from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { ROUTES }        from "@/lib/constants";
+import { removeStorageImage } from "@/lib/utils/storage";
 
 export function ItemDeleteButton({ itemId, itemName }: { itemId: string; itemName: string }) {
   const [isOpen,    setIsOpen]    = useState(false);
@@ -17,11 +18,22 @@ export function ItemDeleteButton({ itemId, itemName }: { itemId: string; itemNam
     setIsLoading(true);
     try {
       const supabase = createBrowserClient();
+
+      // Foto-URL merken, bevor der Eintrag verschwindet
+      const { data: row } = await supabase
+        .from("items")
+        .select("image_url")
+        .eq("id", itemId)
+        .maybeSingle();
+
       const { error } = await supabase
         .from("items")
         .delete()
         .eq("id", itemId);
       if (error) throw error;
+
+      // Erst nach erfolgreichem Löschen auch die Bilddatei entfernen
+      await removeStorageImage(supabase, "item-images", row?.image_url);
       router.push(ROUTES.items);
       router.refresh();
     } catch {

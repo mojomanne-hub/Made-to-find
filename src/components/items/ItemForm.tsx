@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
+import { storagePathFromUrl, removeStorageImage } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
@@ -79,6 +80,9 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Feste Datei-ID pro Formular: mehrfaches Zuschneiden überschreibt dieselbe Datei statt neue anzulegen
+  const [photoItemId] = useState(() => item?.id ?? crypto.randomUUID());
 
   // ── Icon-Bedeutung für Vorschau ─────────────────────────────
   const emojiLabel = useMemo(() => {
@@ -178,8 +182,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push(ROUTES.login); return; }
 
-      const itemId = item?.id ?? crypto.randomUUID();
-      const path = `${user.id}/${itemId}.jpg`;
+      const path = `${user.id}/${photoItemId}.jpg`;
       await supabase.storage.from(BUCKET).remove([path]);
       const { error } = await supabase.storage
         .from(BUCKET)
@@ -197,6 +200,16 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   function handleCropCancel() {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
+  }
+
+  // Abbrechen: ein in dieser Sitzung hochgeladenes, aber nicht gespeichertes Foto wieder entfernen
+  async function handleCancel() {
+    const keepPath    = storagePathFromUrl(item?.image_url, BUCKET);
+    const currentPath = storagePathFromUrl(photoImageUrl, BUCKET);
+    if (currentPath && currentPath !== keepPath) {
+      await removeStorageImage(createBrowserClient(), BUCKET, photoImageUrl);
+    }
+    router.back();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -238,9 +251,25 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
         expires_at: hasExpiry && expiresAt ? expiresAt : null,
       };
 
+      // Nicht mehr verwendete Fotodateien nach dem Speichern aus dem Storage entfernen
+      const finalPath = storagePathFromUrl(payload.image_url, BUCKET);
+      const cleanupStalePhotos = async () => {
+        try {
+          const stale = new Set<string>();
+          for (const u of [item?.image_url, photoImageUrl]) {
+            const p = storagePathFromUrl(u, BUCKET);
+            if (p && p !== finalPath) stale.add(p);
+          }
+          if (stale.size > 0) await supabase.storage.from(BUCKET).remove(Array.from(stale));
+        } catch (err) {
+          console.error("Alte Fotos konnten nicht entfernt werden:", err);
+        }
+      };
+
       if (isEditing) {
         const { error } = await supabase.from("items").update(payload).eq("id", item.id);
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
+        await cleanupStalePhotos();
         router.push(ROUTES.itemDetail(item.id));
       } else {
         const { data, error } = await supabase
@@ -248,6 +277,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
           .insert({ ...payload, user_id: user.id, ...(groupId ? { group_id: groupId } : {}) })
           .select().single();
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
+        await cleanupStalePhotos();
         router.push(ROUTES.itemDetail(data.id));
       }
       router.refresh();
@@ -545,7 +575,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
           )}
 
           <div className="flex gap-3 pt-1">
-            <Button type="button" variant="secondary" onClick={() => router.back()} disabled={isLoading}>
+            <Button type="button" variant="secondary" onClick={handleCancel} disabled={isLoading}>
               Abbrechen
             </Button>
             <Button type="submit" isLoading={isLoading} disabled={locations.length === 0}>

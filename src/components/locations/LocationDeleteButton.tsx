@@ -7,6 +7,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Button }        from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { ROUTES }        from "@/lib/constants";
+import { removeStorageImages } from "@/lib/utils/storage";
 
 interface Props {
   locationId:   string;
@@ -22,12 +23,25 @@ export function LocationDeleteButton({ locationId, locationName }: Props) {
     setIsLoading(true);
     try {
       const supabase = createBrowserClient();
+
+      // Foto-URLs merken, bevor Ablageort und Gegenstände verschwinden
+      const [{ data: loc }, { data: itemRows }] = await Promise.all([
+        supabase.from("locations").select("image_url").eq("id", locationId).maybeSingle(),
+        supabase.from("items").select("image_url").eq("location_id", locationId),
+      ]);
+
       // Löscht auch alle Items via CASCADE in der DB
       const { error } = await supabase
         .from("locations")
         .delete()
         .eq("id", locationId);
       if (error) throw error;
+
+      // Erst nach erfolgreichem Löschen auch die Bilddateien entfernen
+      await Promise.all([
+        removeStorageImages(supabase, "location-images", [loc?.image_url]),
+        removeStorageImages(supabase, "item-images", (itemRows ?? []).map((r) => r.image_url)),
+      ]);
       router.push(ROUTES.locations);
       router.refresh();
     } catch {
