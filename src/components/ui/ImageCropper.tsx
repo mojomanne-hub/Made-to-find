@@ -81,7 +81,7 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect: fixedAspect }
   function initCrop(img: HTMLImageElement, a: number | undefined) {
     const { width, height } = img;
     if (!a) {
-      setCrop({ unit: "%", x: 0, y: 0, width: 100, height: 100 });
+      setCrop({ unit: "%", x: 8, y: 8, width: 84, height: 84 });
       return;
     }
     // Breite so wählen, dass der Rahmen höchstens 90 % der Höhe belegt
@@ -144,6 +144,18 @@ export function ImageCropper({ imageSrc, onCrop, onCancel, aspect: fixedAspect }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "#000" }}>
+      {/* Größere, gut greifbare Anfasser (Maus und Touch) */}
+      <style>{`
+        .ReactCrop__crop-selection { touch-action: none; }
+        .ReactCrop__drag-handle { width: 28px; height: 28px; touch-action: none; }
+        .ReactCrop__drag-handle::after {
+          width: 16px; height: 16px;
+          background-color: #3b82f6;
+          border: 2px solid #ffffff;
+          border-radius: 50%;
+        }
+        .ReactCrop__drag-bar { touch-action: none; }
+      `}</style>
       {/* Bildbereich */}
       <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-auto p-4">
         {displaySrc ? (
