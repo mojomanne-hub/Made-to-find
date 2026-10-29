@@ -25,7 +25,14 @@ export async function removeStorageImage(
   await removeStorageImages(supabase, bucket, [url]);
 }
 
-/** Löscht mehrere Bilder anhand ihrer URLs (z.B. alle Fotos eines Ablageorts). */
+/**
+ * Löscht mehrere Bilder anhand ihrer URLs (z.B. alle Fotos eines Ablageorts).
+ *
+ * Das Löschen läuft über /api/storage/cleanup auf dem Server. Der Server entfernt eine Datei nur,
+ * wenn sie von keinem Gegenstand / Ablageort mehr verwendet wird – so klappt es auch bei Fotos,
+ * die ein anderes Gruppenmitglied hochgeladen hat.
+ * Fällt die Route aus, wird ersatzweise direkt im Storage gelöscht (nur eigene Dateien möglich).
+ */
 export async function removeStorageImages(
   supabase: Supabase,
   bucket: string,
@@ -35,6 +42,24 @@ export async function removeStorageImages(
     new Set(urls.map((u) => storagePathFromUrl(u, bucket)).filter((p): p is string => !!p))
   );
   if (paths.length === 0) return;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch("/api/storage/cleanup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token ?? ""}`,
+      },
+      body: JSON.stringify({ bucket, paths }),
+    });
+    if (res.ok) return;
+    console.error("Storage-Aufräumen (Server) fehlgeschlagen:", res.status);
+  } catch (err) {
+    console.error("Storage-Aufräumen (Server) nicht erreichbar:", err);
+  }
+
+  // Ersatzweg: direkt löschen (funktioniert nur für eigene Dateien)
   try {
     const { error } = await supabase.storage.from(bucket).remove(paths);
     if (error) console.error("Storage-Löschen fehlgeschlagen:", error.message);

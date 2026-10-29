@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
-import { storagePathFromUrl, removeStorageImage } from "@/lib/utils/storage";
+import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
 import type { Location } from "@/lib/types";
 
@@ -290,16 +290,11 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
       // Nicht mehr verwendete Fotodateien nach dem Speichern aus dem Storage entfernen
       const finalPath = storagePathFromUrl(payload.image_url, BUCKET);
       const cleanupStalePhotos = async () => {
-        try {
-          const stale = new Set<string>();
-          for (const u of [location?.image_url, imageUrl]) {
-            const p = storagePathFromUrl(u, BUCKET);
-            if (p && p !== finalPath) stale.add(p);
-          }
-          if (stale.size > 0) await supabase.storage.from(BUCKET).remove(Array.from(stale));
-        } catch (err) {
-          console.error("Alte Fotos konnten nicht entfernt werden:", err);
-        }
+        const stale = [location?.image_url, imageUrl].filter((u) => {
+          const p = storagePathFromUrl(u, BUCKET);
+          return !!p && p !== finalPath;
+        });
+        await removeStorageImages(supabase, BUCKET, stale);
       };
 
       if (isEditing) {
