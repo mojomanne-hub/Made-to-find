@@ -133,7 +133,7 @@ export default async function LocationDetailPage({ params }: Props) {
       {/* Gegenstand hinzufügen */}
       <div className="mb-3">
         <Link href={ROUTES.itemNewAtLocation(id)}>
-          <Button size="sm" variant="secondary">
+          <Button size="sm">
             <Plus className="h-4 w-4" /> Gegenstand hinzufügen
           </Button>
         </Link>
