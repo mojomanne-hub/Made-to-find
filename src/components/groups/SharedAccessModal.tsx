@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/Alert";
+import { removeStorageImages } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
 import type { Group } from "@/lib/context/GroupContext";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.madetofind.de";
@@ -172,7 +173,22 @@ export function SharedAccessModal({
     setIsDeleting(true); setError(null);
     try {
       const supabase = createBrowserClient();
-      await supabase.from("groups").delete().eq("id", manageGroup.id);
+
+      // Foto-URLs der Gruppen-Einträge merken, bevor sie verschwinden
+      const [{ data: itemRows }, { data: locRows }] = await Promise.all([
+        supabase.from("items").select("image_url").eq("group_id", manageGroup.id),
+        supabase.from("locations").select("image_url").eq("group_id", manageGroup.id),
+      ]);
+
+      const { error: delErr } = await supabase.from("groups").delete().eq("id", manageGroup.id);
+      if (delErr) throw delErr;
+
+      // Danach Fotodateien aufräumen (der Server löscht nur, was nirgends mehr verwendet wird)
+      await Promise.all([
+        removeStorageImages(supabase, "item-images", (itemRows ?? []).map((r) => r.image_url)),
+        removeStorageImages(supabase, "location-images", (locRows ?? []).map((r) => r.image_url)),
+      ]);
+
       document.cookie = "active-group=; path=/; max-age=0";
       onGroupsChange(groups.filter((g) => g.id !== manageGroup.id));
       setScreen("menu");
