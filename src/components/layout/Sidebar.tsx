@@ -190,14 +190,14 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
                   </button>
                 </div>
               ))}
-              {/* Trennlinie + Geteilter Zugriff */}
+              {/* Trennlinie + Gruppen verwalten */}
               <div style={{ borderTop: "1px solid #2d3f55" }}>
                 <button
                   onClick={() => { setSharingModal(true); setShareTarget(null); setDropdownOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-700/50 transition-colors"
                 >
                   <Users className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm text-slate-400">Geteilter Zugriff</span>
+                  <span className="text-sm text-slate-400">Gruppen verwalten</span>
                 </button>
               </div>
             </div>
@@ -237,13 +237,13 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
   {/* Benachrichtigungen */}
   <NotificationBell />
 
-  {/* Geteilter Zugriff */}
+  {/* Gruppen verwalten */}
   <button
     onClick={() => { setSharingModal(true); setShareTarget(null); }}
     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
   >
     <Users className="h-4 w-4 flex-shrink-0" />
-    Geteilter Zugriff
+    Gruppen verwalten
   </button>
 
   {/* Premium Button */}
@@ -311,7 +311,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
 </div>
       </aside>
 
-      {/* Geteilter Zugriff Modal */}
+      {/* Gruppen-Verwaltung Modal */}
       <SharedAccessModal
         isOpen={sharingModal}
         onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); setMembersTarget(null); }}

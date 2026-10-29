@@ -3,7 +3,7 @@
 /**
  * MobileDrawer – Slide-in Sidebar für Mobile.
  * Öffnet sich von links, enthält Navigation, Benutzerinfo,
- * Gruppen-Management, Geteilter Zugriff und Abmelden.
+ * Gruppen-Management und Abmelden.
  */
 
 import { useEffect } from "react";
@@ -210,13 +210,13 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
 
         {/* Footer */}
         <div className="px-3 py-3 mt-auto space-y-0.5">
-          {/* Geteilter Zugriff */}
+          {/* Gruppen verwalten */}
           <button
             onClick={() => { setSharingModal(true); setShareTarget(null); setManageTarget(null); }}
             className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
           >
             <Users className="h-4 w-4 flex-shrink-0" />
-            Geteilter Zugriff
+            Gruppen verwalten
           </button>
 
 
@@ -270,7 +270,7 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
         </div>
       </div>
 
-      {/* Geteilter Zugriff Modal */}
+      {/* Gruppen-Verwaltung Modal */}
       <SharedAccessModal
         isOpen={sharingModal}
         onClose={() => { setSharingModal(false); setShareTarget(null); setManageTarget(null); setMembersTarget(null); }}

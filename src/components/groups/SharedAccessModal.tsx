@@ -257,7 +257,7 @@ export function SharedAccessModal({
           )}
           <Users className="h-5 w-5 text-brand-400" />
           <h2 className="text-sm font-semibold text-slate-100 flex-1">
-            {screen === "members" ? "Mitglieder" : "Geteilter Zugriff"}
+            {screen === "members" ? "Mitglieder" : "Gruppen verwalten"}
           </h2>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-200 transition-colors">
             <X className="h-4 w-4" />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Check, Bell, X, Plus } from "lucide-react";
+import { ChevronDown, Check, Bell, X, Users } from "lucide-react";
 import { useGroup, type Group } from "@/lib/context/GroupContext";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -156,9 +156,9 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
                   className="w-full flex items-center gap-2.5 px-3 py-3 hover:bg-slate-700/50 transition-colors border-t border-slate-700"
                 >
                   <div className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(59,130,246,0.15)" }}>
-                    <Plus className="h-3.5 w-3.5 text-brand-400" />
+                    <Users className="h-3.5 w-3.5 text-brand-400" />
                   </div>
-                  <span className="flex-1 text-left text-sm font-medium text-brand-400">Gruppe erstellen</span>
+                  <span className="flex-1 text-left text-sm font-medium text-brand-400">Gruppen verwalten</span>
                 </button>
               </div>
             </>
@@ -231,7 +231,7 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
         </div>
       )}
 
-      {/* Gruppe erstellen / beitreten */}
+      {/* Gruppen verwalten (erstellen, beitreten, teilen) */}
       <SharedAccessModal
         isOpen={groupModal}
         onClose={() => setGroupModal(false)}
