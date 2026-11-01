@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
+import { suggestEmoji, suggestIcon } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
@@ -68,6 +69,11 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const [emoji, setEmoji] = useState(isEmoji ? savedIcon : "📦");
   const [lucideIcon, setLucideIcon] = useState(!isEmoji ? (savedIcon || "Package") : "Package");
   const [color, setColor] = useState(item?.color ?? LOCATION_COLORS[0].value);
+
+  // Automatische Vorschläge: stoppen, sobald du selbst ein Emoji bzw. Icon antippst (und beim Bearbeiten)
+  const [emojiTouched, setEmojiTouched] = useState(isEditing);
+  const [iconTouched,  setIconTouched]  = useState(isEditing);
+  const [autoPicked,   setAutoPicked]   = useState(false);
   const [hasExpiry, setHasExpiry] = useState(!!item?.expires_at);
   const [expiresAt, setExpiresAt] = useState(item?.expires_at ?? "");
   const [isLoading, setIsLoading] = useState(false);
@@ -101,6 +107,21 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
     [shelves, locationId]
   );
   const locationHasShelves = shelvesForLocation.length > 0;
+
+  // Name geändert → passendes Emoji und Icon vorauswählen (solange du nicht selbst eins gewählt hast)
+  function handleNameChange(value: string) {
+    setName(value);
+    let picked = false;
+    if (!emojiTouched) {
+      const e = suggestEmoji(value);
+      if (e) { setEmoji(e); picked = true; }
+    }
+    if (!iconTouched) {
+      const i = suggestIcon(value);
+      if (i) { setLucideIcon(i); picked = true; }
+    }
+    if (picked) setAutoPicked(true);
+  }
 
   function handleLocationChange(newLocationId: string) {
     setLocationId(newLocationId);
@@ -332,7 +353,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             label="Name"
             placeholder="z.B. Akkuschrauber, Reisepass..."
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
             error={errors.name}
             required autoFocus maxLength={200}
           />
@@ -455,6 +476,9 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
                 <div>
                   <p className="text-xs text-slate-500">Vorschau</p>
                   <p className="text-sm font-medium text-slate-200">{name || "Gegenstand"}</p>
+                  {autoPicked && ((iconTab === "emoji" && !emojiTouched) || (iconTab === "icon" && !iconTouched)) && (
+                    <p className="text-[11px] text-brand-400 mt-0.5">Automatisch vorgeschlagen – unten änderbar</p>
+                  )}
                 </div>
               </div>
               {iconTab === "photo" && photoImageUrl && (
@@ -475,7 +499,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
                     <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
                     <div className="grid grid-cols-8 gap-1.5">
                       {(items as { label: string; emoji: string }[]).map((ic) => (
-                        <button key={ic.emoji} type="button" onClick={() => setEmoji(ic.emoji)} title={ic.label}
+                        <button key={ic.emoji} type="button" onClick={() => { setEmoji(ic.emoji); setEmojiTouched(true); }} title={ic.label}
                           className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
                             emoji === ic.emoji
                               ? "bg-brand-600/30 border-2 border-brand-400"
@@ -492,7 +516,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             {iconTab === "icon" && (
               <div className="grid grid-cols-8 gap-1.5">
                 {ITEM_ICON_OPTIONS.map((ic) => (
-                  <button key={ic.name} type="button" onClick={() => setLucideIcon(ic.name)} title={ic.label}
+                  <button key={ic.name} type="button" onClick={() => { setLucideIcon(ic.name); setIconTouched(true); }} title={ic.label}
                     className={cn("h-10 w-full rounded-xl flex items-center justify-center transition-all",
                       lucideIcon === ic.name
                         ? "bg-brand-600 border-2 border-brand-400"
