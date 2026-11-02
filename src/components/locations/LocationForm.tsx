@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { locationSchema } from "@/lib/validations";
-import { ROUTES, LOCATION_COLORS, LOCATION_ICONS, LOCATION_EMOJIS } from "@/lib/constants";
+import { ROUTES, LOCATION_COLORS, LOCATION_ICONS, getAllLocationEmojis } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
+import { ExpandableGrid } from "@/components/ui/ExpandableGrid";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
 import { suggestLocationEmoji, suggestLocationIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
@@ -126,13 +127,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
   }
 
   // ── Icon-Bedeutung für Vorschau ─────────────────────────────
-  const emojiLabel = (() => {
-    for (const items of Object.values(LOCATION_EMOJIS)) {
-      const found = (items as { label: string; emoji: string }[]).find((ic) => ic.emoji === emoji);
-      if (found) return found.label;
-    }
-    return null;
-  })();
+  const emojiLabel = getAllLocationEmojis().find((ic) => ic.emoji === emoji)?.label ?? null;
   const iconLabel = LOCATION_ICONS.find((ic) => ic.name === icon)?.label ?? icon;
 
   async function compressImage(file: File): Promise<Blob> {
@@ -538,51 +533,37 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             </div>
 
             {mediaTab === "emoji" && (
-              <div className="space-y-3">
-                {Object.entries(LOCATION_EMOJIS).map(([cat, items]) => (
-                  <div key={cat}>
-                    <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
-                    <div className="grid grid-cols-8 gap-1.5">
-                      {(items as { label: string; emoji: string }[]).map((ic) => (
-                        <button key={ic.emoji} type="button" onClick={() => { setEmoji(ic.emoji); setEmojiTouched(true); }} title={ic.label}
-                          className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
-                            emoji === ic.emoji
-                              ? "bg-brand-600/30 border-2 border-brand-400"
-                              : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
-                          {ic.emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ExpandableGrid
+                items={getAllLocationEmojis()}
+                getKey={(ic) => ic.emoji}
+                isSelected={(ic) => ic.emoji === emoji}
+                renderItem={(ic) => (
+                  <button type="button" onClick={() => { setEmoji(ic.emoji); setEmojiTouched(true); }} title={ic.label}
+                    className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
+                      emoji === ic.emoji
+                        ? "bg-brand-600/30 border-2 border-brand-400"
+                        : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
+                    {ic.emoji}
+                  </button>
+                )}
+              />
             )}
 
             {mediaTab === "icon" && (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-slate-400">Icon auswählen</p>
-                <div className="grid grid-cols-8 gap-1.5">
-                  {availableIcons(LOCATION_ICONS).map((ic) => (
-                    <button
-                      key={ic.name}
-                      type="button"
-                      onClick={() => { setIcon(ic.name); setIconTouched(true); }}
-                      title={ic.label}
-                      className={cn(
-                        "h-10 w-full rounded-xl flex items-center justify-center transition-all",
-                        icon === ic.name
-                          ? "bg-brand-600 border-2 border-brand-400"
-                          : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700"
-                      )}
-                    >
-                      <DynIcon
-                        name={ic.name}
-                        className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <ExpandableGrid
+                items={availableIcons(LOCATION_ICONS)}
+                getKey={(ic) => ic.name}
+                isSelected={(ic) => ic.name === icon}
+                renderItem={(ic) => (
+                  <button type="button" onClick={() => { setIcon(ic.name); setIconTouched(true); }} title={ic.label}
+                    className={cn("h-10 w-full rounded-xl flex items-center justify-center transition-all",
+                      icon === ic.name
+                        ? "bg-brand-600 border-2 border-brand-400"
+                        : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
+                    <DynIcon name={ic.name} className={cn("h-4 w-4", icon === ic.name ? "text-white" : "text-slate-400")} />
+                  </button>
+                )}
+              />
             )}
 
             {mediaTab === "photo" && (

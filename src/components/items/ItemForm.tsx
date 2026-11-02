@@ -6,13 +6,14 @@ import * as LucideIcons from "lucide-react";
 import { Minus, Plus } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { itemSchema } from "@/lib/validations";
-import { ROUTES, ITEM_ICONS, ITEM_ICON_OPTIONS, LOCATION_COLORS } from "@/lib/constants";
+import { ROUTES, ITEM_ICON_OPTIONS, LOCATION_COLORS, getAllIcons } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
+import { ExpandableGrid } from "@/components/ui/ExpandableGrid";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
 import { suggestEmoji, suggestIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
@@ -92,11 +93,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
 
   // ── Icon-Bedeutung für Vorschau ─────────────────────────────
   const emojiLabel = useMemo(() => {
-    for (const items of Object.values(ITEM_ICONS)) {
-      const found = (items as { label: string; emoji: string }[]).find((ic) => ic.emoji === emoji);
-      if (found) return found.label;
-    }
-    return null;
+    return getAllIcons().find((ic) => ic.emoji === emoji)?.label ?? null;
   }, [emoji]);
 
   const currentIcon = iconTab === "emoji" ? emoji : iconTab === "icon" ? lucideIcon : null;
@@ -493,38 +490,37 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             </div>
 
             {iconTab === "emoji" && (
-              <div className="space-y-3">
-                {Object.entries(ITEM_ICONS).map(([cat, items]) => (
-                  <div key={cat}>
-                    <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
-                    <div className="grid grid-cols-8 gap-1.5">
-                      {(items as { label: string; emoji: string }[]).map((ic) => (
-                        <button key={ic.emoji} type="button" onClick={() => { setEmoji(ic.emoji); setEmojiTouched(true); }} title={ic.label}
-                          className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
-                            emoji === ic.emoji
-                              ? "bg-brand-600/30 border-2 border-brand-400"
-                              : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
-                          {ic.emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ExpandableGrid
+                items={getAllIcons()}
+                getKey={(ic) => ic.emoji}
+                isSelected={(ic) => ic.emoji === emoji}
+                renderItem={(ic) => (
+                  <button type="button" onClick={() => { setEmoji(ic.emoji); setEmojiTouched(true); }} title={ic.label}
+                    className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
+                      emoji === ic.emoji
+                        ? "bg-brand-600/30 border-2 border-brand-400"
+                        : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
+                    {ic.emoji}
+                  </button>
+                )}
+              />
             )}
 
             {iconTab === "icon" && (
-              <div className="grid grid-cols-8 gap-1.5">
-                {availableIcons(ITEM_ICON_OPTIONS).map((ic) => (
-                  <button key={ic.name} type="button" onClick={() => { setLucideIcon(ic.name); setIconTouched(true); }} title={ic.label}
+              <ExpandableGrid
+                items={availableIcons(ITEM_ICON_OPTIONS)}
+                getKey={(ic) => ic.name}
+                isSelected={(ic) => ic.name === lucideIcon}
+                renderItem={(ic) => (
+                  <button type="button" onClick={() => { setLucideIcon(ic.name); setIconTouched(true); }} title={ic.label}
                     className={cn("h-10 w-full rounded-xl flex items-center justify-center transition-all",
                       lucideIcon === ic.name
                         ? "bg-brand-600 border-2 border-brand-400"
                         : "border border-slate-600 hover:border-slate-400 hover:bg-slate-700")}>
                     <DynIcon name={ic.name} className={cn("h-4 w-4", lucideIcon === ic.name ? "text-white" : "text-slate-400")} />
                   </button>
-                ))}
-              </div>
+                )}
+              />
             )}
 
             {iconTab === "photo" && (
