@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
-import { suggestEmoji, suggestIcon } from "@/lib/utils/icon-suggest";
+import { suggestEmoji, suggestIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
@@ -515,7 +515,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
 
             {iconTab === "icon" && (
               <div className="grid grid-cols-8 gap-1.5">
-                {ITEM_ICON_OPTIONS.map((ic) => (
+                {availableIcons(ITEM_ICON_OPTIONS).map((ic) => (
                   <button key={ic.name} type="button" onClick={() => { setLucideIcon(ic.name); setIconTouched(true); }} title={ic.label}
                     className={cn("h-10 w-full rounded-xl flex items-center justify-center transition-all",
                       lucideIcon === ic.name

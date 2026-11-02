@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
+import { suggestLocationEmoji, suggestLocationIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
 import type { Location } from "@/lib/types";
 
@@ -55,6 +56,11 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
   const [imageUrl, setImageUrl] = useState<string | null>(location?.image_url ?? null);
   const [mediaTab, setMediaTab] = useState<MediaTab>(initialMediaTab);
   const [emoji, setEmoji] = useState(isEmojiSaved ? savedIcon : "🏠");
+
+  // Automatische Vorschläge: stoppen, sobald du selbst ein Emoji bzw. Icon antippst (und beim Bearbeiten)
+  const [emojiTouched, setEmojiTouched] = useState(isEditing);
+  const [iconTouched,  setIconTouched]  = useState(isEditing);
+  const [autoPicked,   setAutoPicked]   = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -102,6 +108,21 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
       }
       return next;
     });
+  }
+
+  // Name geändert → passendes Emoji und Icon vorauswählen (solange du nicht selbst eins gewählt hast)
+  function handleNameChange(value: string) {
+    setName(value);
+    let picked = false;
+    if (!emojiTouched) {
+      const e = suggestLocationEmoji(value);
+      if (e) { setEmoji(e); picked = true; }
+    }
+    if (!iconTouched) {
+      const i = suggestLocationIcon(value);
+      if (i) { setIcon(i); picked = true; }
+    }
+    if (picked) setAutoPicked(true);
   }
 
   // ── Icon-Bedeutung für Vorschau ─────────────────────────────
@@ -370,7 +391,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             label="Name"
             placeholder="z.B. Keller, Garage, Dachboden..."
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
             error={errors.name}
             required autoFocus maxLength={100}
           />
@@ -500,6 +521,9 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
                 <div>
                   <p className="text-xs text-slate-500">Vorschau</p>
                   <p className="text-sm font-medium text-slate-200">{name || "Ablageort"}</p>
+                  {autoPicked && ((mediaTab === "emoji" && !emojiTouched) || (mediaTab === "icon" && !iconTouched)) && (
+                    <p className="text-[11px] text-brand-400 mt-0.5">Automatisch vorgeschlagen – unten änderbar</p>
+                  )}
                 </div>
               </div>
               {mediaTab === "photo" && imageUrl && (
@@ -520,7 +544,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
                     <p className="text-xs text-slate-500 capitalize mb-1.5">{cat}</p>
                     <div className="grid grid-cols-8 gap-1.5">
                       {(items as { label: string; emoji: string }[]).map((ic) => (
-                        <button key={ic.emoji} type="button" onClick={() => setEmoji(ic.emoji)} title={ic.label}
+                        <button key={ic.emoji} type="button" onClick={() => { setEmoji(ic.emoji); setEmojiTouched(true); }} title={ic.label}
                           className={cn("h-10 w-full rounded-xl flex items-center justify-center text-xl transition-all",
                             emoji === ic.emoji
                               ? "bg-brand-600/30 border-2 border-brand-400"
@@ -538,11 +562,11 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-slate-400">Icon auswählen</p>
                 <div className="grid grid-cols-8 gap-1.5">
-                  {LOCATION_ICONS.map((ic) => (
+                  {availableIcons(LOCATION_ICONS).map((ic) => (
                     <button
                       key={ic.name}
                       type="button"
-                      onClick={() => setIcon(ic.name)}
+                      onClick={() => { setIcon(ic.name); setIconTouched(true); }}
                       title={ic.label}
                       className={cn(
                         "h-10 w-full rounded-xl flex items-center justify-center transition-all",
