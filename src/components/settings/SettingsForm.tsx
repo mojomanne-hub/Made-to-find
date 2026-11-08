@@ -198,13 +198,23 @@ export function SettingsForm({ userEmail, displayName: initialDisplayName }: Set
 <Card>
   <CardHeader><h2 className="text-sm font-semibold text-slate-100">Rechtliches</h2></CardHeader>
   <CardContent>
-    <a
-      href="/privacy"
-      target="_blank"
-      className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
-    >
-      Datenschutzerklärung →
-    </a>
+    <div className="flex flex-col gap-2">
+      <a
+        href="/privacy"
+        target="_blank"
+        className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+      >
+        Datenschutzerklärung →
+      </a>
+      <a
+        href="https://www.madetofind.de/impressum"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+      >
+        Impressum →
+      </a>
+    </div>
   </CardContent>
 </Card>
 

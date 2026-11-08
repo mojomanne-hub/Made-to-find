@@ -31,6 +31,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Link href="/ratgeber" className="hover:text-slate-300 transition-colors">Ratgeber</Link>
           {" · "}
           <Link href="/privacy" className="hover:text-slate-300 transition-colors">Datenschutz</Link>
+          {" · "}
+          <a href="https://www.madetofind.de/impressum" className="hover:text-slate-300 transition-colors">Impressum</a>
         </p>
       </footer>
     </div>
