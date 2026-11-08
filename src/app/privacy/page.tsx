@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           Datenschutzerklärung
         </h1>
         <p style={{ color: "#64748b", marginBottom: "40px" }}>
-          Letzte Aktualisierung: Juli 2025
+          Letzte Aktualisierung: November 2026
         </p>
 
         {[
@@ -92,12 +92,28 @@ export default function PrivacyPage() {
             content: (
               <p style={{ color: "#94a3b8" }}>
                 Die App verwendet technisch notwendige Cookies für die Anmeldung und den aktiven Gruppenkontext.
-                Es werden keine Tracking- oder Werbe-Cookies eingesetzt.
+                Auf unseren eigenen Seiten werden keine Tracking- oder Werbe-Cookies eingesetzt und keine Skripte von Werbenetzwerken geladen.
               </p>
             )
           },
           {
-            title: "8. Kontakt",
+            title: "8. Amazon-Partnerprogramm",
+            content: (
+              <p style={{ color: "#94a3b8" }}>
+                Wir nehmen am Partnerprogramm von Amazon EU teil. In der App und im Ratgeber findest du mit „Anzeige“
+                gekennzeichnete Links zu amazon.de. Wenn du über einen solchen Link bei Amazon einkaufst, erhalten wir eine
+                Provision; für dich ändert sich der Preis nicht. Beim Klick auf einen solchen Link wird eine Verbindung zu
+                Amazon hergestellt, und Amazon kann Cookies setzen, um den Kauf unserer Seite zuzuordnen. Auf unseren eigenen
+                Seiten werden dafür keine Skripte von Amazon geladen und keine Daten von dir an Amazon übermittelt, bevor du
+                den Link anklickst. Informationen zur Datenverarbeitung durch Amazon findest du in der Datenschutzerklärung
+                von Amazon.
+                <br /><br />
+                <em>Als Amazon-Partner verdiene ich an qualifizierten Verkäufen.</em>
+              </p>
+            )
+          },
+          {
+            title: "9. Kontakt",
             content: (
               <p style={{ color: "#94a3b8" }}>
                 Bei Fragen zum Datenschutz:{" "}

@@ -10,6 +10,7 @@ import { LocationDeleteButton } from "@/components/locations/LocationDeleteButto
 import { AddShelfButton }       from "@/components/locations/AddShelfButton";
 import { ROUTES }               from "@/lib/constants";
 import { Button }               from "@/components/ui/Button";
+import { AffiliateTips }        from "@/components/affiliate/AffiliateTips";
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -176,6 +177,9 @@ export default async function LocationDetailPage({ params }: Props) {
       ) : (
         <ItemList items={allItems} showLocation={false} />
       )}
+
+      {/* Ordnungs-Tipps (Amazon-Partnerlinks, nur sichtbar wenn NEXT_PUBLIC_AMAZON_TAG gesetzt ist) */}
+      <AffiliateTips locationName={location.name} description={location.description} />
     </>
   );
 }

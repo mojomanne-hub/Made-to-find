@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <footer className="relative px-6 py-5 text-center">
         <p className="text-xs" style={{ color: "#475569" }}>
           © {new Date().getFullYear()} MaDe to find · Deine Daten bleiben privat
+        </p>
+        <p className="mt-1 text-xs" style={{ color: "#475569" }}>
+          <Link href="/ratgeber" className="hover:text-slate-300 transition-colors">Ratgeber</Link>
+          {" · "}
+          <Link href="/privacy" className="hover:text-slate-300 transition-colors">Datenschutz</Link>
         </p>
       </footer>
     </div>
