@@ -18,6 +18,9 @@ interface BottomNavProps {
   onMenuClick?: () => void;
 }
 
+/** true = Scannen-Button in Orange hervorgehoben (neue Funktion); false = normale Farbe */
+const SCAN_BUTTON_HIGHLIGHT = true;
+
 export function BottomNav({ onMenuClick }: BottomNavProps) {
   const pathname = usePathname();
 
@@ -61,7 +64,11 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
         <button
           type="button"
           onClick={openScanner}
-          className="flex-1 flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-brand-400 hover:text-white transition-colors"
+          className={cn(
+            "flex-1 flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
+            // Neu-Hinweis: später SCAN_BUTTON_HIGHLIGHT auf false setzen, dann ist er grau wie die anderen
+            SCAN_BUTTON_HIGHLIGHT ? "text-amber-400 hover:text-amber-300" : "text-slate-500 hover:text-white"
+          )}
           aria-label="Barcode oder QR-Code scannen"
         >
           <ScanLine className="h-5 w-5" />
