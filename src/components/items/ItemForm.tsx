@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
 import { ExpandableGrid } from "@/components/ui/ExpandableGrid";
+import { AffiliateTips } from "@/components/affiliate/AffiliateTips";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
 import { suggestEmoji, suggestIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
@@ -354,6 +355,11 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             error={errors.name}
             required autoFocus maxLength={200}
           />
+
+          {/* Ordnungs-Tipp beim Neuanlegen: erscheint, sobald der Name zu einem bekannten Gegenstand passt */}
+          {!isEditing && name.trim().length >= 3 && (
+            <AffiliateTips locationName={name} kind="item" onlyIfMatch className="-mt-2" />
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-300">

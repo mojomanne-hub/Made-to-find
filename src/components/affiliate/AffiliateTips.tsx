@@ -1,11 +1,13 @@
 import { ShoppingBag, ChevronDown } from "lucide-react";
-import { AMAZON_TAG, AFFILIATE_DISCLOSURE, amazonSearchUrl, tipsForLocation, matchedTipsForLocation } from "@/lib/affiliate";
+import { AMAZON_TAG, AFFILIATE_DISCLOSURE, amazonSearchUrl, tipsForLocation, matchedTipsForLocation, matchedTipsForItem } from "@/lib/affiliate";
 
 interface Props {
   locationName: string;
   description?: string | null;
   /** true: nur anzeigen, wenn der Name wirklich zu einer Tipp-Gruppe passt (für das Formular „Neuer Ablageort“) */
   onlyIfMatch?: boolean;
+  /** "item": Tipps zum Namen eines Gegenstands (nur bei Treffer) */
+  kind?: "location" | "item";
   /** true: Karte startet aufgeklappt */
   defaultOpen?: boolean;
   /** Abstand/Layout von außen (Standard: mt-6) */
@@ -17,11 +19,14 @@ interface Props {
  * Zeigt nichts, solange NEXT_PUBLIC_AMAZON_TAG nicht gesetzt ist.
  * Links als Werbung gekennzeichnet (rel="sponsored"), keine Preise, kein Tracking-Skript auf unserer Seite.
  */
-export function AffiliateTips({ locationName, description, onlyIfMatch, defaultOpen, className = "mt-6" }: Props) {
+export function AffiliateTips({ locationName, description, onlyIfMatch, kind = "location", defaultOpen, className = "mt-6" }: Props) {
   if (!AMAZON_TAG) return null;
-  const tips = onlyIfMatch
-    ? matchedTipsForLocation(locationName, description)
-    : tipsForLocation(locationName, description);
+  const tips =
+    kind === "item"
+      ? matchedTipsForItem(locationName)
+      : onlyIfMatch
+        ? matchedTipsForLocation(locationName, description)
+        : tipsForLocation(locationName, description);
   if (tips.length === 0) return null;
 
   return (

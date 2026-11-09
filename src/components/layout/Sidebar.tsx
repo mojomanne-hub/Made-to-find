@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, MapPin, Package,
   Search, Settings, LogOut, Users,
-  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info,
+  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -256,6 +256,15 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
     Premium Mitglied *bald*
     <Sparkles className="h-3.5 w-3.5 ml-auto" />
   </button>
+
+  {/* Ratgeber */}
+  <Link
+    href="/ratgeber"
+    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+  >
+    <BookOpen className="h-4 w-4 flex-shrink-0" />
+    Ratgeber
+  </Link>
 
   {/* Support */}
   <button
