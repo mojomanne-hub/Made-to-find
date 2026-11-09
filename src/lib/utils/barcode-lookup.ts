@@ -3,7 +3,7 @@
  * Reihenfolge: Open Food Facts → Open Products Facts → Open Beauty Facts.
  * Läuft nur serverseitig; Fehler/Timeouts liefern einfach null.
  */
-export interface BarcodeProduct { name: string; description: string | null; source: string }
+export interface BarcodeProduct { name: string; description: string | null; imageUrl: string | null; source: string }
 
 const SOURCES = [
   { host: "world.openfoodfacts.org",     label: "Open Food Facts" },
@@ -18,7 +18,7 @@ export async function lookupBarcode(code: string): Promise<BarcodeProduct | null
   for (const { host, label } of SOURCES) {
     try {
       const res = await fetch(
-        `https://${host}/api/v2/product/${clean}.json?fields=product_name,product_name_de,generic_name_de,brands,quantity`,
+        `https://${host}/api/v2/product/${clean}.json?fields=product_name,product_name_de,generic_name_de,brands,quantity,image_front_url,image_url`,
         {
           headers: { "User-Agent": "MaDe-to-find/1.0 (madetofind.de)" },
           signal: AbortSignal.timeout(3500),
@@ -35,7 +35,9 @@ export async function lookupBarcode(code: string): Promise<BarcodeProduct | null
       const qty   = (p.quantity ?? "").toString().trim();
       const name  = brand && !title.toLowerCase().includes(brand.toLowerCase()) ? `${title} (${brand})` : title;
       const description = [qty, (p.generic_name_de ?? "").toString().trim()].filter(Boolean).join(" · ") || null;
-      return { name: name.slice(0, 100), description, source: label };
+      const img = (p.image_front_url || p.image_url || "").toString();
+      const imageUrl = /^https:\/\/images\.open(food|products|beauty)facts\.org\//.test(img) ? img : null;
+      return { name: name.slice(0, 100), description, imageUrl, source: label };
     } catch {
       /* nächste Quelle probieren */
     }

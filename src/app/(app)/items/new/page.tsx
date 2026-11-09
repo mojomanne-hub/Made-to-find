@@ -16,7 +16,6 @@ export default async function NewItemPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
   // Produktdaten zum Strichcode (falls bekannt) vorab holen
-  const product = barcode ? await lookupBarcode(barcode) : null;
   // groupId direkt aus Cookie lesen
   const groupId = await getActiveGroupId();
   // Ablageorte passend zum Kontext laden
@@ -31,6 +30,19 @@ export default async function NewItemPage({ searchParams }: Props) {
     locQuery = locQuery.eq("user_id", user.id).is("group_id", null);
   }
   const { data: locations } = await locQuery;
+
+  // 1) eigenes Archiv (früher angelegter, inzwischen gelöschter Gegenstand), 2) offene Produktdatenbanken
+  let tpl: { name: string; description: string | null; icon: string | null; color: string | null; image_url: string | null } | null = null;
+  if (barcode) {
+    const variants = [barcode];
+    if (/^\d{12}$/.test(barcode)) variants.push("0" + barcode);
+    if (/^0\d{12}$/.test(barcode)) variants.push(barcode.slice(1));
+    let tq = supabase.from("barcode_templates").select("name, description, icon, color, image_url").in("barcode", variants).limit(1);
+    tq = groupId ? tq.eq("group_id", groupId) : tq.eq("user_id", user.id).is("group_id", null);
+    const { data: t } = await tq;
+    tpl = (t ?? [])[0] ?? null;
+  }
+  const product = !tpl && barcode ? await lookupBarcode(barcode) : null;
 
   const locationIds = (locations ?? []).map((l) => l.id);
   const { data: shelves } = locationIds.length > 0
@@ -62,9 +74,13 @@ export default async function NewItemPage({ searchParams }: Props) {
           shelves={shelves ?? []}
           preselectedLocationId={preselectedLocationId}
           initialBarcode={barcode ? barcode.slice(0, 64) : undefined}
-          initialName={product?.name}
-          initialDescription={product?.description ?? undefined}
-          productSource={product?.source}
+          initialName={tpl?.name ?? product?.name}
+          initialDescription={tpl?.description ?? product?.description ?? undefined}
+          initialIcon={tpl?.icon ?? undefined}
+          initialColor={tpl?.color ?? undefined}
+          initialImageUrl={tpl?.image_url ?? product?.imageUrl ?? undefined}
+          imageIsExternal={!tpl && !!product?.imageUrl}
+          productSource={tpl ? "Archiv" : product?.source}
           userId={user.id}
           groupId={groupId}
         />

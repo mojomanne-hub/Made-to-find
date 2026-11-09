@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { Minus, Plus, ScanLine } from "lucide-react";
@@ -41,6 +41,10 @@ interface ItemFormProps {
   /** Vorbelegter Code, z. B. nach dem Scannen eines unbekannten Barcodes */
   initialBarcode?: string;
   initialName?: string;
+  initialIcon?: string;
+  initialColor?: string;
+  initialImageUrl?: string;
+  imageIsExternal?: boolean;
   initialDescription?: string;
   productSource?: string;
   userId: string;
@@ -58,11 +62,11 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
 const MAX_SIZE_B = 1 * 1024 * 1024;
 const BUCKET = "item-images";
 
-export function ItemForm({ item, locations, shelves = [], preselectedLocationId, initialBarcode, initialName, initialDescription, productSource, userId, groupId }: ItemFormProps) {
+export function ItemForm({ item, locations, shelves = [], preselectedLocationId, initialBarcode, initialName, initialIcon, initialColor, initialImageUrl, imageIsExternal, initialDescription, productSource, userId, groupId }: ItemFormProps) {
   const isEditing = !!item;
   const router = useRouter();
 
-  const savedIcon = item?.icon ?? "";
+  const savedIcon = item?.icon ?? initialIcon ?? "";
   const isEmoji = savedIcon && !ITEM_ICON_OPTIONS.map((i) => i.name).includes(savedIcon);
   const initialTab: IconTab = isEmoji ? "emoji" : "icon";
 
@@ -78,11 +82,11 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const [iconTab, setIconTab] = useState<IconTab>(initialTab);
   const [emoji, setEmoji] = useState(isEmoji ? savedIcon : "📦");
   const [lucideIcon, setLucideIcon] = useState(!isEmoji ? (savedIcon || "Package") : "Package");
-  const [color, setColor] = useState(item?.color ?? LOCATION_COLORS[0].value);
+  const [color, setColor] = useState(item?.color ?? initialColor ?? LOCATION_COLORS[0].value);
 
   // Automatische Vorschläge: stoppen, sobald du selbst ein Emoji bzw. Icon antippst (und beim Bearbeiten)
-  const [emojiTouched, setEmojiTouched] = useState(isEditing);
-  const [iconTouched,  setIconTouched]  = useState(isEditing);
+  const [emojiTouched, setEmojiTouched] = useState(isEditing || !!initialIcon);
+  const [iconTouched,  setIconTouched]  = useState(isEditing || !!initialIcon);
   const [autoPicked,   setAutoPicked]   = useState(false);
   const [hasExpiry, setHasExpiry] = useState(!!item?.expires_at);
   const [expiresAt, setExpiresAt] = useState(item?.expires_at ?? "");
@@ -99,6 +103,32 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
 
   // Feste Datei-ID pro Formular: mehrfaches Zuschneiden überschreibt dieselbe Datei statt neue anzulegen
   const [photoItemId] = useState(() => item?.id ?? crypto.randomUUID());
+
+  // Vorgegebenes Foto (aus dem Archiv oder der Produktdatenbank) als eigene Datei übernehmen
+  useEffect(() => {
+    if (isEditing || !initialImageUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const src = imageIsExternal ? `/api/image-proxy?url=${encodeURIComponent(initialImageUrl)}` : initialImageUrl;
+        const res = await fetch(src);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (blob.size > MAX_SIZE_B || cancelled) return;
+        const supabase = createBrowserClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const path = `${user.id}/${photoItemId}.jpg`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+        if (error || cancelled) return;
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        setPhotoImageUrl(`${data.publicUrl}?t=${Date.now()}`);
+        setIconTab("photo");
+      } catch { /* Foto ist optional */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Icon-Bedeutung für Vorschau ─────────────────────────────
   const emojiLabel = useMemo(() => {
@@ -289,10 +319,38 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
         await removeStorageImages(supabase, BUCKET, stale);
       };
 
+      // Archiv: Daten zum Code dauerhaft merken (bleiben auch nach dem Löschen des Gegenstands)
+      const saveTemplate = async () => {
+        const code = payload.barcode;
+        if (!code) return;
+        try {
+          let tplImage: string | null = null;
+          if (payload.image_url) {
+            const blob = await (await fetch(payload.image_url)).blob();
+            const path = `${user.id}/tpl-${code.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60)}.jpg`;
+            const up = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+            if (!up.error) tplImage = `${supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl}?t=${Date.now()}`;
+          }
+          const row = {
+            name: payload.name, description: payload.description, icon: payload.icon,
+            color: payload.color, image_url: tplImage, updated_at: new Date().toISOString(),
+          };
+          let q = supabase.from("barcode_templates").select("id").eq("barcode", code).limit(1);
+          q = groupId ? q.eq("group_id", groupId) : q.eq("user_id", user.id).is("group_id", null);
+          const { data: existing } = await q;
+          if (existing && existing[0]) {
+            await supabase.from("barcode_templates").update(row).eq("id", existing[0].id);
+          } else {
+            await supabase.from("barcode_templates").insert({ ...row, barcode: code, user_id: user.id, ...(groupId ? { group_id: groupId } : {}) });
+          }
+        } catch { /* Archiv ist optional – Speichern des Gegenstands bleibt gültig */ }
+      };
+
       if (isEditing) {
         const { error } = await supabase.from("items").update(payload).eq("id", item.id);
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
         await cleanupStalePhotos();
+        await saveTemplate();
         router.push(ROUTES.itemDetail(item.id));
       } else {
         const { data, error } = await supabase
@@ -301,6 +359,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
           .select().single();
         if (error) { setServerError(`Fehler: ${error.message}`); return; }
         await cleanupStalePhotos();
+        await saveTemplate();
         router.push(ROUTES.itemDetail(data.id));
       }
       router.refresh();
