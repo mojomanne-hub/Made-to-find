@@ -40,6 +40,9 @@ interface ItemFormProps {
   preselectedLocationId?: string;
   /** Vorbelegter Code, z. B. nach dem Scannen eines unbekannten Barcodes */
   initialBarcode?: string;
+  initialName?: string;
+  initialDescription?: string;
+  productSource?: string;
   userId: string;
   groupId: string | null;
 }
@@ -55,7 +58,7 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
 const MAX_SIZE_B = 1 * 1024 * 1024;
 const BUCKET = "item-images";
 
-export function ItemForm({ item, locations, shelves = [], preselectedLocationId, initialBarcode, userId, groupId }: ItemFormProps) {
+export function ItemForm({ item, locations, shelves = [], preselectedLocationId, initialBarcode, initialName, initialDescription, productSource, userId, groupId }: ItemFormProps) {
   const isEditing = !!item;
   const router = useRouter();
 
@@ -63,8 +66,8 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const isEmoji = savedIcon && !ITEM_ICON_OPTIONS.map((i) => i.name).includes(savedIcon);
   const initialTab: IconTab = isEmoji ? "emoji" : "icon";
 
-  const [name, setName] = useState(item?.name ?? "");
-  const [description, setDescription] = useState(item?.description ?? "");
+  const [name, setName] = useState(item?.name ?? initialName ?? "");
+  const [description, setDescription] = useState(item?.description ?? initialDescription ?? "");
   const [quantity, setQuantity] = useState(item?.quantity ?? 1);
   const [barcode, setBarcode] = useState(item?.barcode ?? initialBarcode ?? "");
   const [showScanner, setShowScanner] = useState(false);
@@ -358,6 +361,9 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
           {serverError && <Alert variant="error">{serverError}</Alert>}
+          {!isEditing && productSource && initialName && (
+            <p className="text-xs text-emerald-400">Produktdaten automatisch gefunden ({productSource}) – bitte prüfen.</p>
+          )}
 
           <Input
             label="Name"

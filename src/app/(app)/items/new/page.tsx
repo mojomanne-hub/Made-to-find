@@ -7,6 +7,7 @@ import { getActiveGroupId }   from "@/lib/utils/group";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ItemForm }   from "@/components/items/ItemForm";
 import { ROUTES }     from "@/lib/constants";
+import { lookupBarcode } from "@/lib/utils/barcode-lookup";
 export const metadata: Metadata = { title: "Neuer Gegenstand" };
 interface Props { searchParams: Promise<{ location?: string; barcode?: string }> }
 export default async function NewItemPage({ searchParams }: Props) {
@@ -14,6 +15,8 @@ export default async function NewItemPage({ searchParams }: Props) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
+  // Produktdaten zum Strichcode (falls bekannt) vorab holen
+  const product = barcode ? await lookupBarcode(barcode) : null;
   // groupId direkt aus Cookie lesen
   const groupId = await getActiveGroupId();
   // Ablageorte passend zum Kontext laden
@@ -59,6 +62,9 @@ export default async function NewItemPage({ searchParams }: Props) {
           shelves={shelves ?? []}
           preselectedLocationId={preselectedLocationId}
           initialBarcode={barcode ? barcode.slice(0, 64) : undefined}
+          initialName={product?.name}
+          initialDescription={product?.description ?? undefined}
+          productSource={product?.source}
           userId={user.id}
           groupId={groupId}
         />
