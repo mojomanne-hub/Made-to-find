@@ -103,15 +103,21 @@ function normalize(s: string): string {
     .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
 }
 
-/** Passende Tipps für einen Ablageort (max. 4), Standard-Tipps wenn nichts passt */
-export function tipsForLocation(name: string, description?: string | null): Tip[] {
+/** Nur Tipps, die wirklich zum Namen passen (max. 4) – leer, wenn nichts passt */
+export function matchedTipsForLocation(name: string, description?: string | null): Tip[] {
   const text = normalize(`${name} ${description ?? ""}`);
   const found: Tip[] = [];
   for (const g of TIP_GROUPS) {
     if (g.keywords.some((k) => text.includes(normalize(k)))) found.push(...g.tips);
   }
   const unique = found.filter((t, i) => found.findIndex((x) => x.query === t.query) === i);
-  return (unique.length ? unique : DEFAULT_TIPS).slice(0, 4);
+  return unique.slice(0, 4);
+}
+
+/** Passende Tipps für einen Ablageort (max. 4), Standard-Tipps wenn nichts passt */
+export function tipsForLocation(name: string, description?: string | null): Tip[] {
+  const matched = matchedTipsForLocation(name, description);
+  return matched.length ? matched : DEFAULT_TIPS.slice(0, 4);
 }
 
 export const AFFILIATE_DISCLOSURE = "Als Amazon-Partner verdiene ich an qualifizierten Verkäufen.";

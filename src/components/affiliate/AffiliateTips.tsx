@@ -1,19 +1,31 @@
 import { ShoppingBag, ChevronDown } from "lucide-react";
-import { AMAZON_TAG, AFFILIATE_DISCLOSURE, amazonSearchUrl, tipsForLocation } from "@/lib/affiliate";
+import { AMAZON_TAG, AFFILIATE_DISCLOSURE, amazonSearchUrl, tipsForLocation, matchedTipsForLocation } from "@/lib/affiliate";
 
-interface Props { locationName: string; description?: string | null }
+interface Props {
+  locationName: string;
+  description?: string | null;
+  /** true: nur anzeigen, wenn der Name wirklich zu einer Tipp-Gruppe passt (für das Formular „Neuer Ablageort“) */
+  onlyIfMatch?: boolean;
+  /** true: Karte startet aufgeklappt */
+  defaultOpen?: boolean;
+  /** Abstand/Layout von außen (Standard: mt-6) */
+  className?: string;
+}
 
 /**
  * Einklappbare Karte „Ordnungs-Tipps“ für die Ablageort-Seite.
  * Zeigt nichts, solange NEXT_PUBLIC_AMAZON_TAG nicht gesetzt ist.
  * Links als Werbung gekennzeichnet (rel="sponsored"), keine Preise, kein Tracking-Skript auf unserer Seite.
  */
-export function AffiliateTips({ locationName, description }: Props) {
+export function AffiliateTips({ locationName, description, onlyIfMatch, defaultOpen, className = "mt-6" }: Props) {
   if (!AMAZON_TAG) return null;
-  const tips = tipsForLocation(locationName, description);
+  const tips = onlyIfMatch
+    ? matchedTipsForLocation(locationName, description)
+    : tipsForLocation(locationName, description);
+  if (tips.length === 0) return null;
 
   return (
-    <details className="group mt-6 rounded-2xl border border-slate-700 bg-slate-800/40">
+    <details open={defaultOpen} className={`group ${className} rounded-2xl border border-slate-700 bg-slate-800/40`}>
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm text-slate-300 hover:text-slate-100">
         <ShoppingBag className="h-4 w-4 text-brand-400" />
         <span className="font-medium">Ordnungs-Tipps für „{locationName}“</span>

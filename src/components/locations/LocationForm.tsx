@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
 import { ExpandableGrid } from "@/components/ui/ExpandableGrid";
+import { AffiliateTips } from "@/components/affiliate/AffiliateTips";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
 import { suggestLocationEmoji, suggestLocationIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
@@ -390,6 +391,11 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             error={errors.name}
             required autoFocus maxLength={100}
           />
+
+          {/* Ordnungs-Tipp beim Neuanlegen: erscheint, sobald der Name zu einem bekannten Ort passt */}
+          {!isEditing && name.trim().length >= 3 && (
+            <AffiliateTips locationName={name} onlyIfMatch className="-mt-2" />
+          )}
 
           {/* ── Fach / Ebene ── */}
           <div className="flex flex-col gap-3">
