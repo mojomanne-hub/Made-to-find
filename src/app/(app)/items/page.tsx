@@ -54,11 +54,11 @@ export default async function ItemsPage() {
         title="Gegenstände"
         description={groupId ? "Gegenstände der Gruppe" : "Deine persönlichen Gegenstände"}
         action={
-          <div className="flex items-center gap-2">
-            <ScanItemButton groupId={groupId} />
+          <div className="flex flex-col items-stretch gap-2">
             <Link href={newItemHref}>
-              <Button size="sm"><Plus className="h-4 w-4" /> Neuer Gegenstand</Button>
+              <Button size="sm" className="w-full"><Plus className="h-4 w-4" /> Neuer Gegenstand</Button>
             </Link>
+            <ScanItemButton groupId={groupId} />
           </div>
         }
       />

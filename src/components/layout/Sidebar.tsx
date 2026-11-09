@@ -232,9 +232,9 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
                   <button
                     type="button"
                     onClick={openScanner}
-                    className="w-full flex items-center gap-2 pl-10 pr-3 py-2 rounded-xl text-[13px] font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
                   >
-                    <ScanLine className="h-3.5 w-3.5 flex-shrink-0" />
+                    <ScanLine className="h-4 w-4 flex-shrink-0" />
                     Scannen
                   </button>
                 )}
