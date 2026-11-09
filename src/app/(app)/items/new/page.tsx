@@ -8,9 +8,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ItemForm }   from "@/components/items/ItemForm";
 import { ROUTES }     from "@/lib/constants";
 export const metadata: Metadata = { title: "Neuer Gegenstand" };
-interface Props { searchParams: Promise<{ location?: string }> }
+interface Props { searchParams: Promise<{ location?: string; barcode?: string }> }
 export default async function NewItemPage({ searchParams }: Props) {
-  const { location: preselectedLocationId } = await searchParams;
+  const { location: preselectedLocationId, barcode } = await searchParams;
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
@@ -58,6 +58,7 @@ export default async function NewItemPage({ searchParams }: Props) {
           locations={locations ?? []}
           shelves={shelves ?? []}
           preselectedLocationId={preselectedLocationId}
+          initialBarcode={barcode ? barcode.slice(0, 64) : undefined}
           userId={user.id}
           groupId={groupId}
         />

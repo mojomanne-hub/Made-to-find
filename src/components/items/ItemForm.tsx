@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, ScanLine } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { itemSchema } from "@/lib/validations";
 import { ROUTES, ITEM_ICON_OPTIONS, LOCATION_COLORS, getAllIcons } from "@/lib/constants";
@@ -15,6 +15,7 @@ import { Alert } from "@/components/ui/Alert";
 import { ImageCropper } from "@/components/ui/ImageCropper";
 import { ExpandableGrid } from "@/components/ui/ExpandableGrid";
 import { AffiliateTips } from "@/components/affiliate/AffiliateTips";
+import { BarcodeScanner } from "@/components/scanner/BarcodeScanner";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
 import { suggestEmoji, suggestIcon, availableIcons } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
@@ -33,10 +34,12 @@ interface ShelfOption {
 }
 
 interface ItemFormProps {
-  item?: Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null; shelf_id?: string | null };
+  item?: Item & { icon?: string | null; image_url?: string | null; color?: string | null; expires_at?: string | null; shelf_id?: string | null; barcode?: string | null };
   locations: LocationOption[];
   shelves?: ShelfOption[];
   preselectedLocationId?: string;
+  /** Vorbelegter Code, z. B. nach dem Scannen eines unbekannten Barcodes */
+  initialBarcode?: string;
   userId: string;
   groupId: string | null;
 }
@@ -52,7 +55,7 @@ function DynIcon({ name, className }: { name: string; className?: string }) {
 const MAX_SIZE_B = 1 * 1024 * 1024;
 const BUCKET = "item-images";
 
-export function ItemForm({ item, locations, shelves = [], preselectedLocationId, userId, groupId }: ItemFormProps) {
+export function ItemForm({ item, locations, shelves = [], preselectedLocationId, initialBarcode, userId, groupId }: ItemFormProps) {
   const isEditing = !!item;
   const router = useRouter();
 
@@ -63,6 +66,8 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [quantity, setQuantity] = useState(item?.quantity ?? 1);
+  const [barcode, setBarcode] = useState(item?.barcode ?? initialBarcode ?? "");
+  const [showScanner, setShowScanner] = useState(false);
   const [locationId, setLocationId] = useState(
     item?.location_id ?? preselectedLocationId ?? locations[0]?.id ?? ""
   );
@@ -262,6 +267,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
         name: result.data.name,
         description: result.data.description ?? null,
         quantity: result.data.quantity,
+        barcode: barcode.trim() || null,
         location_id: result.data.location_id,
         shelf_id: locationHasShelves ? shelfId : null,
         icon: currentIcon,
@@ -304,6 +310,12 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
 
   return (
     <>
+      {showScanner && (
+        <BarcodeScanner
+          onDetected={(c) => { setBarcode(c); setShowScanner(false); }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
       {showCompressionDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="max-w-sm">
@@ -412,6 +424,29 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
           <Textarea label="Beschreibung" placeholder="Optionale Details..."
             value={description} onChange={(e) => setDescription(e.target.value)}
             rows={3} maxLength={1000} />
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="item-barcode" className="text-sm font-medium text-slate-300">
+              Barcode / QR-Code <span className="font-normal text-slate-500">(optional)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="item-barcode"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="Eingeben oder scannen"
+                maxLength={64}
+                inputMode="text"
+                className="input-base flex-1"
+              />
+              <Button type="button" variant="secondary" onClick={() => setShowScanner(true)}>
+                <ScanLine className="h-4 w-4" /> Scannen
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Mit dem Code findest du den Gegenstand später per Scan sofort wieder.
+            </p>
+          </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">

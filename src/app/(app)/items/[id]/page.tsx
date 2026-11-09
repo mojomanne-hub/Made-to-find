@@ -83,7 +83,7 @@ export default async function ItemDetailPage({ params }: Props) {
     id: string; name: string; description: string | null;
     quantity: number; updated_at: string; location_id: string;
     image_url: string | null; icon: string | null; color: string | null;
-    expires_at: string | null; shelf_id: string | null;
+    expires_at: string | null; shelf_id: string | null; barcode: string | null;
     locations: { id: string; name: string; color: string | null } | null;
   };
 
@@ -162,6 +162,14 @@ export default async function ItemDetailPage({ params }: Props) {
         {/* Ablaufdatum */}
         {item.expires_at && (
           <ExpiryInfo expiresAt={item.expires_at} />
+        )}
+
+        {/* Barcode / QR-Code */}
+        {item.barcode && (
+          <Card padding="sm">
+            <p className="text-xs text-slate-500 mb-1.5">Barcode / QR-Code</p>
+            <p className="text-sm text-slate-300 font-mono break-all">{item.barcode}</p>
+          </Card>
         )}
 
         {/* Beschreibung */}

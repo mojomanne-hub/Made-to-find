@@ -6,9 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, MapPin, Package,
   Search, Settings, LogOut, Users,
-  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info, BookOpen,
+  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info, BookOpen, ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { openScanner } from "@/components/scanner/scanner-events";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { useGroup, GroupProvider, type Group } from "@/lib/context/GroupContext";
 import { ROUTES } from "@/lib/constants";
@@ -213,20 +214,31 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
             const isActive =
               pathname === href || (href !== ROUTES.dashboard && pathname.startsWith(href));
             return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                  isActive
-                    ? "text-white"
-                    : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+              <div key={href} className="space-y-0.5">
+                <Link
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    isActive
+                      ? "text-white"
+                      : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+                  )}
+                  style={isActive ? { backgroundColor: "#1e3a6e" } : {}}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {label}
+                </Link>
+                {href === ROUTES.items && (
+                  <button
+                    type="button"
+                    onClick={openScanner}
+                    className="w-full flex items-center gap-2 pl-10 pr-3 py-2 rounded-xl text-[13px] font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+                  >
+                    <ScanLine className="h-3.5 w-3.5 flex-shrink-0" />
+                    Scannen
+                  </button>
                 )}
-                style={isActive ? { backgroundColor: "#1e3a6e" } : {}}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                {label}
-              </Link>
+              </div>
             );
           })}
         </nav>
@@ -244,17 +256,6 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
   >
     <Users className="h-4 w-4 flex-shrink-0" />
     Gruppen verwalten
-  </button>
-
-  {/* Premium Button */}
-  <button
-    onClick={() => {}}
-    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
-    style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
-  >
-    <Crown className="h-4 w-4 flex-shrink-0" />
-    Premium Mitglied *bald*
-    <Sparkles className="h-3.5 w-3.5 ml-auto" />
   </button>
 
   {/* Ratgeber */}
@@ -305,6 +306,8 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
     <Settings className="h-4 w-4 flex-shrink-0" />
     Einstellungen
   </Link>
+
+  {/* Premium-Button vorübergehend entfernt (Crown-Import bleibt für später) */}
 
   {/* Abmelden */}
   <button

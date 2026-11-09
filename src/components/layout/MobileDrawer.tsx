@@ -10,11 +10,12 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
 import { ROUTES }                 from "@/lib/constants";
+import { openScanner }            from "@/components/scanner/scanner-events";
 import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
 import { joinPendingGroup }       from "@/lib/utils/invite-token";
@@ -131,18 +132,29 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href || (href !== ROUTES.dashboard && pathname.startsWith(href));
             return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-0.5",
-                  isActive ? "text-white" : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+              <div key={href}>
+                <Link
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all mb-0.5",
+                    isActive ? "text-white" : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+                  )}
+                  style={isActive ? { backgroundColor: "#1e3a6e" } : {}}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {label}
+                </Link>
+                {href === ROUTES.items && (
+                  <button
+                    type="button"
+                    onClick={() => { onClose(); openScanner(); }}
+                    className="w-full flex items-center gap-2 pl-10 pr-3 py-2.5 mb-0.5 rounded-xl text-[13px] font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+                  >
+                    <ScanLine className="h-3.5 w-3.5 flex-shrink-0" />
+                    Scannen
+                  </button>
                 )}
-                style={isActive ? { backgroundColor: "#1e3a6e" } : {}}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                {label}
-              </Link>
+              </div>
             );
           })}
         </div>
@@ -220,16 +232,6 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
           </button>
 
 
-  {/* Premium Button */}
-  <button
-    onClick={() => {}}
-    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
-    style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff" }}
-  >
-    <Crown className="h-4 w-4 flex-shrink-0" />
-    Premium Mitglied *bald*
-    <Sparkles className="h-3.5 w-3.5 ml-auto" />
-  </button>
 
           {/* Ratgeber */}
           <Link
@@ -266,6 +268,8 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
             <Package className="h-4 w-4 flex-shrink-0" />
             Einstellungen
           </Link>
+
+          {/* Premium-Button vorübergehend entfernt (Crown-Import bleibt für später) */}
 
           {/* Abmelden */}
           <button

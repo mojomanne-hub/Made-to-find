@@ -7,6 +7,7 @@ import { getActiveGroupId }   from "@/lib/utils/group";
 import { PageHeader }         from "@/components/layout/PageHeader";
 import { Button }             from "@/components/ui/Button";
 import { ItemsGrid }          from "@/components/items/ItemsGrid";
+import { ScanItemButton }     from "@/components/scanner/ScanItemButton";
 import { ROUTES }             from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Gegenstände" };
@@ -53,9 +54,12 @@ export default async function ItemsPage() {
         title="Gegenstände"
         description={groupId ? "Gegenstände der Gruppe" : "Deine persönlichen Gegenstände"}
         action={
-          <Link href={newItemHref}>
-            <Button size="sm"><Plus className="h-4 w-4" /> Neuer Gegenstand</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ScanItemButton groupId={groupId} />
+            <Link href={newItemHref}>
+              <Button size="sm"><Plus className="h-4 w-4" /> Neuer Gegenstand</Button>
+            </Link>
+          </div>
         }
       />
       <ItemsGrid
