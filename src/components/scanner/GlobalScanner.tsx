@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Pencil, Plus, MapPin, Eye } from "lucide-react";
+import { Search, Pencil, Plus, Minus, MapPin, Eye } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
@@ -57,6 +57,7 @@ export function GlobalScanner() {
   const [selected, setSelected]   = useState<FullItem | null>(null);
   const [mode, setMode]           = useState<"actions" | "qty" | "location">("actions");
   const [addQty, setAddQty]       = useState(1);
+  const [qtyDir, setQtyDir]       = useState<1 | -1>(1);
   const [locs, setLocs]           = useState<Loc[]>([]);
   const [info, setInfo]           = useState<string | null>(null);
   const [template, setTemplate]   = useState<Tpl | null>(null);
@@ -79,7 +80,9 @@ export function GlobalScanner() {
     setBusy(true); setError(null);
     try {
       const supabase = createBrowserClient();
-      const next = (selected.quantity ?? 1) + Math.max(1, addQty);
+      const current = selected.quantity ?? 1;
+      // Reduzieren: nie unter 1 (zum Entfernen den Artikel löschen)
+      const next = Math.max(1, current + qtyDir * Math.max(1, addQty));
       const { error: err } = await supabase.from("items").update({ quantity: next }).eq("id", selected.id);
       if (err) throw err;
       setSelected({ ...selected, quantity: next });
@@ -387,7 +390,21 @@ export function GlobalScanner() {
 
                 {mode === "actions" && !busy && (
                   <div className="flex flex-col gap-2">
-                    <Button onClick={() => { setMode("qty"); setInfo(null); }}><Plus className="h-4 w-4" /> Menge erhöhen</Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button onClick={() => { setQtyDir(1); setAddQty(1); setMode("qty"); setInfo(null); }}>
+                        <Plus className="h-4 w-4" /> Menge erhöhen
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={(selected.quantity ?? 1) <= 1}
+                        onClick={() => { setQtyDir(-1); setAddQty(1); setMode("qty"); setInfo(null); }}
+                      >
+                        <Minus className="h-4 w-4" /> Menge reduzieren
+                      </Button>
+                    </div>
+                    {(selected.quantity ?? 1) <= 1 && (
+                      <p className="text-xs text-slate-500">Menge ist 1 – zum Entfernen den Artikel über „Artikel ansehen“ löschen.</p>
+                    )}
                     <Button variant="secondary" onClick={startLocation}><MapPin className="h-4 w-4" /> In anderem Ablageort speichern</Button>
                     <Button variant="secondary" onClick={() => { router.push(ROUTES.itemDetail(selected.id)); close(); }}><Eye className="h-4 w-4" /> Artikel ansehen</Button>
                     <Button variant="secondary" onClick={() => { router.push(ROUTES.itemEdit(selected.id)); close(); }}><Pencil className="h-4 w-4" /> Artikel bearbeiten</Button>
@@ -396,10 +413,13 @@ export function GlobalScanner() {
 
                 {mode === "qty" && (
                   <div className="space-y-3">
-                    <label className="text-sm text-slate-300 block">Wie viele kommen dazu?</label>
+                    <label className="text-sm text-slate-300 block">{qtyDir === 1 ? "Wie viele kommen dazu?" : "Wie viele gehen weg?"}</label>
                     <input
-                      type="number" min={1} value={addQty} autoFocus
-                      onChange={(e) => setAddQty(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                      type="number" min={1} max={qtyDir === -1 ? Math.max(1, (selected.quantity ?? 1) - 1) : undefined} value={addQty} autoFocus
+                      onChange={(e) => {
+                        const v = Math.max(1, parseInt(e.target.value || "1", 10));
+                        setAddQty(qtyDir === -1 ? Math.min(v, Math.max(1, (selected.quantity ?? 1) - 1)) : v);
+                      }}
                       className="input-base"
                     />
                     <div className="flex gap-2">
