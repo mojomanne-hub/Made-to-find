@@ -40,6 +40,15 @@ export default async function DashboardPage() {
       : supabase.from("items").select("id, name, expires_at").is("deleted_at", null).eq("user_id", user.id).is("group_id", null).not("expires_at", "is", null).lte("expires_at", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]).order("expires_at", { ascending: true }).limit(5),
   ]);
 
+  // Anzahl Gegenstände je angezeigtem Ablageort
+  const locIds = (locsResult.data ?? []).map((l) => l.id);
+  const itemCounts: Record<string, number> = {};
+  if (locIds.length > 0) {
+    const { data: rows } = await supabase
+      .from("items").select("location_id").in("location_id", locIds).is("deleted_at", null);
+    for (const r of rows ?? []) itemCounts[r.location_id] = (itemCounts[r.location_id] ?? 0) + 1;
+  }
+
   return (
     <DashboardClient
       locationCount={locCount.count ?? 0}
@@ -48,6 +57,7 @@ export default async function DashboardPage() {
       recentItems={(itemsResult.data ?? []) as unknown as ItemRow[]}
       groupId={groupId}
       expiringItems={(expiringResult.data ?? []) as ExpiringItem[]}
+      itemCounts={itemCounts}
     />
   );
 }
