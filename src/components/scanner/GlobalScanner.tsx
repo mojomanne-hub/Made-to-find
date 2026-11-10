@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Pencil, Plus, Minus, MapPin, Eye } from "lucide-react";
+import { Search, Pencil, Plus, Minus, MapPin, Eye, Trash2 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useGroup } from "@/lib/context/GroupContext";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { OPEN_SCANNER_EVENT } from "./scanner-events";
+import { removeStorageImage } from "@/lib/utils/storage";
 
 interface Match { id: string; name: string; barcode?: string | null; locations: { name: string } | null }
 interface FullItem extends Match {
@@ -55,8 +56,8 @@ export function GlobalScanner() {
 
   // Aktionen für einen bekannten Gegenstand
   const [selected, setSelected]   = useState<FullItem | null>(null);
-  const [mode, setMode]           = useState<"actions" | "qty" | "location">("actions");
-  const [addQty, setAddQty]       = useState(1);
+  const [mode, setMode]           = useState<"actions" | "qty" | "location" | "delete">("actions");
+  const [addQty, setAddQty]       = useState("1");   // als Text, damit das Feld auch leer sein darf
   const [qtyDir, setQtyDir]       = useState<1 | -1>(1);
   const [locs, setLocs]           = useState<Loc[]>([]);
   const [info, setInfo]           = useState<string | null>(null);
@@ -72,7 +73,33 @@ export function GlobalScanner() {
   }
 
   function openActions(it: FullItem) {
-    setSelected(it); setMode("actions"); setAddQty(1); setInfo(null); setError(null);
+    setSelected(it); setMode("actions"); setAddQty("1"); setInfo(null); setError(null);
+  }
+
+  // Eingabe → gültige Zahl (mind. 1; beim Reduzieren höchstens Menge − 1)
+  const maxReduce = Math.max(1, (selected?.quantity ?? 1) - 1);
+  const parsedQty = Math.max(1, parseInt(addQty || "1", 10) || 1);
+  const qtyValue  = qtyDir === -1 ? Math.min(parsedQty, maxReduce) : parsedQty;
+  function stepQty(d: 1 | -1) {
+    const v = Math.max(1, qtyValue + d);
+    setAddQty(String(qtyDir === -1 ? Math.min(v, maxReduce) : v));
+  }
+
+  /** Gegenstand löschen (Foto mit entfernen) – der Archiv-Eintrag zum Code bleibt erhalten */
+  async function deleteSelected() {
+    if (!selected) return;
+    setBusy(true); setError(null);
+    try {
+      const supabase = createBrowserClient();
+      const { error: err } = await supabase.from("items").delete().eq("id", selected.id);
+      if (err) throw err;
+      await removeStorageImage(supabase, "item-images", selected.image_url);
+      router.refresh();
+      close();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setBusy(false);
+    }
   }
 
   async function saveQty() {
@@ -82,7 +109,7 @@ export function GlobalScanner() {
       const supabase = createBrowserClient();
       const current = selected.quantity ?? 1;
       // Reduzieren: nie unter 1 (zum Entfernen den Artikel löschen)
-      const next = Math.max(1, current + qtyDir * Math.max(1, addQty));
+      const next = Math.max(1, current + qtyDir * qtyValue);
       const { error: err } = await supabase.from("items").update({ quantity: next }).eq("id", selected.id);
       if (err) throw err;
       setSelected({ ...selected, quantity: next });
@@ -391,20 +418,19 @@ export function GlobalScanner() {
                 {mode === "actions" && !busy && (
                   <div className="flex flex-col gap-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={() => { setQtyDir(1); setAddQty(1); setMode("qty"); setInfo(null); }}>
+                      <Button onClick={() => { setQtyDir(1); setAddQty("1"); setMode("qty"); setInfo(null); }}>
                         <Plus className="h-4 w-4" /> Menge erhöhen
                       </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={(selected.quantity ?? 1) <= 1}
-                        onClick={() => { setQtyDir(-1); setAddQty(1); setMode("qty"); setInfo(null); }}
-                      >
-                        <Minus className="h-4 w-4" /> Menge reduzieren
-                      </Button>
+                      {(selected.quantity ?? 1) <= 1 ? (
+                        <Button variant="danger" onClick={() => { setMode("delete"); setInfo(null); }}>
+                          <Trash2 className="h-4 w-4" /> Löschen
+                        </Button>
+                      ) : (
+                        <Button variant="secondary" onClick={() => { setQtyDir(-1); setAddQty("1"); setMode("qty"); setInfo(null); }}>
+                          <Minus className="h-4 w-4" /> Menge reduzieren
+                        </Button>
+                      )}
                     </div>
-                    {(selected.quantity ?? 1) <= 1 && (
-                      <p className="text-xs text-slate-500">Menge ist 1 – zum Entfernen den Artikel über „Artikel ansehen“ löschen.</p>
-                    )}
                     <Button variant="secondary" onClick={startLocation}><MapPin className="h-4 w-4" /> In anderem Ablageort speichern</Button>
                     <Button variant="secondary" onClick={() => { router.push(ROUTES.itemDetail(selected.id)); close(); }}><Eye className="h-4 w-4" /> Artikel ansehen</Button>
                     <Button variant="secondary" onClick={() => { router.push(ROUTES.itemEdit(selected.id)); close(); }}><Pencil className="h-4 w-4" /> Artikel bearbeiten</Button>
@@ -414,17 +440,51 @@ export function GlobalScanner() {
                 {mode === "qty" && (
                   <div className="space-y-3">
                     <label className="text-sm text-slate-300 block">{qtyDir === 1 ? "Wie viele kommen dazu?" : "Wie viele gehen weg?"}</label>
-                    <input
-                      type="number" min={1} max={qtyDir === -1 ? Math.max(1, (selected.quantity ?? 1) - 1) : undefined} value={addQty} autoFocus
-                      onChange={(e) => {
-                        const v = Math.max(1, parseInt(e.target.value || "1", 10));
-                        setAddQty(qtyDir === -1 ? Math.min(v, Math.max(1, (selected.quantity ?? 1) - 1)) : v);
-                      }}
-                      className="input-base"
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button" aria-label="Weniger" onClick={() => stepQty(-1)} disabled={qtyValue <= 1}
+                        className="h-11 w-11 flex-shrink-0 rounded-xl border border-slate-600 text-slate-200 flex items-center justify-center hover:bg-slate-700 disabled:opacity-40"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <input
+                        type="text" inputMode="numeric" pattern="[0-9]*" value={addQty} autoFocus
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setAddQty(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        onBlur={() => setAddQty(String(qtyValue))}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp")   { e.preventDefault(); stepQty(1); }
+                          if (e.key === "ArrowDown") { e.preventDefault(); stepQty(-1); }
+                          if (e.key === "Enter")     { e.preventDefault(); saveQty(); }
+                        }}
+                        aria-label="Anzahl"
+                        className="input-base text-center"
+                      />
+                      <button
+                        type="button" aria-label="Mehr" onClick={() => stepQty(1)} disabled={qtyDir === -1 && qtyValue >= maxReduce}
+                        className="h-11 w-11 flex-shrink-0 rounded-xl border border-slate-600 text-slate-200 flex items-center justify-center hover:bg-slate-700 disabled:opacity-40"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Neue Menge: {Math.max(1, (selected.quantity ?? 1) + qtyDir * qtyValue)}
+                    </p>
                     <div className="flex gap-2">
                       <Button onClick={saveQty} disabled={busy}>Speichern</Button>
                       <Button variant="secondary" onClick={() => setMode("actions")}>Zurück</Button>
+                    </div>
+                  </div>
+                )}
+
+                {mode === "delete" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-300">
+                      „{selected.name}“ wirklich aus {selected.locations?.name ?? "dem Ablageort"} löschen? Die Daten zum Code bleiben im Archiv.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="danger" onClick={deleteSelected} disabled={busy}><Trash2 className="h-4 w-4" /> Löschen</Button>
+                      <Button variant="secondary" onClick={() => setMode("actions")} disabled={busy}>Zurück</Button>
                     </div>
                   </div>
                 )}
