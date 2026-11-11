@@ -56,8 +56,13 @@ export function PushToggle() {
         const j = await res.json().catch(() => null);
         throw new Error(j?.error ?? "Anmeldung fehlgeschlagen.");
       }
+      const j = await res.json().catch(() => null) as { sent?: number; errors?: string[] } | null;
       setStatus("on");
-      setInfo("Eingeschaltet. Gleich sollte eine Testmeldung ankommen.");
+      if ((j?.sent ?? 0) > 0) {
+        setInfo("Testmeldung verschickt. Erscheint sie nicht, blockiert das Gerät die Anzeige – prüfe in den Android-Einstellungen, ob Benachrichtigungen für MaDe to find bzw. Chrome erlaubt sind.");
+      } else {
+        setError(`Eingeschaltet, aber der Server konnte keine Testmeldung verschicken${j?.errors?.length ? ` (${j.errors.join("; ")})` : ""}.`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unbekannter Fehler");
     } finally { setBusy(false); }
@@ -109,8 +114,9 @@ export function PushToggle() {
             <div><Button size="sm" onClick={enable} isLoading={busy}><BellRing className="h-4 w-4" /> Einschalten</Button></div>
           )}
           {status === "on" && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm text-emerald-400">Auf diesem Gerät eingeschaltet</span>
+              <Button size="sm" variant="secondary" onClick={enable} isLoading={busy}>Testmeldung</Button>
               <Button size="sm" variant="secondary" onClick={disable} isLoading={busy}>Ausschalten</Button>
             </div>
           )}

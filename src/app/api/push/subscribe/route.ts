@@ -30,13 +30,14 @@ export async function POST(req: NextRequest) {
     .upsert({ user_id: user.id, endpoint, p256dh, auth }, { onConflict: "endpoint" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const errors: string[] = [];
   const sent = await sendPushToUser(admin, user.id, {
     title: "Benachrichtigungen sind aktiv",
     body:  "So sehen Meldungen von MaDe to find auf diesem Gerät aus.",
     url:   "/dashboard",
     tag:   "push-test",
-  });
-  return NextResponse.json({ success: true, sent });
+  }, errors);
+  return NextResponse.json({ success: true, sent, errors: errors.slice(0, 3) });
 }
 
 /** Gerät wieder abmelden */

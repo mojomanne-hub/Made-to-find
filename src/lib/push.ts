@@ -33,7 +33,10 @@ function configure(): boolean {
 }
 
 /** Schickt eine Meldung an alle Geräte eines Nutzers. Gibt die Anzahl erfolgreicher Zustellungen zurück. */
-export async function sendPushToUser(admin: SupabaseClient, userId: string, payload: PushPayload): Promise<number> {
+export async function sendPushToUser(
+  admin: SupabaseClient, userId: string, payload: PushPayload,
+  errors?: string[],   // optional: sammelt Fehlermeldungen des Push-Dienstes (für die Testmeldung)
+): Promise<number> {
   if (!configure()) return 0;
   const { data: subs } = await admin
     .from("push_subscriptions")
@@ -52,6 +55,7 @@ export async function sendPushToUser(admin: SupabaseClient, userId: string, payl
     } catch (err) {
       // 404/410 = Gerät hat die Erlaubnis entzogen oder das Abo ist abgelaufen → aufräumen
       const status = (err as { statusCode?: number }).statusCode;
+      errors?.push(status ? `Push-Dienst antwortet mit ${status}` : (err instanceof Error ? err.message : "Unbekannter Fehler"));
       if (status === 404 || status === 410) {
         await admin.from("push_subscriptions").delete().eq("id", s.id);
       }
