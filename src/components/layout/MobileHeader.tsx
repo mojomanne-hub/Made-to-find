@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Check, Bell, X, Users } from "lucide-react";
+import { ChevronDown, Check, Bell, X, Users, Pencil, ChevronLeft } from "lucide-react";
 import { useGroup, type Group } from "@/lib/context/GroupContext";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { IOSInstallButton } from "@/components/layout/IOSInstallButton";
 import { SharedAccessModal } from "@/components/groups/SharedAccessModal";
+import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
 
 const GROUP_COLORS = [
   "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
@@ -37,6 +38,7 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
   const [groupModal,    setGroupModal]    = useState(false);
   const [dropdownOpen,  setDropdownOpen]  = useState(false);
   const [showNotifs,    setShowNotifs]    = useState(false);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [unread,        setUnread]        = useState(0);
   const [notifications, setNotifications] = useState<Array<{
     id: string; title: string; message: string; created_at: string;
@@ -69,6 +71,7 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
 
   async function handleBellClick() {
     setShowNotifs((v) => !v);
+    setShowNotifSettings(false);
     setDropdownOpen(false);
     if (!showNotifs) {
       const supabase = createBrowserClient();
@@ -199,17 +202,32 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
       {showNotifs && (
         <div className="lg:hidden fixed inset-0 z-50" onClick={() => setShowNotifs(false)}>
           <div
-            className="absolute top-14 right-3 w-80 rounded-2xl overflow-hidden shadow-2xl"
+            className="absolute top-14 right-3 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl overflow-hidden shadow-2xl"
             style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #2d3f55" }}>
-              <h3 className="text-sm font-semibold text-slate-100">Benachrichtigungen</h3>
-              <button onClick={() => setShowNotifs(false)} className="text-slate-400 hover:text-slate-200">
-                <X className="h-4 w-4" />
-              </button>
+              <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+                {showNotifSettings && (
+                  <button onClick={() => setShowNotifSettings(false)} aria-label="Zurück" className="text-slate-400 hover:text-slate-200 -ml-1 p-1">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                )}
+                {showNotifSettings ? "Einstellungen" : "Benachrichtigungen"}
+              </h3>
+              <div className="flex items-center gap-1">
+                {!showNotifSettings && (
+                  <button onClick={() => setShowNotifSettings(true)} aria-label="Benachrichtigungen einstellen" className="p-1.5 text-slate-400 hover:text-slate-200">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                )}
+                <button onClick={() => setShowNotifs(false)} aria-label="Schließen" className="p-1.5 text-slate-400 hover:text-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <div className="max-h-72 overflow-y-auto">
+            {showNotifSettings && <NotificationSettingsPanel />}
+            <div className={cn("max-h-72 overflow-y-auto", showNotifSettings && "hidden")}>
               {notifications.length === 0 ? (
                 <div className="text-center py-8">
                   <Bell className="h-7 w-7 text-slate-600 mx-auto mb-2" />
