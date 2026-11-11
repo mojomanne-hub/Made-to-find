@@ -12,6 +12,7 @@ import { Input }     from "@/components/ui/Input";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Alert }     from "@/components/ui/Alert";
 import { DeleteAccountCard } from "@/components/settings/DeleteAccountCard";
+import { PushToggle } from "@/components/settings/PushToggle";
 
 interface SettingsFormProps {
   userEmail:   string;
@@ -193,6 +194,9 @@ export function SettingsForm({ userEmail, displayName: initialDisplayName }: Set
           </form>
         </CardContent>
       </Card>
+
+{/* ── Push-Benachrichtigungen ── */}
+<PushToggle />
 
 {/* ── Datenschutz ── */}
 <Card>

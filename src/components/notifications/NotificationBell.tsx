@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Bell, X, Package, MapPin, Users, Check, Clock } from "lucide-react";
+import { Bell, X, Package, MapPin, Users, Check, Clock, UserPlus } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ function NotifIcon({ type }: { type: string }) {
   if (type === "location_added") return <MapPin   className="h-4 w-4 text-brand-400" />;
   if (type === "member_joined")  return <Users    className="h-4 w-4 text-amber-400" />;
   if (type === "item_expiring")  return <Clock    className="h-4 w-4 text-red-400" />;
+  if (type === "new_user")       return <UserPlus className="h-4 w-4 text-sky-400" />;
   return <Bell className="h-4 w-4 text-slate-400" />;
 }
 
@@ -40,6 +41,7 @@ function notifBg(type: string): string {
   if (type === "location_added") return "bg-brand-900/30";
   if (type === "member_joined")  return "bg-amber-900/30";
   if (type === "item_expiring")  return "bg-red-900/30";
+  if (type === "new_user")       return "bg-sky-900/30";
   return "bg-slate-700";
 }
 

@@ -113,7 +113,18 @@ export default function PrivacyPage() {
             )
           },
           {
-            title: "9. Kontakt",
+            title: "9. Push-Benachrichtigungen",
+            content: (
+              <p style={{ color: "#94a3b8" }}>
+                Wenn du in den Einstellungen Benachrichtigungen einschaltest, speichern wir für dein Gerät eine technische
+                Zustelladresse (Push-Abonnement) zusammen mit deinem Konto. Die Meldungen werden über den Push-Dienst deines
+                Browsers bzw. Betriebssystems zugestellt (z. B. Google, Apple oder Mozilla). Du kannst die Benachrichtigungen
+                jederzeit in den Einstellungen der App oder deines Geräts wieder ausschalten; das Abonnement wird dann gelöscht.
+              </p>
+            )
+          },
+          {
+            title: "10. Kontakt",
             content: (
               <p style={{ color: "#94a3b8" }}>
                 Bei Fragen zum Datenschutz:{" "}
