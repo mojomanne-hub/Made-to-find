@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Check, X, Loader2, LogIn, MapPin, Bell } from "lucide-react";
 import { createBrowserClient }      from "@/lib/supabase/client";
-import { savePendingInviteToken }   from "@/lib/utils/invite-token";
+import { savePendingInviteToken, clearPendingInviteToken } from "@/lib/utils/invite-token";
 import { ROUTES }                   from "@/lib/constants";
 import Image from "next/image";
 
@@ -45,6 +45,7 @@ export function JoinGroupClient({ token, groupName, isLoggedIn }: JoinGroupClien
       const supabase = createBrowserClient();
       const { data: groupId, error: jErr } = await supabase.rpc("join_group_by_token", { token });
       if (jErr) throw jErr;
+      clearPendingInviteToken();
       document.cookie = `active-group=${groupId}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
       setJoined(true);
       setTimeout(() => {
@@ -67,6 +68,7 @@ export function JoinGroupClient({ token, groupName, isLoggedIn }: JoinGroupClien
   }
 
   function handleDecline() {
+    clearPendingInviteToken();
     router.push(ROUTES.dashboard);
   }
 
