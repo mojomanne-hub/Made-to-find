@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Bell, X, Package, MapPin, Users, Check, Clock, UserPlus } from "lucide-react";
+import { Bell, X, Package, MapPin, Users, Check, Clock, UserPlus, Pencil, ChevronLeft } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +45,21 @@ function notifBg(type: string): string {
   return "bg-slate-700";
 }
 
+// Auswahl für „wie viele Tage vorher erinnern“
+const LEAD_DAYS = [1, 3, 7, 14, 30];
+
+// Meldungsarten, die man einzeln ein- und ausschalten kann (Spaltenname in notification_settings)
+const TOGGLES = [
+  { key: "notify_expiring",       label: "Ablaufende Gegenstände" },
+  { key: "notify_item_added",     label: "Neuer Gegenstand in der Gruppe" },
+  { key: "notify_location_added", label: "Neuer Ablageort in der Gruppe" },
+  { key: "notify_member_joined",  label: "Neues Mitglied in der Gruppe" },
+] as const;
+type ToggleKey = typeof TOGGLES[number]["key"];
+const ALL_ON: Record<ToggleKey, boolean> = {
+  notify_expiring: true, notify_item_added: true, notify_location_added: true, notify_member_joined: true,
+};
+
 interface Coords {
   top:    number;
   left:   number;
@@ -58,6 +73,45 @@ export function NotificationBell() {
   const [isLoading,     setIsLoading]     = useState(false);
   const [coords,        setCoords]        = useState<Coords | null>(null);
   const [mounted,       setMounted]       = useState(false);
+
+  // Einstellungen (Stift): Vorwarnzeit für ablaufende Gegenstände
+  const [showSettings, setShowSettings] = useState(false);
+  const [daysBefore,   setDaysBefore]   = useState(7);
+  const [onDay,        setOnDay]        = useState(true);
+  const [toggles,      setToggles]      = useState<Record<ToggleKey, boolean>>(ALL_ON);
+  const [saving,       setSaving]       = useState(false);
+  const [settingsMsg,  setSettingsMsg]  = useState<string | null>(null);
+
+  async function openSettings() {
+    setShowSettings(true);
+    setSettingsMsg(null);
+    const supabase = createBrowserClient();
+    const { data } = await supabase.from("notification_settings").select("*").maybeSingle();
+    if (data) {
+      setDaysBefore(data.expiry_days_before ?? 7);
+      setOnDay(data.expiry_on_day ?? true);
+      setToggles({
+        notify_expiring:       data.notify_expiring       ?? true,
+        notify_item_added:     data.notify_item_added     ?? true,
+        notify_location_added: data.notify_location_added ?? true,
+        notify_member_joined:  data.notify_member_joined  ?? true,
+      });
+    }
+  }
+
+  async function saveSettings() {
+    setSaving(true); setSettingsMsg(null);
+    try {
+      const supabase = createBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("notification_settings").upsert(
+        { user_id: user.id, expiry_days_before: daysBefore, expiry_on_day: onDay, ...toggles, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" }
+      );
+      setSettingsMsg(error ? `Fehler: ${error.message}` : "Gespeichert.");
+    } finally { setSaving(false); }
+  }
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -209,9 +263,25 @@ export function NotificationBell() {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid #2d3f55" }}>
-        <h3 className="text-sm font-semibold text-slate-100">Benachrichtigungen</h3>
+        <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+          {showSettings && (
+            <button onClick={() => setShowSettings(false)} aria-label="Zurück" className="text-slate-400 hover:text-slate-200 -ml-1">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+          {showSettings ? "Einstellungen" : "Benachrichtigungen"}
+        </h3>
         <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
+          {!showSettings && (
+            <button
+              onClick={openSettings}
+              aria-label="Benachrichtigungen einstellen"
+              className="text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+          {!showSettings && unreadCount > 0 && (
             <button
               onClick={markAllRead}
               className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
@@ -228,8 +298,73 @@ export function NotificationBell() {
         </div>
       </div>
 
+      {/* Einstellungen */}
+      {showSettings && (
+        <div className="px-4 py-4 space-y-4 max-h-[26rem] overflow-y-auto">
+          <div>
+            <p className="text-xs font-semibold text-slate-200">Was soll gemeldet werden?</p>
+            <ul className="mt-2 space-y-1">
+              {TOGGLES.map((t) => (
+                <li key={t.key}>
+                  <label className="flex items-center justify-between gap-3 py-1.5 text-xs text-slate-300 cursor-pointer">
+                    {t.label}
+                    <input
+                      type="checkbox"
+                      checked={toggles[t.key]}
+                      onChange={(e) => setToggles((prev) => ({ ...prev, [t.key]: e.target.checked }))}
+                      className="h-4 w-4 accent-blue-500 flex-shrink-0"
+                    />
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className={cn(!toggles.notify_expiring && "opacity-40 pointer-events-none")}>
+            <p className="text-xs font-semibold text-slate-200">Ablaufende Gegenstände</p>
+            <p className="text-xs text-slate-500 mt-0.5">Wie viele Tage vorher möchtest du erinnert werden?</p>
+            <div className="flex flex-wrap gap-2 mt-2.5">
+              {LEAD_DAYS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDaysBefore(d)}
+                  aria-pressed={daysBefore === d}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                    daysBefore === d
+                      ? "bg-brand-600 border-brand-500 text-white"
+                      : "border-slate-600 text-slate-300 hover:border-slate-400"
+                  )}
+                >
+                  {d} {d === 1 ? "Tag" : "Tage"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className={cn("flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer", !toggles.notify_expiring && "opacity-40 pointer-events-none")}>
+            <input type="checkbox" checked={onDay} onChange={(e) => setOnDay(e.target.checked)} className="h-4 w-4 accent-blue-500" />
+            Zusätzlich am Ablauftag erinnern
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={saveSettings}
+              disabled={saving}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white hover:bg-brand-500 disabled:opacity-50"
+            >
+              {saving ? "Speichert …" : "Speichern"}
+            </button>
+            {settingsMsg && <span className={cn("text-xs", settingsMsg.startsWith("Fehler") ? "text-red-400" : "text-emerald-400")}>{settingsMsg}</span>}
+          </div>
+          <p className="text-[11px] text-slate-600 leading-relaxed">
+            Gilt für die Glocke und für Meldungen aufs Handy. Push für dieses Gerät schaltest du unter Einstellungen → Benachrichtigungen ein.
+          </p>
+        </div>
+      )}
+
       {/* Liste */}
-      <div className="max-h-96 overflow-y-auto">
+      <div className={cn("max-h-96 overflow-y-auto", showSettings && "hidden")}>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-600 border-t-brand-400" />

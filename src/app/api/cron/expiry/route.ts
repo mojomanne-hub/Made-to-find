@@ -14,10 +14,14 @@ function berlinDate(offsetDays = 0): string {
 const deDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 
 interface Row { id: string; name: string; user_id: string; group_id: string | null; expires_at: string }
-interface Hit { id: string; name: string; today: boolean; date: string; groupId: string | null }
+interface Hit { id: string; name: string; today: boolean; date: string; groupId: string | null; days: number }
+
+const MAX_LEAD_DAYS = 30;
+const DEFAULT_LEAD_DAYS = 7;
 
 /**
- * Täglicher Lauf (Vercel Cron, siehe vercel.json): meldet Gegenstände, die HEUTE oder in 7 TAGEN ablaufen.
+ * Täglicher Lauf (Vercel Cron, siehe vercel.json): meldet Gegenstände, die HEUTE ablaufen oder in so vielen Tagen,
+ * wie der jeweilige Nutzer eingestellt hat (Stift an der Glocke; Standard 7 Tage).
  * Pro Gegenstand ein Eintrag in der Glocke, pro Nutzer EINE gebündelte Push-Meldung.
  */
 export async function GET(req: NextRequest) {
@@ -29,21 +33,21 @@ export async function GET(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Server nicht konfiguriert." }, { status: 500 });
 
   const today = berlinDate(0);
-  const in7   = berlinDate(7);
+  const maxDate = berlinDate(MAX_LEAD_DAYS);
+  // Datum → Anzahl Tage bis dahin
+  const dayIndex = new Map<string, number>();
+  for (let i = 0; i <= MAX_LEAD_DAYS; i++) dayIndex.set(berlinDate(i), i);
 
   const { data, error } = await admin
     .from("items")
     .select("id, name, user_id, group_id, expires_at")
     .is("deleted_at", null)
     .gte("expires_at", today)
-    .lte("expires_at", `${in7}T23:59:59`)
+    .lte("expires_at", `${maxDate}T23:59:59`)
     .limit(5000);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const rows = ((data ?? []) as Row[]).filter((r) => {
-    const d = String(r.expires_at).slice(0, 10);
-    return d === today || d === in7;
-  });
+  const rows = ((data ?? []) as Row[]).filter((r) => dayIndex.has(String(r.expires_at).slice(0, 10)));
 
   // Empfänger: bei Gruppen alle Mitglieder, sonst der Besitzer
   const groupIds = [...new Set(rows.map((r) => r.group_id).filter((g): g is string => !!g))];
@@ -58,12 +62,26 @@ export async function GET(req: NextRequest) {
     const date = String(r.expires_at).slice(0, 10);
     const recipients = r.group_id ? new Set([...(members.get(r.group_id) ?? []), r.user_id]) : new Set([r.user_id]);
     for (const uid of recipients) {
-      perUser.set(uid, [...(perUser.get(uid) ?? []), { id: r.id, name: r.name, today: date === today, date, groupId: r.group_id }]);
+      perUser.set(uid, [...(perUser.get(uid) ?? []), { id: r.id, name: r.name, today: date === today, date, groupId: r.group_id, days: dayIndex.get(date) ?? 0 }]);
     }
   }
 
+  // Persönliche Einstellungen (Vorwarnzeit, Erinnerung am Ablauftag)
+  const prefs = new Map<string, { days: number; onDay: boolean; enabled: boolean }>();
+  const userIds = [...perUser.keys()];
+  if (userIds.length > 0) {
+    const { data: ps } = await admin
+      .from("notification_settings").select("*").in("user_id", userIds);
+    for (const p of ps ?? []) prefs.set(p.user_id, { days: p.expiry_days_before ?? DEFAULT_LEAD_DAYS, onDay: p.expiry_on_day ?? true, enabled: p.notify_expiring ?? true });
+  }
+
   let notified = 0, pushed = 0;
-  for (const [uid, hits] of perUser) {
+  for (const [uid, allHits] of perUser) {
+    const pref = prefs.get(uid) ?? { days: DEFAULT_LEAD_DAYS, onDay: true, enabled: true };
+    if (!pref.enabled) continue;
+    const hits = allHits.filter((h) => (h.today ? pref.onDay : h.days === pref.days));
+    if (hits.length === 0) continue;
+
     // Schon heute gemeldet? (schützt vor doppelten Einträgen, falls der Lauf zweimal startet)
     const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
     const { data: existing } = await admin
@@ -83,7 +101,7 @@ export async function GET(req: NextRequest) {
 
     const first = fresh[0];
     const body = fresh.length === 1
-      ? `${first.name} läuft ${first.today ? "heute" : "in 7 Tagen"} ab.`
+      ? `${first.name} läuft ${first.today ? "heute" : first.days === 1 ? "morgen" : `in ${first.days} Tagen`} ab.`
       : `${fresh.length} Gegenstände: ${fresh.slice(0, 3).map((h) => h.name).join(", ")}${fresh.length > 3 ? " …" : ""}`;
     pushed += await sendPushToUser(admin, uid, {
       title: fresh.some((h) => h.today) ? "Läuft heute ab" : "Läuft bald ab",
