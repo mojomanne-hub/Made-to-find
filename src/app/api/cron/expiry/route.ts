@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminClient, sendPushToUser } from "@/lib/push";
+import { adminClient, sendPushToUser, checkSecret } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,10 +25,8 @@ const DEFAULT_LEAD_DAYS = 7;
  * Pro Gegenstand ein Eintrag in der Glocke, pro Nutzer EINE gebündelte Push-Meldung.
  */
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = checkSecret(req.headers.get("authorization"));
+  if (denied) return NextResponse.json({ error: "Unauthorized", hint: denied }, { status: 401 });
   const admin = adminClient();
   if (!admin) return NextResponse.json({ error: "Server nicht konfiguriert." }, { status: 500 });
 

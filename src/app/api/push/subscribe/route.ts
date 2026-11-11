@@ -20,9 +20,15 @@ async function subscribe(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
 
+  // Fehlende Einstellungen beim Namen nennen (nur die Namen, nie die Werte)
+  const missing = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]
+    .filter((name) => !(process.env[name] ?? "").trim());
   const admin = adminClient();
-  if (!admin || !process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
-    return NextResponse.json({ error: "Push ist auf dem Server noch nicht eingerichtet." }, { status: 500 });
+  if (!admin || missing.length > 0) {
+    return NextResponse.json(
+      { error: `Push ist auf dem Server noch nicht eingerichtet. Bei Vercel fehlt: ${missing.join(", ") || "unbekannt"}` },
+      { status: 500 }
+    );
   }
 
   const body = await req.json().catch(() => null);

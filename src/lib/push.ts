@@ -22,6 +22,20 @@ export function adminClient(): SupabaseClient | null {
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
+/**
+ * Prüft den Authorization-Header gegen CRON_SECRET.
+ * Gibt null zurück, wenn alles passt – sonst einen Hinweis zur Fehlersuche
+ * (nur Längen, nie den Wert selbst).
+ */
+export function checkSecret(header: string | null): string | null {
+  const secret = (process.env.CRON_SECRET ?? "").trim();
+  if (!secret) return "CRON_SECRET ist auf dem Server nicht gesetzt (Variable fehlt für Production oder Redeploy fehlt)";
+  const got = (header ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!got) return "kein Passwort mitgeschickt";
+  if (got === secret) return null;
+  return `Passwort stimmt nicht: Server erwartet ${secret.length} Zeichen, erhalten ${got.length} Zeichen`;
+}
+
 let configured = false;
 function configure(): boolean {
   if (configured) return true;
