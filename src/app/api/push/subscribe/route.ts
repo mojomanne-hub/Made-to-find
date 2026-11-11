@@ -6,6 +6,16 @@ export const runtime = "nodejs";
 
 /** Gerät für Push-Benachrichtigungen anmelden */
 export async function POST(req: NextRequest) {
+  try {
+    return await subscribe(req);
+  } catch (err) {
+    // Immer eine lesbare Fehlermeldung zurückgeben statt einer leeren 500-Antwort
+    console.error("Push-Anmeldung fehlgeschlagen:", err);
+    return NextResponse.json({ error: `Serverfehler: ${err instanceof Error ? err.message : "unbekannt"}` }, { status: 500 });
+  }
+}
+
+async function subscribe(req: NextRequest) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });

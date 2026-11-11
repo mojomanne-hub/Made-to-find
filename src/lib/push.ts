@@ -3,7 +3,8 @@
  * Benötigt die Umgebungsvariablen NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
  * und SUPABASE_SERVICE_ROLE_KEY.
  */
-import webpush from "web-push";
+// Benannte Importe: web-push 4 hat keinen Default-Export mehr
+import { setVapidDetails, sendNotification } from "web-push";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export interface PushPayload {
@@ -27,7 +28,8 @@ function configure(): boolean {
   const pub  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!pub || !priv) return false;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "https://www.madetofind.de", pub, priv);
+  // .trim(): versehentliche Leerzeichen/Zeilenumbrüche beim Eintragen der Schlüssel abfangen
+  setVapidDetails(process.env.VAPID_SUBJECT || "https://www.madetofind.de", pub.trim(), priv.trim());
   configured = true;
   return true;
 }
@@ -37,7 +39,12 @@ export async function sendPushToUser(
   admin: SupabaseClient, userId: string, payload: PushPayload,
   errors?: string[],   // optional: sammelt Fehlermeldungen des Push-Dienstes (für die Testmeldung)
 ): Promise<number> {
-  if (!configure()) return 0;
+  try {
+    if (!configure()) { errors?.push("VAPID-Schlüssel fehlen auf dem Server"); return 0; }
+  } catch (err) {
+    errors?.push(`VAPID-Schlüssel ungültig: ${err instanceof Error ? err.message : "unbekannt"}`);
+    return 0;
+  }
   const { data: subs } = await admin
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
@@ -46,7 +53,7 @@ export async function sendPushToUser(
   let sent = 0;
   for (const s of subs ?? []) {
     try {
-      await webpush.sendNotification(
+      await sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         JSON.stringify(payload),
         { TTL: 60 * 60 * 24 }
