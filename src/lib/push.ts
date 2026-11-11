@@ -56,7 +56,13 @@ export async function sendPushToUser(
   try {
     if (!configure()) { errors?.push("VAPID-Schlüssel fehlen auf dem Server"); return 0; }
   } catch (err) {
-    errors?.push(`VAPID-Schlüssel ungültig: ${err instanceof Error ? err.message : "unbekannt"}`);
+    // Nur Längen ausgeben, nie die Werte: Private Key muss 43 Zeichen haben, Public Key 87
+    const privLen = (process.env.VAPID_PRIVATE_KEY ?? "").trim().length;
+    const pubLen  = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "").trim().length;
+    errors?.push(
+      `VAPID-Schlüssel ungültig: Private Key hat ${privLen} Zeichen (richtig: 43), Public Key hat ${pubLen} Zeichen (richtig: 87)`
+      + ` – ${err instanceof Error ? err.message : "unbekannt"}`
+    );
     return 0;
   }
   const { data: subs } = await admin
