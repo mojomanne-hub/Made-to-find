@@ -10,6 +10,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/Alert";
 import { removeStorageImages } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/utils/confirm-dialog";
 import type { Group } from "@/lib/context/GroupContext";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.madetofind.de";
 
@@ -169,7 +170,7 @@ export function SharedAccessModal({
   async function handleDeleteGroup() {
     if (!manageGroup) return;
     if (!isCreator(manageGroup)) return;
-    if (!confirm("Gruppe \"" + manageGroup.name + "\" wirklich loeschen?")) return;
+    if (!(await confirmDialog({ title: `Gruppe „${manageGroup.name}“ wirklich löschen?`, message: "Die Gruppe wird für alle Mitglieder entfernt. Das lässt sich nicht rückgängig machen." }))) return;
     setIsDeleting(true); setError(null);
     try {
       const supabase = createBrowserClient();

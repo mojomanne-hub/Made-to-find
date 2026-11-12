@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/utils/confirm-dialog";
 import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
@@ -99,7 +100,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
   async function handleDelete(e: React.MouseEvent, item: Item) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(`"${item.name}" wirklich löschen?`)) return;
+    if (!(await confirmDialog({ title: `„${item.name}“ wirklich löschen?`, message: "Der Gegenstand wird entfernt. Das lässt sich nicht rückgängig machen." }))) return;
     setDeleting(item.id);
     try {
       const supabase = createBrowserClient();

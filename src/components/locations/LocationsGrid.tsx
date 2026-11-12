@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
+import { confirmDialog } from "@/lib/utils/confirm-dialog";
 import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
@@ -65,7 +66,7 @@ export function LocationsGrid({ locations: initialLocations }: LocationsGridProp
   async function handleDelete(e: React.MouseEvent, loc: LocationWithCount) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(`"${loc.name}" wirklich löschen?`)) return;
+    if (!(await confirmDialog({ title: `„${loc.name}“ wirklich löschen?`, message: "Der Ablageort wird entfernt. Das lässt sich nicht rückgängig machen." }))) return;
     setDeleting(loc.id);
     try {
       const supabase = createBrowserClient();
