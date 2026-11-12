@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, Edit, MapPin, Calendar, AlertTriangle, Clock } from "lucide-react";
+import { ChevronLeft, Edit, MapPin, Calendar, AlertTriangle, Clock, Plus } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
 import { Badge }            from "@/components/ui/Badge";
 import { Card }             from "@/components/ui/Card";
+import { Button }           from "@/components/ui/Button";
 import { ItemDeleteButton } from "@/components/items/ItemDeleteButton";
 import { ROUTES }           from "@/lib/constants";
 
@@ -106,10 +107,15 @@ export default async function ItemDetailPage({ params }: Props) {
 
   return (
     <>
-      <Link href={ROUTES.items}
-        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4 transition-colors">
-        <ChevronLeft className="h-4 w-4" /> Alle Gegenstände
-      </Link>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <Link href={ROUTES.items}
+          className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors">
+          <ChevronLeft className="h-4 w-4" /> Alle Gegenstände
+        </Link>
+        <Link href={`${ROUTES.itemNew}?location=${item.location_id}`}>
+          <Button size="sm"><Plus className="h-4 w-4" /> Neuer Gegenstand</Button>
+        </Link>
+      </div>
 
       {/* Hero Banner */}
       <div className="rounded-2xl overflow-hidden mb-5 w-full"
