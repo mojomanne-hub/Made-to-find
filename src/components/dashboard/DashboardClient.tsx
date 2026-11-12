@@ -240,7 +240,7 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
           className="flex flex-col items-center justify-center gap-1.5 min-h-[76px] rounded-2xl border border-slate-700 text-slate-200 text-xs font-semibold hover:border-brand-500/50 hover:bg-slate-800/50 transition-colors"
           style={{ backgroundColor: "#1a2535" }}
         >
-          <LucideIcons.MapPin className="h-5 w-5" />
+          <LucideIcons.Plus className="h-5 w-5" />
           Ablageort
         </Link>
       </div>

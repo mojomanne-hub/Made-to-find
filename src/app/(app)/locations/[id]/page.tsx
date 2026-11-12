@@ -83,12 +83,17 @@ export default async function LocationDetailPage({ params }: Props) {
   return (
     <>
       {/* Zurück */}
-      <Link
-        href={ROUTES.locations}
-        className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 mb-4 transition-colors"
-      >
-        <ChevronLeft className="h-4 w-4" /> Alle Ablageorte
-      </Link>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <Link
+          href={ROUTES.locations}
+          className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" /> Alle Ablageorte
+        </Link>
+        <Link href={ROUTES.locationNew}>
+          <Button size="sm"><Plus className="h-4 w-4" /> Neuer Ablageort</Button>
+        </Link>
+      </div>
 
       {/* Hero Banner */}
       <div
