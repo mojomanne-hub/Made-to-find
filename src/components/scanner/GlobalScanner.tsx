@@ -62,6 +62,8 @@ export function GlobalScanner() {
   const [locs, setLocs]           = useState<Loc[]>([]);
   const [info, setInfo]           = useState<string | null>(null);
   const [template, setTemplate]   = useState<Tpl | null>(null);
+  // Treffer in der Online-Produktdatenbank (für Codes, die du selbst noch nie hattest)
+  const [product, setProduct]     = useState<{ name: string; description: string | null; imageUrl: string | null; source: string } | null>(null);
 
   // „Zu vorhandenem Gegenstand hinzufügen“
   const [assigning, setAssigning] = useState(false);
@@ -183,6 +185,7 @@ export function GlobalScanner() {
     setCode(scanned);
     setMatches([]);
     setTemplate(null);
+    setProduct(null);
     setSelected(null);
     setAssigning(false);
     setError(null);
@@ -208,6 +211,16 @@ export function GlobalScanner() {
         const { data: tpl } = await scopeQuery(tq, user.id);
         const t = (tpl ?? [])[0] as Tpl | undefined;
         if (t) { setTemplate(t); setMode("actions"); setInfo(null); }
+        else {
+          // Nicht im eigenen Archiv → Online-Produktdatenbank fragen (Fehler hier sind unkritisch)
+          try {
+            const res = await fetch(`/api/barcode-lookup?code=${encodeURIComponent(scanned)}`);
+            if (res.ok) {
+              const j = await res.json();
+              if (j?.product) setProduct(j.product);
+            }
+          } catch { /* ohne Treffer weiter wie bisher */ }
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unbekannter Fehler");
@@ -255,7 +268,7 @@ export function GlobalScanner() {
     }
   }
 
-  function close() { setCode(null); setAssigning(false); setMatches([]); setError(null); setSelected(null); setTemplate(null); setMode("actions"); setInfo(null); setBusy(false); }
+  function close() { setCode(null); setAssigning(false); setMatches([]); setError(null); setSelected(null); setTemplate(null); setProduct(null); setMode("actions"); setInfo(null); setBusy(false); }
 
   const filtered = allItems.filter((i) => i.name.toLowerCase().includes(filter.trim().toLowerCase()));
 
@@ -266,7 +279,7 @@ export function GlobalScanner() {
       <Modal
         isOpen={code !== null && !scanning}
         onClose={close}
-        title={selected ? selected.name : template ? "Gespeicherter Gegenstand" : assigning ? "Code einem Gegenstand zuordnen" : matches.length > 1 ? "Mehrere Treffer" : "Code gescannt"}
+        title={selected ? selected.name : template ? "Gespeicherter Gegenstand" : assigning ? "Code einem Gegenstand zuordnen" : matches.length > 1 ? "Mehrere Treffer" : product ? "Gegenstand in Datenbank gefunden" : "Code gescannt"}
       >
         {code && (
           <div className="space-y-4">
@@ -297,12 +310,35 @@ export function GlobalScanner() {
             {/* Unbekannter Code */}
             {!busy && !assigning && !selected && !template && matches.length === 0 && !error && (
               <>
-                <p className="text-sm text-slate-300">
-                  Zu diesem Code gibt es noch keinen Gegenstand. Du kannst ihn jetzt hinterlegen.
-                </p>
+                {product ? (
+                  <>
+                    <div className="flex items-start gap-3 rounded-xl border border-emerald-700/50 bg-emerald-950/30 p-3">
+                      {product.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/api/image-proxy?url=${encodeURIComponent(product.imageUrl)}`}
+                          alt=""
+                          className="h-14 w-14 rounded-lg object-cover flex-shrink-0 bg-white"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-100">{product.name}</p>
+                        {product.description && <p className="text-xs text-slate-400 mt-0.5">{product.description}</p>}
+                        <p className="text-[11px] text-emerald-400 mt-1">Quelle: {product.source}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-300">
+                      Die Datenbank kennt diesen Gegenstand. Du kannst die Angaben übernehmen und vor dem Speichern noch anpassen.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-300">
+                    Zu diesem Code gibt es noch keinen Gegenstand. Du kannst ihn jetzt hinterlegen.
+                  </p>
+                )}
                 <div className="flex flex-col gap-2">
                   <Button onClick={() => { router.push(`${ROUTES.itemNew}?barcode=${encodeURIComponent(code)}`); close(); }}>
-                    Neuen Gegenstand anlegen
+                    {product ? "Gegenstand übernehmen" : "Neuen Gegenstand anlegen"}
                   </Button>
                   <Button variant="secondary" onClick={startAssign}>
                     Zu vorhandenem Gegenstand hinzufügen

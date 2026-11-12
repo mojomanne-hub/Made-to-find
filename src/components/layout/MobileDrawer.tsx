@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
@@ -153,6 +153,20 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
                     <ScanLine className="h-4 w-4 flex-shrink-0" />
                     Scannen
                   </button>
+                )}
+                {href === ROUTES.items && (
+                  <Link
+                    href="/items/archive"
+                    onClick={onClose}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-3 mb-0.5 rounded-xl text-sm font-medium transition-all",
+                      pathname === "/items/archive" ? "text-white" : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+                    )}
+                    style={pathname === "/items/archive" ? { backgroundColor: "#1e3a6e" } : {}}
+                  >
+                    <Archive className="h-4 w-4 flex-shrink-0" />
+                    Barcode-Archiv
+                  </Link>
                 )}
               </div>
             );

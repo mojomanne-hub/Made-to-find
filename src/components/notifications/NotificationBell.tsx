@@ -310,7 +310,7 @@ export function NotificationBell() {
         )}
       >
         <div className="relative">
-          <Bell className="h-4 w-4 flex-shrink-0" />
+          <Bell className={cn("h-4 w-4 flex-shrink-0", unreadCount > 0 && "text-amber-400")} />
           {unreadCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-danger-500 text-white text-[9px] font-bold flex items-center justify-center">
               {unreadCount > 9 ? "9+" : unreadCount}

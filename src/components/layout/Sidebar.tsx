@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, MapPin, Package,
   Search, Settings, LogOut, Users,
-  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info, BookOpen, ScanLine,
+  ChevronDown, Check, Share2, Edit2, Crown, Sparkles, HelpCircle, Info, BookOpen, ScanLine, Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openScanner } from "@/components/scanner/scanner-events";
@@ -237,6 +237,19 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
                     <ScanLine className="h-4 w-4 flex-shrink-0" />
                     Scannen
                   </button>
+                )}
+                {href === ROUTES.items && (
+                  <Link
+                    href="/items/archive"
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all",
+                      pathname === "/items/archive" ? "text-white" : "text-slate-400 hover:text-white hover:bg-[#1a2540]"
+                    )}
+                    style={pathname === "/items/archive" ? { backgroundColor: "#1e3a6e" } : {}}
+                  >
+                    <Archive className="h-4 w-4 flex-shrink-0" />
+                    Barcode-Archiv
+                  </Link>
                 )}
               </div>
             );

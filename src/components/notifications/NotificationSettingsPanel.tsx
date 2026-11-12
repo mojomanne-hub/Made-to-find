@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { PushToggle } from "@/components/settings/PushToggle";
 
 // Auswahl für „wie viele Tage vorher erinnern“
 const LEAD_DAYS = [1, 3, 7, 14, 30];
@@ -63,6 +64,9 @@ export function NotificationSettingsPanel() {
 
   return (
     <div className="px-4 pt-4 pb-5 space-y-4 overflow-y-auto" style={{ maxHeight: "min(26rem, calc(100dvh - 9rem))" }}>
+      <PushToggle compact />
+      <div className="border-t border-slate-700" />
+
       <div>
         <p className="text-xs font-semibold text-slate-200">Was soll gemeldet werden?</p>
         <ul className="mt-2 space-y-1">
@@ -120,7 +124,7 @@ export function NotificationSettingsPanel() {
         {settingsMsg && <span className={cn("text-xs", settingsMsg.startsWith("Fehler") ? "text-red-400" : "text-emerald-400")}>{settingsMsg}</span>}
       </div>
       <p className="text-[11px] text-slate-500 leading-relaxed">
-        Gilt für die Glocke und für Meldungen aufs Handy.
+        Die Auswahl gilt für die Glocke und für Meldungen aufs Gerät.
       </p>
     </div>
   );

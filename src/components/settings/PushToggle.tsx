@@ -19,7 +19,7 @@ function keyToBytes(base64: string) {
 type Status = "loading" | "unsupported" | "denied" | "off" | "on";
 
 /** Einstellungen: Push-Benachrichtigungen für DIESES Gerät ein-/ausschalten */
-export function PushToggle() {
+export function PushToggle({ compact = false }: { compact?: boolean }) {
   const [status, setStatus] = useState<Status>("loading");
   const [busy, setBusy]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -83,6 +83,36 @@ export function PushToggle() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unbekannter Fehler");
     } finally { setBusy(false); }
+  }
+
+  // Kompakte Fassung für das Stift-Menü an der Glocke (ohne Karte, kleinere Schrift)
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-slate-200">Meldungen auf dieses Gerät</p>
+        {error && <p className="text-xs text-red-400">{error}</p>}
+        {info && <p className="text-xs text-emerald-400">{info}</p>}
+        {status === "loading" && <p className="text-xs text-slate-500">Wird geprüft …</p>}
+        {status === "unsupported" && (
+          <p className="text-xs text-slate-500">
+            Auf diesem Gerät oder Browser nicht verfügbar. Auf dem iPhone nur, wenn die App über „Zum Home-Bildschirm“ installiert ist.
+          </p>
+        )}
+        {status === "denied" && (
+          <p className="text-xs text-amber-400">In den Geräte- bzw. Browser-Einstellungen blockiert. Dort erlauben und die Seite neu laden.</p>
+        )}
+        {status === "off" && (
+          <Button size="sm" onClick={enable} isLoading={busy}><BellRing className="h-4 w-4" /> Einschalten</Button>
+        )}
+        {status === "on" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-emerald-400 w-full">Eingeschaltet</span>
+            <Button size="sm" variant="secondary" onClick={enable} isLoading={busy}>Testmeldung</Button>
+            <Button size="sm" variant="secondary" onClick={disable} isLoading={busy}>Ausschalten</Button>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (

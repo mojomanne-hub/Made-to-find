@@ -189,7 +189,7 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
           onClick={handleBellClick}
           className="relative h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
         >
-          <Bell className={cn("h-5 w-5", showNotifs && "text-brand-400")} />
+          <Bell className={cn("h-5 w-5", unread > 0 ? "text-amber-400" : showNotifs && "text-brand-400")} />
           {unread > 0 && (
             <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-danger-500 text-white text-[9px] font-bold flex items-center justify-center">
               {unread > 9 ? "9+" : unread}
