@@ -11,6 +11,7 @@ import { MobileLayoutWrapper } from "@/components/layout/MobileLayoutWrapper";
 import { ROUTES }              from "@/lib/constants";
 import { OnboardingWrapper } from "@/components/onboarding/OnboardingWrapper";
 import { GlobalScanner } from "@/components/scanner/GlobalScanner";
+import { BackNavigation } from "@/components/layout/BackNavigation";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerClient();
@@ -64,6 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
      <OnboardingWrapper />  {/* ← NEU */}
         <GlobalScanner />
+      <BackNavigation />
       </div>
     </GroupProvider>
   );
