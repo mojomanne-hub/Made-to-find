@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine, Archive } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine, Archive, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
@@ -50,7 +50,9 @@ interface MobileDrawerProps {
 export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: MobileDrawerProps) {
   const pathname = usePathname();
   const router   = useRouter();
-  const { setGroups } = useGroup();
+  const { setGroups, activeGroup, setActiveGroup } = useGroup();
+  // Bereichs-Auswahl (Meine Daten / Gruppen) – zugeklappt, damit das Menü kurz bleibt
+  const [areaOpen, setAreaOpen] = useState(false);
   const [sharingModal, setSharingModal] = useState(false);
   const [shareTarget,  setShareTarget]  = useState<Group | null>(null);
   const [manageTarget, setManageTarget] = useState<Group | null>(null);
@@ -191,48 +193,86 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
           </div>
         </div>
 
-        {/* Gruppen */}
-        {groups.length > 0 && (
-          <div className="px-3 py-3" style={{ borderBottom: "1px solid #1e2d4a" }}>
-            <p className="px-3 mb-2 text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#64748b" }}>
-              Gruppen
-            </p>
-            {groups.map((group) => (
-              <div key={group.id} className="flex items-center gap-1 mb-0.5">
-                <div className="flex-1 flex items-center gap-2.5 px-3 py-2 rounded-xl">
-                  <div
-                    className="h-5 w-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                    style={{ backgroundColor: groupColor(group.id) }}
-                  >
-                    {group.name[0].toUpperCase()}
-                  </div>
-                  <span className="text-sm text-slate-300 truncate">{group.name}</span>
+        {/* Bereich wählen: Meine Daten oder eine Gruppe (aufklappbar, Liste scrollt bei vielen Gruppen) */}
+        <div className="px-3 py-3" style={{ borderBottom: "1px solid #1e2d4a" }}>
+          <p className="px-3 mb-2 text-[10px] font-semibold tracking-widest uppercase" style={{ color: "#64748b" }}>
+            Bereich
+          </p>
+          <button
+            type="button"
+            onClick={() => setAreaOpen((v) => !v)}
+            aria-expanded={areaOpen}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-white transition-all"
+            style={{ backgroundColor: "#1a2540" }}
+          >
+            <div
+              className="h-5 w-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+              style={{ backgroundColor: activeGroup ? groupColor(activeGroup.id) : "#3b82f6" }}
+            >
+              {(activeGroup ? activeGroup.name : (displayName || user.email || "M"))[0].toUpperCase()}
+            </div>
+            <span className="flex-1 text-left truncate">{activeGroup ? activeGroup.name : "Meine Daten"}</span>
+            {groups.length > 0 && <span className="text-[11px] text-slate-500 flex-shrink-0">{groups.length} {groups.length === 1 ? "Gruppe" : "Gruppen"}</span>}
+            <ChevronDown className={cn("h-4 w-4 text-slate-400 flex-shrink-0 transition-transform", areaOpen && "rotate-180")} />
+          </button>
+
+          {areaOpen && (
+            <div className="mt-1.5 max-h-56 overflow-y-auto overscroll-contain rounded-xl" style={{ border: "1px solid #1e2d4a" }}>
+              {/* Meine Daten */}
+              <button
+                type="button"
+                onClick={() => { setActiveGroup(null); setAreaOpen(false); onClose(); router.refresh(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#1a2540] transition-colors"
+              >
+                <div className="h-5 w-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0" style={{ backgroundColor: "#3b82f6" }}>
+                  {(displayName || user.email || "M")[0].toUpperCase()}
                 </div>
-                <button
-                  onClick={() => { setMembersTarget(group); setSharingModal(true); }}
-                  className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
-                  title="Mitglieder anzeigen"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => { setManageTarget(group); setSharingModal(true); }}
-                  className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
-                  title="Bearbeiten"
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => { setShareTarget(group); setSharingModal(true); }}
-                  className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
-                  title="Teilen"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                <span className="flex-1 text-left text-sm text-slate-200">Meine Daten</span>
+                {!activeGroup && <Check className="h-4 w-4 text-brand-400 flex-shrink-0" />}
+              </button>
+
+              {groups.map((group) => (
+                <div key={group.id} className="flex items-center" style={{ borderTop: "1px solid #1e2d4a" }}>
+                  <button
+                    type="button"
+                    onClick={() => { setActiveGroup(group); setAreaOpen(false); onClose(); router.refresh(); }}
+                    className="flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#1a2540] transition-colors"
+                  >
+                    <div
+                      className="h-5 w-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                      style={{ backgroundColor: groupColor(group.id) }}
+                    >
+                      {group.name[0].toUpperCase()}
+                    </div>
+                    <span className="flex-1 text-left text-sm text-slate-200 truncate">{group.name}</span>
+                    {activeGroup?.id === group.id && <Check className="h-4 w-4 text-brand-400 flex-shrink-0" />}
+                  </button>
+                  <button
+                    onClick={() => { setMembersTarget(group); setSharingModal(true); }}
+                    className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
+                    title="Mitglieder anzeigen" aria-label={`Mitglieder von ${group.name} anzeigen`}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { setManageTarget(group); setSharingModal(true); }}
+                    className="p-2 text-slate-500 hover:text-slate-300 transition-colors"
+                    title="Bearbeiten" aria-label={`${group.name} bearbeiten`}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { setShareTarget(group); setSharingModal(true); }}
+                    className="p-2 mr-1 text-slate-500 hover:text-slate-300 transition-colors"
+                    title="Teilen" aria-label={`${group.name} teilen`}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         <div className="px-3 py-3 mt-auto space-y-0.5">
