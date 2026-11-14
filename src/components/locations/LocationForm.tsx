@@ -390,6 +390,17 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
             onChange={(e) => handleNameChange(e.target.value)}
             error={errors.name}
             required autoFocus maxLength={100}
+            // Keine Autofill-/Vorschlagsleiste des Browsers über der Tastatur:
+            // eigene id + name (sonst teilt sich das Feld den Verlauf mit anderen Formularen), Autofill aus
+            id="location-title"
+            name="location-title"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-autocomplete="none"
+            data-form-type="other"
           />
 
           {/* Ordnungs-Tipp beim Neuanlegen: erscheint, sobald der Name zu einem bekannten Ort passt */}
