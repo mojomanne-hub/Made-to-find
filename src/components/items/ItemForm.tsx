@@ -431,6 +431,16 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             onChange={(e) => handleNameChange(e.target.value)}
             error={errors.name}
             required autoFocus maxLength={200}
+            // Keine Autofill-/Vorschlagsleiste des Browsers über der Tastatur (wie beim Ablageort)
+            id="item-title"
+            name="item-title"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-autocomplete="none"
+            data-form-type="other"
           />
 
           {/* Ordnungs-Tipp beim Neuanlegen: erscheint, sobald der Name zu einem bekannten Gegenstand passt */}
