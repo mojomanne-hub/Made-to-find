@@ -22,7 +22,8 @@ export function LoginForm() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const r = params.get("redirect");
-    if (r) setRedirectTo(r);
+    // Nur Pfade innerhalb der App zulassen (z. B. "/items"), keine fremden Adressen
+    if (r && /^\/(?!\/)[^\\]*$/.test(r)) setRedirectTo(r);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

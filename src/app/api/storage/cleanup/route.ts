@@ -65,19 +65,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ removed: 0 });
   }
 
+  // Nur Ordner von dir selbst oder von Mitgliedern deiner Gruppen – nie Dateien fremder Nutzer
+  const callerId = userData.user.id;
+  const allowedOwners = new Set<string>([callerId]);
+  const { data: myGroups } = await supabaseAdmin.from("group_members").select("group_id").eq("user_id", callerId);
+  const groupIds = (myGroups ?? []).map((g) => g.group_id);
+  if (groupIds.length > 0) {
+    const { data: mates } = await supabaseAdmin.from("group_members").select("user_id").in("group_id", groupIds);
+    for (const m of mates ?? []) allowedOwners.add(m.user_id);
+  }
+  const ownPaths = paths.filter((p) => allowedOwners.has(p.split("/")[0]));
+  if (ownPaths.length === 0) {
+    return NextResponse.json({ removed: 0 });
+  }
+
   try {
     // Nur Dateien löschen, die nirgends mehr referenziert werden
     const deletable: string[] = [];
-    for (const path of paths) {
-      const { count, error } = await supabaseAdmin
-        .from(table)
-        .select("id", { count: "exact", head: true })
-        .like("image_url", `%/${bucket}/${path}%`);
-      if (error) {
-        console.error("Referenzprüfung fehlgeschlagen:", error.message);
-        continue; // im Zweifel nicht löschen
+    // Fotos im Barcode-Archiv liegen im selben Bucket wie die Gegenstände
+    const tables: string[] = table === "items" ? ["items", "barcode_templates"] : [table];
+    for (const path of ownPaths) {
+      let inUse = false;
+      for (const t of tables) {
+        const { count, error } = await supabaseAdmin
+          .from(t)
+          .select("id", { count: "exact", head: true })
+          .like("image_url", `%/${bucket}/${path}%`);
+        if (error) {
+          console.error("Referenzprüfung fehlgeschlagen:", t, error.message);
+          inUse = true;  // im Zweifel nicht löschen
+          break;
+        }
+        if ((count ?? 0) > 0) { inUse = true; break; }
       }
-      if (count === 0) deletable.push(path);
+      if (!inUse) deletable.push(path);
     }
 
     if (deletable.length > 0) {

@@ -20,7 +20,7 @@ export async function lookupBarcode(code: string): Promise<BarcodeProduct | null
       const res = await fetch(
         `https://${host}/api/v2/product/${clean}.json?fields=product_name,product_name_de,generic_name_de,brands,quantity,image_front_url,image_url`,
         {
-          headers: { "User-Agent": "MaDe-to-find/1.0 (madetofind.de)" },
+          headers: { "User-Agent": "MaDe-to-find/1.0 (madetofind@web.de)" },
           signal: AbortSignal.timeout(3500),
           next: { revalidate: 86400 },
         }

@@ -63,7 +63,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // Eingeloggt → Auth-Route → zum Dashboard (aber nicht wenn redirect Parameter vorhanden)
 if (user && AUTH_ONLY.some(p => path.startsWith(p))) {
   const redirectParam = request.nextUrl.searchParams.get("redirect");
-  if (redirectParam) {
+  // Nur Pfade innerhalb der App zulassen – sonst ließe sich auf fremde Seiten umleiten
+  if (redirectParam && /^\/(?!\/)[^\\]*$/.test(redirectParam)) {
     return NextResponse.redirect(new URL(redirectParam, request.url));
   }
   return NextResponse.redirect(new URL("/dashboard", request.url));

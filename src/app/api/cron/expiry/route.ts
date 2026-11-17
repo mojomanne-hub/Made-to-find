@@ -26,7 +26,10 @@ const DEFAULT_LEAD_DAYS = 7;
  */
 export async function GET(req: NextRequest) {
   const denied = checkSecret(req.headers.get("authorization"));
-  if (denied) return NextResponse.json({ error: "Unauthorized", hint: denied }, { status: 401 });
+  if (denied) {
+    console.warn("[push] Zugriff abgelehnt:", denied);   // Grund nur im Vercel-Log, nicht in der Antwort
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const admin = adminClient();
   if (!admin) return NextResponse.json({ error: "Server nicht konfiguriert." }, { status: 500 });
 
