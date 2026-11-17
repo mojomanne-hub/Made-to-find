@@ -10,6 +10,80 @@ interface BarcodeScannerProps {
   title?: string;
 }
 
+type Decoder = (video: HTMLVideoElement) => Promise<string | null>;
+
+const NATIVE_FORMATS = ["qr_code", "ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf", "data_matrix"];
+
+/**
+ * Erkennung in jeder Lage (waagrecht, senkrecht, auf dem Kopf):
+ * 1. Wenn das Handy eine eingebaute Barcode-Erkennung hat (Chrome auf Android): die nehmen –
+ *    sie ist schnell und erkennt Codes in jeder Ausrichtung.
+ * 2. Sonst die Bibliothek ZXing. Sie liest Strichcodes nur waagrecht, deshalb wird jedes Bild
+ *    zusätzlich um 90° gedreht geprüft.
+ */
+async function createDecoder(): Promise<Decoder> {
+  type NativeDetector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
+  const BD = (window as unknown as {
+    BarcodeDetector?: { new (o: { formats: string[] }): NativeDetector; getSupportedFormats?: () => Promise<string[]> };
+  }).BarcodeDetector;
+  if (BD) {
+    try {
+      const supported = (await BD.getSupportedFormats?.()) ?? [];
+      const formats = NATIVE_FORMATS.filter((f) => supported.includes(f));
+      if (formats.includes("ean_13") && formats.includes("qr_code")) {
+        const detector = new BD({ formats });
+        return async (video) => {
+          const codes = await detector.detect(video);
+          return codes.find((c) => c.rawValue)?.rawValue ?? null;
+        };
+      }
+    } catch { /* weiter mit ZXing */ }
+  }
+
+  const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
+    import("@zxing/browser"),
+    import("@zxing/library"),
+  ]);
+  const hints = new Map();
+  hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+    BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+    BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.ITF, BarcodeFormat.DATA_MATRIX,
+  ]);
+  hints.set(DecodeHintType.TRY_HARDER, true);
+  const reader = new BrowserMultiFormatReader(hints);
+
+  const canvas  = document.createElement("canvas");
+  const rotated = document.createElement("canvas");
+  const MAX = 960;   // kleiner rechnen = schneller, reicht für die Erkennung
+
+  const tryCanvas = (c: HTMLCanvasElement) => {
+    try { return reader.decodeFromCanvas(c).getText(); } catch { return null; }
+  };
+
+  return async (video) => {
+    const scale = Math.min(1, MAX / Math.max(video.videoWidth, video.videoHeight));
+    const w = Math.round(video.videoWidth * scale);
+    const h = Math.round(video.videoHeight * scale);
+
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, w, h);
+    const straight = tryCanvas(canvas);
+    if (straight) return straight;
+
+    // Um 90° gedreht – für senkrecht gehaltene Strichcodes
+    rotated.width = h; rotated.height = w;
+    const rctx = rotated.getContext("2d", { willReadFrequently: true });
+    if (!rctx) return null;
+    rctx.setTransform(0, 1, -1, 0, h, 0);
+    rctx.drawImage(canvas, 0, 0);
+    rctx.setTransform(1, 0, 0, 1, 0, 0);
+    return tryCanvas(rotated);
+  };
+}
+
 /**
  * Vollbild-Scanner für QR-Codes und Barcodes (EAN/UPC/Code128 …).
  * Die Scanner-Bibliothek wird erst beim Öffnen geladen, die restliche App bleibt klein.
@@ -34,8 +108,9 @@ export function BarcodeScanner({ onDetected, onClose, title = "Code scannen" }: 
   }
 
   useEffect(() => {
-    let controls: { stop: () => void } | null = null;
     let cancelled = false;
+    let stream: MediaStream | null = null;
+    let timer: number | null = null;
 
     async function start() {
       try {
@@ -43,33 +118,31 @@ export function BarcodeScanner({ onDetected, onClose, title = "Code scannen" }: 
           setError("Dieser Browser kann die Kamera nicht nutzen. Du kannst den Code unten von Hand eingeben.");
           return;
         }
-        const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
-          import("@zxing/browser"),
-          import("@zxing/library"),
-        ]);
 
-        const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.QR_CODE, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
-          BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.ITF, BarcodeFormat.DATA_MATRIX,
-        ]);
-        hints.set(DecodeHintType.TRY_HARDER, true);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
+        const video = videoRef.current;
+        if (!video) return;
+        video.srcObject = stream;
+        await video.play().catch(() => {});
 
-        const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
-        const c = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
-          videoRef.current ?? undefined,
-          (result, _err, ctrl) => {
-            if (result && !doneRef.current) {
-              ctrl.stop();
-              finish(result.getText());
-            }
-          },
-        );
-        if (cancelled) { c.stop(); return; }
-        controls = c;
+        const decode = await createDecoder();
+        if (cancelled) return;
         setReady(true);
+
+        // Etwa 6–7 Versuche pro Sekunde – schnell genug, ohne das Handy unnötig zu belasten
+        const tick = async () => {
+          if (cancelled || doneRef.current) return;
+          if (video.readyState >= 2 && video.videoWidth > 0) {
+            const text = await decode(video).catch(() => null);
+            if (text) { finish(text); return; }
+          }
+          timer = window.setTimeout(tick, 150);
+        };
+        tick();
       } catch (e) {
         const name = e instanceof Error ? e.name : "";
         if (name === "NotAllowedError" || name === "SecurityError") {
@@ -85,7 +158,11 @@ export function BarcodeScanner({ onDetected, onClose, title = "Code scannen" }: 
     }
 
     start();
-    return () => { cancelled = true; controls?.stop(); };
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      stream?.getTracks().forEach((t) => t.stop());
+    };
   }, []);
 
   // Escape schließt
@@ -114,10 +191,10 @@ export function BarcodeScanner({ onDetected, onClose, title = "Code scannen" }: 
         {!error && (
           <>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="h-48 w-[80%] max-w-sm rounded-2xl border-2" style={{ borderColor: "#60a5fa", boxShadow: "0 0 0 9999px rgba(2,6,23,0.55)" }} />
+              <div className="aspect-square w-[70%] max-w-xs rounded-2xl border-2" style={{ borderColor: "#60a5fa", boxShadow: "0 0 0 9999px rgba(2,6,23,0.55)" }} />
             </div>
             <p className="absolute bottom-4 inset-x-0 text-center text-xs text-slate-300">
-              {ready ? "Halte den Barcode oder QR-Code in den Rahmen" : "Kamera wird gestartet …"}
+              {ready ? "Code in den Rahmen halten – waagrecht oder senkrecht" : "Kamera wird gestartet …"}
             </p>
           </>
         )}
