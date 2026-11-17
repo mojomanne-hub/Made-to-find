@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { cookies }  from "next/headers";
-import { createServerClient }  from "@/lib/supabase/server";
+import { createServerClient, getCurrentUser }  from "@/lib/supabase/server";
 import { GroupProvider }       from "@/lib/context/GroupContext";
 import { Sidebar }             from "@/components/layout/Sidebar";
 import { MobileLayoutWrapper } from "@/components/layout/MobileLayoutWrapper";
@@ -15,21 +15,23 @@ import { BackNavigation } from "@/components/layout/BackNavigation";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect(ROUTES.login);
 
   // Profil + Gruppen laden
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const { data: memberships } = await supabase
-    .from("group_members")
-    .select("groups(id, name, invite_token, created_by)")
-    .eq("user_id", user.id)
-    .returns<{ groups: { id: string; name: string; invite_token: string; created_by: string } | null }[]>();
+  // gleichzeitig statt nacheinander
+  const [{ data: profile }, { data: memberships }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("group_members")
+      .select("groups(id, name, invite_token, created_by)")
+      .eq("user_id", user.id)
+      .returns<{ groups: { id: string; name: string; invite_token: string; created_by: string } | null }[]>(),
+  ]);
 
   const userGroups = (memberships ?? [])
     .map((m) => m.groups)

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@/lib/supabase/server";
+import { createServerClient, getCurrentUser } from "@/lib/supabase/server";
 import { getActiveGroupId }   from "@/lib/utils/group";
 import { PageHeader }         from "@/components/layout/PageHeader";
 import { Button }             from "@/components/ui/Button";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Gegenstände" };
 export default async function ItemsPage() {
   const supabase = await createServerClient();
   const groupId  = await getActiveGroupId();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect(ROUTES.login);
 
   let itemQuery = supabase

@@ -149,7 +149,7 @@ export function LocationsGrid({ locations: initialLocations }: LocationsGridProp
                   <div className="h-28 flex items-center justify-center relative" style={{ backgroundColor: color }}>
                     {loc.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={loc.image_url} alt={loc.name} className="h-full w-full object-cover" />
+                      <img loading="lazy" decoding="async" src={loc.image_url} alt={loc.name} className="h-full w-full object-cover" />
                     ) : (
                       <DynIcon name={loc.icon} className="h-12 w-12 text-white/80" />
                     )}
@@ -189,7 +189,7 @@ export function LocationsGrid({ locations: initialLocations }: LocationsGridProp
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color }}>
                     {loc.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={loc.image_url} alt={loc.name} className="h-full w-full object-cover rounded-xl" />
+                      <img loading="lazy" decoding="async" src={loc.image_url} alt={loc.name} className="h-full w-full object-cover rounded-xl" />
                     ) : (
                       <DynIcon name={loc.icon} className="h-5 w-5 text-white/90" />
                     )}

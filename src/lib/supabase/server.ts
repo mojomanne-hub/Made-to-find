@@ -4,6 +4,7 @@
 
 import { createServerClient as _create } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 export async function createServerClient() {
@@ -30,3 +31,13 @@ export async function createServerClient() {
     },
   );
 }
+
+/**
+ * Angemeldeter Nutzer – pro Seitenaufruf nur EINMAL beim Supabase-Server nachgefragt,
+ * auch wenn Layout und Seite ihn beide brauchen (spart eine Anfrage pro Seitenwechsel).
+ */
+export const getCurrentUser = cache(async () => {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+});

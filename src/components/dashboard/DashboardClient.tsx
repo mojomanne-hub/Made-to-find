@@ -309,7 +309,7 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
                   >
                     {loc.image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={loc.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      <img loading="lazy" decoding="async" src={loc.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                     {!loc.image_url && (
@@ -354,7 +354,7 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
                     >
                       {item.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                        <img loading="lazy" decoding="async" src={item.image_url} alt="" className="h-full w-full object-cover" />
                       ) : (
                         <span style={{ color: locColor }}><DynIcon name={item.icon} className="h-4 w-4" /></span>
                       )}
