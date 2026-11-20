@@ -32,6 +32,13 @@ export function ForgotPasswordForm() {
   const [cooldown,    setCooldown]    = useState(0);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
+  // Zurückgeschickt, weil der Link ungültig oder abgelaufen war
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "link") {
+      setError("Der Link ist abgelaufen oder wurde schon benutzt. Fordere hier einfach einen neuen an.");
+    }
+  }, []);
+
   // Sperre für „Erneut senden“ herunterzählen
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -42,7 +49,9 @@ export function ForgotPasswordForm() {
   async function sendResetMail(address: string) {
     const supabase = createBrowserClient();
     const { error } = await supabase.auth.resetPasswordForEmail(address, {
-      redirectTo: `${window.location.origin}${ROUTES.resetPassword}`,
+      // Über /auth/callback: diese Adresse ist bei Supabase freigegeben (wie beim Google-Login).
+      // Eine nicht freigegebene Adresse ersetzt Supabase durch die Startseite – dann landete man beim Login.
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(ROUTES.resetPassword)}`,
     });
     // Kein Fehler nach außen bei nicht-existenter E-Mail (verhindert User-Enumeration)
     if (error && error.message !== "User not found") {
@@ -231,6 +240,21 @@ export function ResetPasswordForm() {
   const [showPwd,         setShowPwd]         = useState(false);
   const [isLoading,       setIsLoading]       = useState(false);
   const [errors, setErrors] = useState<Partial<Record<"password" | "passwordConfirm" | "root", string>>>({});
+  const [linkState, setLinkState] = useState<"checking" | "ok" | "invalid">("checking");
+
+  // Ist der Reset-Link gültig? (Sitzung vorhanden – oder Code in der Adresse, der hier eingelöst wird)
+  useEffect(() => {
+    (async () => {
+      const supabase = createBrowserClient();
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code).catch(() => null);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      setLinkState(user ? "ok" : "invalid");
+    })();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -280,6 +304,33 @@ export function ResetPasswordForm() {
       {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </button>
   );
+
+  if (linkState === "checking") {
+    return (
+      <Card>
+        <div className="flex items-center justify-center gap-2 py-6 text-sm" style={{ color: "#94a3b8" }}>
+          <Loader2 className="h-4 w-4 animate-spin" /> Link wird geprüft …
+        </div>
+      </Card>
+    );
+  }
+
+  if (linkState === "invalid") {
+    return (
+      <Card>
+        <div className="space-y-4 text-center">
+          <AlertTriangle className="h-8 w-8 mx-auto text-amber-400" />
+          <p className="text-sm" style={{ color: "#cbd5e1" }}>
+            Dieser Link ist abgelaufen oder wurde schon benutzt. Fordere einfach einen neuen an –
+            und öffne ihn am besten auf dem Gerät, auf dem du ihn angefordert hast.
+          </p>
+          <Link href={ROUTES.forgotPassword}>
+            <Button fullWidth>Neuen Link anfordern</Button>
+          </Link>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>

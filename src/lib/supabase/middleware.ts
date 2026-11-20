@@ -14,7 +14,8 @@ import type { Database } from "@/lib/types";
 const PROTECTED = ["/dashboard", "/locations", "/items", "/search", "/settings", "/groups"];
 
 /** Routen, die nur für nicht-eingeloggte Benutzer zugänglich sind */
-const AUTH_ONLY = ["/login", "/register", "/forgot-password", "/reset-password"];
+// /reset-password fehlt absichtlich: Nach dem Klick auf den Link ist man angemeldet und muss die Seite trotzdem sehen
+const AUTH_ONLY = ["/login", "/register", "/forgot-password"];
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });

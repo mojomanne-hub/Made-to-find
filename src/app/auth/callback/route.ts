@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fehlgeschlagen -> zurück zum Login mit Hinweis
+  // Fehlgeschlagen: Reset-Link → „Passwort vergessen“ mit Hinweis, sonst zum Login
+  if (next === "/reset-password") {
+    return NextResponse.redirect(`${origin}/forgot-password?error=link`);
+  }
   return NextResponse.redirect(`${origin}/login?error=oauth`);
 }
