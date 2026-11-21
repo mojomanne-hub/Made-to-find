@@ -14,7 +14,10 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { confirmDialog } from "@/lib/utils/confirm-dialog";
 import { cn } from "@/lib/utils";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.madetofind.de";
+// Live immer die eigene Domain (unabhängig von der Vercel-Einstellung), lokal die Dev-Adresse
+const APP_URL = process.env.NODE_ENV === "production"
+  ? "https://app.madetofind.de"
+  : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
 
 interface GuestQrSectionProps {
   groupId:   string;
