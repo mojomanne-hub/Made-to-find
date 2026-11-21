@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Search, ChevronDown, Rows3, X } from "lucide-react";
+import { Search, ChevronDown, Rows3, X, AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 
 export interface PublicItemView {
   id: string; name: string; description: string | null; quantity: number;
@@ -25,7 +25,8 @@ function norm(s: string | null | undefined) {
   return (s ?? "").toLocaleLowerCase("de-DE");
 }
 
-export function PublicInventoryView({ locations }: { locations: PublicLocationView[] }) {
+export function PublicInventoryView({ locations, token }: { locations: PublicLocationView[]; token: string }) {
+  const [reportItem, setReportItem] = useState<{ id: string; name: string } | null>(null);
   const [query, setQuery] = useState("");
   const [open,  setOpen]  = useState<Set<string>>(
     () => new Set(locations.length <= 2 ? locations.map((l) => l.id) : []),
@@ -137,6 +138,14 @@ export function PublicInventoryView({ locations }: { locations: PublicLocationVi
                           {item.quantity > 1 && (
                             <span className="text-xs font-medium text-slate-400 flex-shrink-0">{item.quantity}×</span>
                           )}
+                          <button
+                            onClick={() => setReportItem({ id: item.id, name: item.name })}
+                            title="Problem melden"
+                            aria-label={`Problem mit ${item.name} melden`}
+                            className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-500 hover:text-amber-400 hover:bg-amber-900/20 transition-colors"
+                          >
+                            <AlertTriangle className="h-4 w-4" />
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -147,6 +156,115 @@ export function PublicInventoryView({ locations }: { locations: PublicLocationVi
           </div>
         );
       })}
+
+      {reportItem && (
+        <ReportSheet token={token} item={reportItem} onClose={() => setReportItem(null)} />
+      )}
+    </div>
+  );
+}
+
+// ---------- Melden-Fenster ----------
+
+const KIND_OPTIONS = [
+  { value: "defekt",    label: "Defekt" },
+  { value: "fehlt",     label: "Fehlt" },
+  { value: "sonstiges", label: "Sonstiges" },
+] as const;
+
+function ReportSheet({ token, item, onClose }: {
+  token: string; item: { id: string; name: string }; onClose: () => void;
+}) {
+  const [kind,    setKind]    = useState<(typeof KIND_OPTIONS)[number]["value"]>("defekt");
+  const [message, setMessage] = useState("");
+  const [name,    setName]    = useState("");
+  const [website, setWebsite] = useState("");   // Honeypot, bleibt für echte Nutzer leer
+  const [sending, setSending] = useState(false);
+  const [done,    setDone]    = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
+
+  async function send() {
+    setSending(true); setError(null);
+    try {
+      const res = await fetch("/api/public/report", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ token, item_id: item.id, kind, message, name, website }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Senden fehlgeschlagen.");
+      }
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Senden fehlgeschlagen.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-5 pb-8 sm:pb-5 space-y-4"
+        style={{ backgroundColor: "#1a2535", border: "1px solid #2d3f55" }}>
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-semibold text-slate-100">Problem melden</h2>
+            <p className="text-xs text-slate-400 truncate">{item.name}</p>
+          </div>
+          <button onClick={onClose} aria-label="Schließen" className="text-slate-500 hover:text-slate-300">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {done ? (
+          <div className="text-center py-4 space-y-2">
+            <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto" />
+            <p className="text-sm font-medium text-slate-100">Danke für deinen Hinweis!</p>
+            <p className="text-xs text-slate-400">Dein Gastgeber wurde benachrichtigt.</p>
+            <button onClick={onClose}
+              className="mt-2 h-10 px-6 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm text-slate-100 transition-colors">
+              Schließen
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {KIND_OPTIONS.map((o) => (
+                <button key={o.value} onClick={() => setKind(o.value)}
+                  className={`h-10 rounded-xl text-sm font-medium border transition-colors ${
+                    kind === o.value
+                      ? "border-amber-500 bg-amber-900/30 text-amber-300"
+                      : "border-slate-700 text-slate-400 hover:bg-slate-700/40"}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} rows={3}
+              placeholder="Was ist passiert? (optional)"
+              className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60}
+              placeholder="Dein Name (optional)"
+              className="w-full h-10 rounded-xl border border-slate-600 bg-slate-800 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500" />
+
+            {/* Honeypot – für Menschen unsichtbar */}
+            <input value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off"
+              aria-hidden="true" className="hidden" />
+
+            {error && <p className="text-xs text-red-400">{error}</p>}
+
+            <button onClick={send} disabled={sending}
+              className="w-full h-11 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Meldung an Gastgeber senden
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

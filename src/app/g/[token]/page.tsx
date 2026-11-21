@@ -139,7 +139,7 @@ export default async function PublicGuestPage({ params }: Props) {
           <p className="text-sm text-slate-400 mt-1">Hier findest du, wo alles liegt. Schönen Aufenthalt! 🌿</p>
         </header>
 
-        <PublicInventoryView locations={locations} />
+        <PublicInventoryView locations={locations} token={token} />
 
         {/* Werbung für die App */}
         <section className="mt-10 rounded-2xl p-5 border border-brand-800/60"
