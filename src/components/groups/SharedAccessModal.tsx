@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import {
   X, ChevronLeft, Users, Plus, LogIn,
   Share2, Copy, Check, Loader2, Edit2, Trash2, Info, Crown,
+  Home, Hotel, UserMinus,
 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Alert } from "@/components/ui/Alert";
 import { removeStorageImages } from "@/lib/utils/storage";
 import { cn } from "@/lib/utils";
 import { confirmDialog } from "@/lib/utils/confirm-dialog";
-import type { Group } from "@/lib/context/GroupContext";
+import type { Group, GroupType } from "@/lib/context/GroupContext";
+import { GuestQrSection } from "@/components/groups/GuestQrSection";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.madetofind.de";
 
 type Screen = "menu" | "create" | "join" | "share" | "manage" | "members";
@@ -43,6 +45,9 @@ export function SharedAccessModal({
   const [shareGroup,  setShareGroup]  = useState<Group | null>(initialGroup);
   const [manageGroup, setManageGroup] = useState<Group | null>(initialManageGroup ?? null);
   const [groupName,   setGroupName]   = useState("");
+  const [groupType,   setGroupType]   = useState<GroupType>("standard");
+  const [typeLoading, setTypeLoading] = useState(false);
+  const [removingId,  setRemovingId]  = useState<string | null>(null);
   const [joinLink,    setJoinLink]    = useState("");
   const [editName,    setEditName]    = useState(initialManageGroup?.name ?? "");
   const [isLoading,   setIsLoading]   = useState(false);
@@ -83,6 +88,7 @@ export function SharedAccessModal({
     setManageGroup(initialManageGroup ?? initialMembersGroup ?? null);
     setEditName(initialManageGroup?.name ?? "");
     setGroupName("");
+    setGroupType("standard");
     setJoinLink("");
     setError(null);
     setSuccess(null);
@@ -105,7 +111,7 @@ export function SharedAccessModal({
     try {
       const supabase = createBrowserClient();
       const { data: group, error: gErr } = await supabase
-        .from("groups").insert({ name: groupName.trim(), created_by: userId }).select().single();
+        .from("groups").insert({ name: groupName.trim(), created_by: userId, group_type: groupType }).select().single();
       if (gErr) throw gErr;
       await supabase.from("group_members").insert({ group_id: group.id, user_id: userId });
       onGroupsChange([...groups, group as Group]);
@@ -125,7 +131,7 @@ export function SharedAccessModal({
       const supabase = createBrowserClient();
       const { data: groupId, error: jErr } = await supabase.rpc("join_group_by_token", { token });
       if (jErr) throw jErr;
-      const { data: group } = await supabase.from("groups").select("id, name, invite_token, created_by").eq("id", groupId).single();
+      const { data: group } = await supabase.from("groups").select("id, name, invite_token, created_by, group_type").eq("id", groupId).single();
       if (group) { onGroupsChange([...groups, group as Group]); setShareGroup(group as Group); setScreen("share"); }
       router.refresh();
     } catch {
@@ -148,6 +154,46 @@ export function SharedAccessModal({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler.");
     } finally { setEditLoading(false); }
+  }
+
+  async function handleChangeType(type: GroupType) {
+    if (!manageGroup || manageGroup.group_type === type) return;
+    setTypeLoading(true); setError(null); setSuccess(null);
+    try {
+      const supabase = createBrowserClient();
+      const { error } = await supabase.from("groups").update({ group_type: type }).eq("id", manageGroup.id);
+      if (error) throw error;
+      const updated = groups.map((g) => g.id === manageGroup.id ? { ...g, group_type: type } : g);
+      onGroupsChange(updated);
+      setManageGroup({ ...manageGroup, group_type: type });
+      if (shareGroup?.id === manageGroup.id) setShareGroup({ ...shareGroup, group_type: type });
+      setSuccess(type === "ferienwohnung"
+        ? "Gruppe ist jetzt eine Ferienwohnung – den Gäste-QR-Code findest du unter „Teilen“."
+        : "Gruppe ist jetzt eine normale Gruppe. Der Gäste-QR-Code ist deaktiviert.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Fehler.");
+    } finally { setTypeLoading(false); }
+  }
+
+  async function handleRemoveMember(member: GroupMember) {
+    if (!manageGroup || !isCreator(manageGroup) || member.user_id === userId) return;
+    const name = member.display_name || "dieses Mitglied";
+    if (!(await confirmDialog({
+      title:        `${name} aus der Gruppe entfernen?`,
+      message:      "Die Person sieht die Gruppe danach nicht mehr. Ablageorte und Gegenstände bleiben erhalten.",
+      confirmLabel: "Entfernen",
+    }))) return;
+    setRemovingId(member.user_id); setError(null);
+    try {
+      const supabase = createBrowserClient();
+      const { error } = await supabase.from("group_members").delete()
+        .eq("group_id", manageGroup.id).eq("user_id", member.user_id);
+      if (error) throw error;
+      setMembers((prev) => prev.filter((m) => m.user_id !== member.user_id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Mitglied konnte nicht entfernt werden.");
+    } finally { setRemovingId(null); }
   }
 
   async function handleLeaveGroup() {
@@ -325,8 +371,33 @@ export function SharedAccessModal({
           {screen === "create" && (
             <div className="space-y-4">
               <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-slate-300">Art der Gruppe</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { type: "standard",      icon: Home,  title: "Familie / Haushalt", text: "Gemeinsam verwalten" },
+                    { type: "ferienwohnung", icon: Hotel, title: "Ferienwohnung",      text: "Mit Gäste-QR-Code" },
+                  ] as const).map(({ type, icon: Icon, title, text }) => (
+                    <button key={type} type="button" onClick={() => setGroupType(type)}
+                      className={cn("flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all",
+                        groupType === type
+                          ? "border-brand-500 bg-brand-900/30"
+                          : "border-slate-700 hover:border-slate-500 hover:bg-slate-700/30")}>
+                      <Icon className={cn("h-4 w-4", groupType === type ? "text-brand-400" : "text-slate-400")} />
+                      <span className="text-sm font-semibold text-slate-200">{title}</span>
+                      <span className="text-xs text-slate-500">{text}</span>
+                    </button>
+                  ))}
+                </div>
+                {groupType === "ferienwohnung" && (
+                  <p className="text-xs text-slate-500">
+                    Gäste scannen einen QR-Code und sehen ohne Anmeldung, wo alles ist – ändern können sie nichts.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-slate-300">Gruppenname</label>
-                <input type="text" placeholder="z.B. Meine Gruppe" value={groupName}
+                <input type="text" placeholder={groupType === "ferienwohnung" ? "z.B. Ferienwohnung Seeblick" : "z.B. Meine Gruppe"} value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
                   autoFocus
@@ -367,11 +438,29 @@ export function SharedAccessModal({
                 <span className="text-sm font-medium text-slate-200">{shareGroup.name}</span>
               </div>
 
+              {/* Gäste-QR-Code (nur Ferienwohnung) */}
+              {shareGroup.group_type === "ferienwohnung" && (
+                <>
+                  <GuestQrSection
+                    groupId={shareGroup.id}
+                    groupName={shareGroup.name}
+                    isCreator={isCreator(shareGroup)}
+                  />
+                  <div className="h-px bg-slate-700" />
+                </>
+              )}
+
               {/* Einladungslink */}
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-medium text-slate-300 flex items-center gap-1.5">
-                  <Share2 className="h-4 w-4" /> Einladungslink
+                  <Share2 className="h-4 w-4" />
+                  {shareGroup.group_type === "ferienwohnung" ? "Mitverwalter einladen" : "Einladungslink"}
                 </p>
+                {shareGroup.group_type === "ferienwohnung" && (
+                  <p className="text-xs text-slate-500">
+                    Für Personen, die mitverwalten dürfen (z. B. Partner, Reinigungskraft) – nicht für Gäste.
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <input readOnly value={inviteLink}
                     className="flex-1 h-10 rounded-xl border border-slate-600 bg-slate-900 px-3 text-xs text-slate-400 focus:outline-none truncate" />
@@ -435,6 +524,15 @@ export function SharedAccessModal({
                           <Crown className="h-3.5 w-3.5" />
                         </span>
                       )}
+                      {isCreator(manageGroup) && m.user_id !== userId && (
+                        <button onClick={() => handleRemoveMember(m)} disabled={removingId === m.user_id}
+                          title="Aus Gruppe entfernen"
+                          className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-danger-400 hover:bg-danger-900/20 disabled:opacity-50 transition-colors">
+                          {removingId === m.user_id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <UserMinus className="h-4 w-4" />}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -460,6 +558,30 @@ export function SharedAccessModal({
                   </button>
                 </div>
               </div>
+
+              {isCreator(manageGroup) && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-slate-300">Art der Gruppe</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { type: "standard",      icon: Home,  title: "Familie / Haushalt" },
+                      { type: "ferienwohnung", icon: Hotel, title: "Ferienwohnung" },
+                    ] as const).map(({ type, icon: Icon, title }) => {
+                      const active = (manageGroup.group_type ?? "standard") === type;
+                      return (
+                        <button key={type} type="button" onClick={() => handleChangeType(type)} disabled={typeLoading}
+                          className={cn("flex items-center gap-2 p-2.5 rounded-xl border text-left text-sm transition-all disabled:opacity-50",
+                            active
+                              ? "border-brand-500 bg-brand-900/30 text-slate-100"
+                              : "border-slate-700 text-slate-400 hover:border-slate-500 hover:bg-slate-700/30")}>
+                          <Icon className={cn("h-4 w-4 flex-shrink-0", active ? "text-brand-400" : "text-slate-500")} />
+                          {title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <button onClick={() => openMembers(manageGroup)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/30 transition-all text-left">

@@ -28,14 +28,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .maybeSingle(),
     supabase
       .from("group_members")
-      .select("groups(id, name, invite_token, created_by)")
+      .select("groups(id, name, invite_token, created_by, group_type)")
       .eq("user_id", user.id)
-      .returns<{ groups: { id: string; name: string; invite_token: string; created_by: string } | null }[]>(),
+      .returns<{ groups: { id: string; name: string; invite_token: string; created_by: string; group_type: "standard" | "ferienwohnung" } | null }[]>(),
   ]);
 
   const userGroups = (memberships ?? [])
     .map((m) => m.groups)
-    .filter((g): g is { id: string; name: string; invite_token: string; created_by: string } => g !== null);
+    .filter((g): g is { id: string; name: string; invite_token: string; created_by: string; group_type: "standard" | "ferienwohnung" } => g !== null);
 
   const cookieStore  = await cookies();
   const activeGroupId = cookieStore.get("active-group")?.value ?? null;

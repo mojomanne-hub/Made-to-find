@@ -18,7 +18,11 @@ export interface Group {
   name:         string;
   invite_token: string;
   created_by:   string;
+  /** standard = Familie/Haushalt, ferienwohnung = mit Gäste-QR-Code */
+  group_type?:  GroupType;
 }
+
+export type GroupType = "standard" | "ferienwohnung";
 
 interface GroupContextValue {
   activeGroup:    Group | null;
