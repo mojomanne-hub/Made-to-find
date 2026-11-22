@@ -10,12 +10,13 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine, Archive, ChevronDown, Check } from "lucide-react";
+import { LayoutDashboard, MapPin, Package, LogOut, Users, X, Share2, Edit2, Crown, Sparkles, Info, HelpCircle, BookOpen, ScanLine, Archive, ChevronDown, Check, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBrowserClient }    from "@/lib/supabase/client";
 import { useGroup, type Group }   from "@/lib/context/GroupContext";
 import { ROUTES }                 from "@/lib/constants";
 import { openScanner }            from "@/components/scanner/scanner-events";
+import { openNotifications }      from "@/components/notifications/notification-events";
 import type { User }              from "@supabase/supabase-js";
 import { SharedAccessModal }      from "@/components/groups/SharedAccessModal";
 import { joinPendingGroup }       from "@/lib/utils/invite-token";
@@ -48,6 +49,15 @@ interface MobileDrawerProps {
 }
 
 export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: MobileDrawerProps) {
+  // Ungelesene Benachrichtigungen – beim Öffnen des Menüs frisch laden
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    const supabase = createBrowserClient();
+    supabase.from("notifications").select("*", { count: "exact", head: true }).eq("is_read", false)
+      .then(({ count }) => setUnreadNotifs(count ?? 0));
+  }, [isOpen]);
+
   const pathname = usePathname();
   const router   = useRouter();
   const { setGroups, activeGroup, setActiveGroup } = useGroup();
@@ -173,6 +183,21 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
               </div>
             );
           })}
+
+          {/* Benachrichtigungen (öffnet das Glocken-Fenster oben) */}
+          <button
+            type="button"
+            onClick={() => { onClose(); openNotifications(); }}
+            className="w-full flex items-center gap-3 px-3 py-3 mb-0.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-[#1a2540] transition-all"
+          >
+            <Bell className={cn("h-4 w-4 flex-shrink-0", unreadNotifs > 0 && "text-amber-400")} />
+            Benachrichtigungen
+            {unreadNotifs > 0 && (
+              <span className="ml-auto bg-danger-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {unreadNotifs > 9 ? "9+" : unreadNotifs}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Benutzerinfo */}

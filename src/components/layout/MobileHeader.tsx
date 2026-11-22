@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Check, Bell, X, Users, Pencil, ChevronLeft } from "lucide-react";
+import { ChevronDown, Check, Bell, X, Users, Pencil, ChevronLeft, Trash2 } from "lucide-react";
 import { useGroup, type Group } from "@/lib/context/GroupContext";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
@@ -12,6 +12,7 @@ import { ROUTES } from "@/lib/constants";
 import { IOSInstallButton } from "@/components/layout/IOSInstallButton";
 import { SharedAccessModal } from "@/components/groups/SharedAccessModal";
 import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
+import { OPEN_NOTIFICATIONS_EVENT } from "@/components/notifications/notification-events";
 
 const GROUP_COLORS = [
   "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
@@ -70,10 +71,16 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
   }, []);
 
   async function handleBellClick() {
-    setShowNotifs((v) => !v);
+    if (showNotifs) { setShowNotifs(false); setShowNotifSettings(false); return; }
+    await openNotifs();
+  }
+
+  // Öffnen + laden (auch aus dem Menü heraus aufrufbar)
+  async function openNotifs() {
+    setShowNotifs(true);
     setShowNotifSettings(false);
     setDropdownOpen(false);
-    if (!showNotifs) {
+    {
       const supabase = createBrowserClient();
       const { data } = await supabase
         .from("notifications")
@@ -88,12 +95,39 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
     }
   }
 
+  // Menü-Eintrag „Benachrichtigungen“ öffnet dieses Fenster
+  useEffect(() => {
+    const handler = () => { openNotifs(); };
+    window.addEventListener(OPEN_NOTIFICATIONS_EVENT, handler);
+    return () => window.removeEventListener(OPEN_NOTIFICATIONS_EVENT, handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unread]);
+
+  async function deleteNotification(id: string) {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const supabase = createBrowserClient();
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (error) console.error("Benachrichtigung löschen fehlgeschlagen:", error.message);
+  }
+
+  async function deleteAll() {
+    const ids = notifications.map((n) => n.id);
+    if (!ids.length) return;
+    setNotifications([]);
+    const supabase = createBrowserClient();
+    const { error } = await supabase.from("notifications").delete().in("id", ids);
+    if (error) console.error("Benachrichtigungen löschen fehlgeschlagen:", error.message);
+  }
+
   function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "gerade eben";
     if (mins < 60) return `vor ${mins} Min.`;
-    return `vor ${Math.floor(diff / 3600000)} Std.`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `vor ${hours} Std.`;
+    const days = Math.floor(diff / 86400000);
+    return `vor ${days} Tag${days !== 1 ? "en" : ""}`;
   }
 
   return (
@@ -216,6 +250,11 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
                 {showNotifSettings ? "Einstellungen" : "Benachrichtigungen"}
               </h3>
               <div className="flex items-center gap-1">
+                {!showNotifSettings && notifications.length > 0 && (
+                  <button onClick={deleteAll} aria-label="Alle löschen" title="Alle löschen" className="p-1.5 text-slate-400 hover:text-danger-400">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
                 {!showNotifSettings && (
                   <button onClick={() => setShowNotifSettings(true)} aria-label="Benachrichtigungen einstellen" className="p-1.5 text-slate-400 hover:text-slate-200">
                     <Pencil className="h-4 w-4" />
@@ -236,10 +275,16 @@ export function MobileHeader({ groups: groupsProp, displayName, userId }: Mobile
               ) : (
                 <ul>
                   {notifications.map((n) => (
-                    <li key={n.id} className="px-4 py-3 border-b border-slate-700/50 last:border-0">
-                      <p className="text-xs font-semibold text-slate-200">{n.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{n.message}</p>
-                      <p className="text-[10px] text-slate-600 mt-1">{timeAgo(n.created_at)}</p>
+                    <li key={n.id} className="flex items-start gap-2 pl-4 pr-2 py-3 border-b border-slate-700/50 last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-200">{n.title}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{n.message}</p>
+                        <p className="text-[10px] text-slate-600 mt-1">{timeAgo(n.created_at)}</p>
+                      </div>
+                      <button onClick={() => deleteNotification(n.id)} aria-label="Benachrichtigung löschen" title="Löschen"
+                        className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-500 hover:text-slate-200 hover:bg-slate-700/60">
+                        <X className="h-4 w-4" />
+                      </button>
                     </li>
                   ))}
                 </ul>

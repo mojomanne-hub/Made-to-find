@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Bell, X, Package, MapPin, Users, Check, Clock, UserPlus, Pencil, ChevronLeft, AlertTriangle } from "lucide-react";
+import { Bell, X, Package, MapPin, Users, Check, Clock, UserPlus, Pencil, ChevronLeft, AlertTriangle, Trash2 } from "lucide-react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { NotificationSettingsPanel } from "./NotificationSettingsPanel";
@@ -107,6 +107,35 @@ export function NotificationBell() {
       .in("id", unread.map((n) => n.id));
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
+  }
+
+  // Einzelne Benachrichtigung löschen
+  async function deleteNotification(id: string) {
+    const removed = notifications.find((n) => n.id === id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    if (removed && !removed.is_read) setUnreadCount((v) => Math.max(0, v - 1));
+    const supabase = createBrowserClient();
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (error) {
+      console.error("Benachrichtigung löschen fehlgeschlagen:", error.message);
+      loadNotifications();   // Liste wiederherstellen
+      loadUnreadCount();
+    }
+  }
+
+  // Alle (geladenen) Benachrichtigungen löschen
+  async function deleteAll() {
+    if (!notifications.length) return;
+    const ids = notifications.map((n) => n.id);
+    setNotifications([]);
+    setUnreadCount(0);
+    const supabase = createBrowserClient();
+    const { error } = await supabase.from("notifications").delete().in("id", ids);
+    if (error) {
+      console.error("Benachrichtigungen löschen fehlgeschlagen:", error.message);
+      loadNotifications();
+    }
+    loadUnreadCount();
   }
 
   // Position relativ zum Button berechnen (immer innerhalb des sichtbaren Viewports)
@@ -233,6 +262,16 @@ export function NotificationBell() {
               <Pencil className="h-4 w-4" />
             </button>
           )}
+          {!showSettings && notifications.length > 0 && (
+            <button
+              onClick={deleteAll}
+              aria-label="Alle löschen"
+              title="Alle löschen"
+              className="text-slate-500 hover:text-danger-400 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
           {!showSettings && unreadCount > 0 && (
             <button
               onClick={markAllRead}
@@ -289,6 +328,14 @@ export function NotificationBell() {
                     <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{notif.message}</p>
                     <p className="text-[10px] text-slate-600 mt-1">{timeAgo(notif.created_at)}</p>
                   </div>
+                  <button
+                    onClick={() => deleteNotification(notif.id)}
+                    aria-label="Benachrichtigung löschen"
+                    title="Löschen"
+                    className="h-7 w-7 -mr-1 rounded-lg flex items-center justify-center flex-shrink-0 text-slate-600 hover:text-slate-200 hover:bg-slate-700/60 transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </li>
             ))}
