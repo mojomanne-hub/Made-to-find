@@ -38,6 +38,15 @@ export function JoinGroupClient({ token, groupName, isLoggedIn }: JoinGroupClien
     }
   }, [token, isLoggedIn]);
 
+  // Zurück von der Google-Anmeldung (…?auto=1): gleich beitreten, ohne nochmal tippen zu müssen
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    if (new URLSearchParams(window.location.search).get("auto") !== "1") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    handleJoin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
   async function handleJoin() {
     setIsLoading(true);
     setError(null);

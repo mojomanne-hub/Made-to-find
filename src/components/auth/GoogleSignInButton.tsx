@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
+import { getPendingInviteToken } from "@/lib/utils/invite-token";
 
 interface GoogleSignInButtonProps {
   label?: string;
@@ -14,10 +15,15 @@ export function GoogleSignInButton({ label = "Mit Google anmelden" }: GoogleSign
   async function handleClick() {
     setIsLoading(true);
     const supabase = createBrowserClient();
+    // Offene Gruppeneinladung? Dann nach der Google-Anmeldung direkt zurück zur Einladung.
+    // Der Code reist in der Adresse mit – so geht er auch dann nicht verloren, wenn Google
+    // die Anmeldung in einem anderen Browserfenster abschließt.
+    const invite = getPendingInviteToken();
+    const next = invite ? `/join/${encodeURIComponent(invite)}?auto=1` : ROUTES.dashboard;
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(ROUTES.dashboard)}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
     // Browser leitet weiter zu Google – kein weiterer Code nötig.
