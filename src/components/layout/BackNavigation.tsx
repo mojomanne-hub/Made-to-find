@@ -83,8 +83,13 @@ export function BackNavigation() {
     // 1) Link-Klicks: ab der zweiten Ebene ersetzen statt anhängen
     function onClick(e: MouseEvent) {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = (e.target as Element | null)?.closest?.("a");
+      const target = e.target as Element | null;
+      const a = target?.closest?.("a");
       if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+      // Klick auf einen Knopf INNERHALB einer Karte (z. B. Löschen, Bearbeiten): nicht als Link-Klick werten,
+      // sonst würde die Seite gewechselt, bevor der Knopf seine Arbeit machen kann
+      const control = target?.closest?.("button, input, select, textarea, label, [role='button']");
+      if (control && a.contains(control)) return;
       const href = a.getAttribute("href");
       if (!href || href.startsWith("#")) return;
       let url: URL;
