@@ -10,6 +10,7 @@ import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
 import { createBrowserClient } from "@/lib/supabase/client";
+import { removeStorageImages } from "@/lib/utils/storage";
 
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
   if (!name) return <LucideIcons.MapPin className={className} />;
@@ -51,6 +52,7 @@ export function LocationsGrid({ locations: initialLocations }: LocationsGridProp
   const [search,    setSearch]    = useState("");
   const [locations, setLocations] = useState(initialLocations);
   const [deleting,  setDeleting]  = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [view,      setView]      = useState<"grid" | "list">("grid");
   const router = useRouter();
 
@@ -66,13 +68,23 @@ export function LocationsGrid({ locations: initialLocations }: LocationsGridProp
   async function handleDelete(e: React.MouseEvent, loc: LocationWithCount) {
     e.preventDefault();
     e.stopPropagation();
-    if (!(await confirmDialog({ title: `„${loc.name}“ wirklich löschen?`, message: "Der Ablageort wird entfernt. Das lässt sich nicht rückgängig machen." }))) return;
+    if (!(await confirmDialog({ title: `„${loc.name}“ wirklich löschen?`, message: "Alle darin enthaltenen Gegenstände werden ebenfalls gelöscht. Das lässt sich nicht rückgängig machen." }))) return;
     setDeleting(loc.id);
+    setDeleteError(null);
     try {
+      // Endgültig löschen – wie auf der Detailseite. Die Gegenstände darin löscht die Datenbank mit.
       const supabase = createBrowserClient();
-      await supabase.from("locations").update({ deleted_at: new Date().toISOString() }).eq("id", loc.id);
+      const { data: itemRows } = await supabase.from("items").select("image_url").eq("location_id", loc.id);
+      const { error } = await supabase.from("locations").delete().eq("id", loc.id);
+      if (error) throw error;
+      await Promise.all([
+        removeStorageImages(supabase, "location-images", [loc.image_url]),
+        removeStorageImages(supabase, "item-images", (itemRows ?? []).map((r) => r.image_url)),
+      ]);
       setLocations((prev) => prev.filter((l) => l.id !== loc.id));
       router.refresh();
+    } catch (err) {
+      setDeleteError(`„${loc.name}“ konnte nicht gelöscht werden: ${err instanceof Error ? err.message : "unbekannter Fehler"}`);
     } finally {
       setDeleting(null);
     }
@@ -86,6 +98,11 @@ export function LocationsGrid({ locations: initialLocations }: LocationsGridProp
 
   return (
     <div className="space-y-4">
+      {deleteError && (
+        <div role="alert" className="rounded-xl border border-red-800/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          {deleteError}
+        </div>
+      )}
       {/* Suchleiste + View Toggle */}
       <div className="flex gap-2">
         <div className="relative flex-1">

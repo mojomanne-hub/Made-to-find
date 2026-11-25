@@ -10,6 +10,7 @@ import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
 import { createBrowserClient } from "@/lib/supabase/client";
+import { removeStorageImage } from "@/lib/utils/storage";
 
 function ItemIcon({ icon, className }: { icon: string | null; className?: string }) {
   if (!icon) return <LucideIcons.Box className={className} />;
@@ -83,6 +84,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
   const [filterLoc, setFilterLoc] = useState("");
   const [items,     setItems]     = useState(initialItems);
   const [deleting,  setDeleting]  = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [view,      setView]      = useState<"grid" | "list">("grid");
   const router = useRouter();
 
@@ -102,11 +104,17 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
     e.stopPropagation();
     if (!(await confirmDialog({ title: `„${item.name}“ wirklich löschen?`, message: "Der Gegenstand wird entfernt. Das lässt sich nicht rückgängig machen." }))) return;
     setDeleting(item.id);
+    setDeleteError(null);
     try {
+      // Endgültig löschen – wie auf der Detailseite. Die Angaben zum Barcode bleiben im Barcode-Archiv.
       const supabase = createBrowserClient();
-      await supabase.from("items").update({ deleted_at: new Date().toISOString() }).eq("id", item.id);
+      const { error } = await supabase.from("items").delete().eq("id", item.id);
+      if (error) throw error;
+      await removeStorageImage(supabase, "item-images", item.image_url);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
       router.refresh();
+    } catch (err) {
+      setDeleteError(`„${item.name}“ konnte nicht gelöscht werden: ${err instanceof Error ? err.message : "unbekannter Fehler"}`);
     } finally { setDeleting(null); }
   }
 
@@ -118,6 +126,11 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
 
   return (
     <div className="space-y-4">
+      {deleteError && (
+        <div role="alert" className="rounded-xl border border-red-800/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          {deleteError}
+        </div>
+      )}
       {/* Suche oben — volle Breite */}
       <div className="relative">
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
