@@ -57,6 +57,12 @@ export function GroupProvider({ children, initialGroupId, initialGroups }: {
   );
 
   function setActiveGroup(group: Group | null) {
+    // Ohne Internet kann der Server die Daten des anderen Bereichs nicht liefern.
+    // Stattdessen die Offline-Suche öffnen, gefiltert auf den gewählten Bereich.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      window.dispatchEvent(new CustomEvent("mtf:offline-area", { detail: { groupId: group?.id ?? null } }));
+      return;
+    }
     setActiveGroupState(group);
     if (group) setCookie(group.id);
     else       deleteCookie();

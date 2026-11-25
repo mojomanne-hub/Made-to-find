@@ -34,6 +34,8 @@ export function OfflineMode() {
   const [open, setOpen]         = useState(false);
   const [query, setQuery]       = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Bereich: "all" = alles, null = Meine Daten, sonst Gruppen-ID
+  const [area, setArea]         = useState<string | null>("all");
   const syncing = useRef(false);
 
   // Angemeldeten Nutzer bestimmen – getSession funktioniert auch ohne Netz
@@ -76,6 +78,19 @@ export function OfflineMode() {
     finally { syncing.current = false; }
   }, [userId, groups]);
 
+  // Bereich gewählt, während offline (aus Menü/Header): Offline-Suche für diesen Bereich öffnen
+  useEffect(() => {
+    const onArea = (e: Event) => {
+      const groupId = (e as CustomEvent<{ groupId: string | null }>).detail?.groupId ?? null;
+      setArea(groupId);
+      setQuery("");
+      setExpanded(null);
+      setOpen(true);
+    };
+    window.addEventListener("mtf:offline-area", onArea);
+    return () => window.removeEventListener("mtf:offline-area", onArea);
+  }, []);
+
   // Online/Offline verfolgen und bei Gelegenheit aktualisieren
   useEffect(() => {
     const update = () => {
@@ -110,8 +125,10 @@ export function OfflineMode() {
   const results = useMemo(() => {
     if (!snapshot) return [];
     const words = normalize(query).split(/\s+/).filter(Boolean);
-    if (words.length === 0) return [];
+    // Ohne Suchbegriff: bei gewähltem Bereich dessen Gegenstände auflisten
+    if (words.length === 0 && area === "all") return [];
     return snapshot.items
+      .filter((item) => area === "all" || (item.group_id ?? null) === area)
       .map((item) => {
         const loc = lookup.locs.get(item.location_id);
         const shelf = item.shelf_id ? lookup.shelves.get(item.shelf_id) : undefined;
@@ -123,8 +140,8 @@ export function OfflineMode() {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, "de"))
-      .slice(0, 100);
-  }, [snapshot, query, lookup]);
+      .slice(0, 200);
+  }, [snapshot, query, lookup, area]);
 
   const areaName = (groupId: string | null) => (groupId ? lookup.groupNames.get(groupId) ?? "Gruppe" : "Meine Daten");
 
@@ -171,13 +188,36 @@ export function OfflineMode() {
             </div>
             <button
               type="button"
-              onClick={() => { setOpen(false); setQuery(""); }}
+              onClick={() => { setOpen(false); setQuery(""); setArea("all"); }}
               aria-label="Suche schließen"
               className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
+
+          {/* Bereich wählen */}
+          {snapshot && (snapshot.groups.length > 0) && (
+            <div className="flex gap-2 overflow-x-auto px-4 pt-3" role="group" aria-label="Bereich">
+              {[{ id: "all", label: "Alle Bereiche" }, { id: null, label: "Meine Daten" }, ...snapshot.groups.map((g) => ({ id: g.id, label: g.name }))].map((opt) => {
+                const active = area === opt.id;
+                return (
+                  <button
+                    key={opt.id ?? "mine"}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => { setArea(opt.id); setExpanded(null); }}
+                    className={
+                      "flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors " +
+                      (active ? "border-brand-500 bg-brand-600 text-white" : "border-slate-600 text-slate-300 hover:border-slate-400")
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-2 px-4 py-2 text-xs text-slate-500">
             <span>
@@ -196,7 +236,10 @@ export function OfflineMode() {
             {query.trim() && results.length === 0 && (
               <li className="py-10 text-center text-sm text-slate-500">Nichts gefunden.</li>
             )}
-            {!query.trim() && (
+            {!query.trim() && area !== "all" && results.length === 0 && (
+              <li className="py-10 text-center text-sm text-slate-500">In diesem Bereich sind keine Gegenstände gespeichert.</li>
+            )}
+            {!query.trim() && area === "all" && (
               <li className="py-10 text-center text-sm text-slate-500">
                 Tippe ein, was du suchst – zum Beispiel „Akkuschrauber“ oder „Keller“.
               </li>
