@@ -64,6 +64,13 @@ export function NotificationBell() {
 
   // Einstellungen (Stift) – Inhalt steckt in NotificationSettingsPanel
   const [showSettings, setShowSettings] = useState(false);
+  const showSettingsRef = useRef(false);
+  // Beim Umschalten auf die Einstellungen neu positionieren (sie brauchen mehr Höhe)
+  useEffect(() => {
+    showSettingsRef.current = showSettings;
+    if (isOpen) updateCoords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSettings]);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef  = useRef<HTMLDivElement>(null);
@@ -156,11 +163,16 @@ export function NotificationBell() {
     }
 
     // Vertikal: öffnet standardmäßig auf Höhe des Buttons, bei wenig Platz nach oben ausklappen
-    const estimatedHeight = 420; // max-h-96 Liste + Header
+    // Einstellungen sind deutlich höher als die Liste → dann mehr Platz einplanen
+    const estimatedHeight = showSettingsRef.current
+      ? Math.min(720, viewportH - 2 * PANEL_MARGIN)
+      : 420; // max-h-96 Liste + Header
     const openUp = rect.top + estimatedHeight > viewportH && rect.top > estimatedHeight;
-    const top = openUp
+    let top = openUp
       ? Math.max(PANEL_MARGIN, rect.bottom - estimatedHeight)
       : rect.top;
+    // Nie unten aus dem Bildschirm ragen lassen
+    top = Math.max(PANEL_MARGIN, Math.min(top, viewportH - estimatedHeight - PANEL_MARGIN));
 
     setCoords({ top, left, openUp });
   }

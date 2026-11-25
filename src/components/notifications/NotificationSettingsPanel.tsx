@@ -63,7 +63,7 @@ export function NotificationSettingsPanel() {
   }
 
   return (
-    <div className="px-4 pt-4 pb-5 space-y-4 overflow-y-auto" style={{ maxHeight: "min(26rem, calc(100dvh - 9rem))" }}>
+    <div className="px-4 pt-4 pb-5 space-y-4 overflow-y-auto" style={{ maxHeight: "calc(100dvh - 8rem)" }}>
       <PushToggle compact />
       <div className="border-t border-slate-700" />
 
