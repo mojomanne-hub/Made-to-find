@@ -17,7 +17,7 @@ import { ExpandableGrid } from "@/components/ui/ExpandableGrid";
 import { AffiliateTips } from "@/components/affiliate/AffiliateTips";
 import { BarcodeScanner } from "@/components/scanner/BarcodeScanner";
 import { storagePathFromUrl, removeStorageImage, removeStorageImages } from "@/lib/utils/storage";
-import { suggestEmoji, suggestIcon, availableIcons } from "@/lib/utils/icon-suggest";
+import { suggestEmoji, suggestIcon, availableIcons, suggestLocationEmoji } from "@/lib/utils/icon-suggest";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/lib/types";
 
@@ -157,6 +157,46 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
       if (i) { setLucideIcon(i); picked = true; }
     }
     if (picked) setAutoPicked(true);
+  }
+
+  // Ablageorte, inklusive der direkt hier neu angelegten
+  const [locList, setLocList] = useState<LocationOption[]>(locations);
+  const [newLocOpen, setNewLocOpen] = useState(locations.length === 0);
+  const [newLocName, setNewLocName] = useState("");
+  const [newLocBusy, setNewLocBusy] = useState(false);
+  const [newLocError, setNewLocError] = useState<string | null>(null);
+
+  /** Legt einen Ablageort an, ohne das Formular zu verlassen – Eingaben bleiben erhalten */
+  async function createLocationInline() {
+    const locName = newLocName.trim();
+    if (locName.length < 1) { setNewLocError("Bitte einen Namen eingeben."); return; }
+    setNewLocBusy(true); setNewLocError(null);
+    try {
+      const supabase = createBrowserClient();
+      const { data, error } = await supabase
+        .from("locations")
+        .insert({
+          name: locName.slice(0, 100),
+          description: null,
+          color: LOCATION_COLORS[0].value,
+          icon: suggestLocationEmoji(locName),
+          image_url: null,
+          user_id: userId,
+          ...(groupId ? { group_id: groupId } : {}),
+        })
+        .select("id, name, color")
+        .single();
+      if (error) throw error;
+      setLocList((prev) => [...prev, data as LocationOption].sort((a, b) => a.name.localeCompare(b.name, "de")));
+      handleLocationChange(data.id);
+      setNewLocName("");
+      setNewLocOpen(false);
+      setErrors((prev) => ({ ...prev, location_id: undefined }));
+    } catch (e) {
+      setNewLocError(e instanceof Error ? e.message : "Ablageort konnte nicht angelegt werden.");
+    } finally {
+      setNewLocBusy(false);
+    }
   }
 
   function handleLocationChange(newLocationId: string) {
@@ -452,14 +492,52 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             <label className="text-sm font-medium text-slate-300">
               Ablageort <span className="text-danger-400">*</span>
             </label>
-            {locations.length === 0 ? (
-              <Alert variant="warning">
-                Erstelle zuerst einen <a href={ROUTES.locationNew} className="font-semibold underline">Ablageort</a>.
-              </Alert>
-            ) : (
+            {locList.length === 0 && !newLocOpen && (
+              <Alert variant="warning">Du hast noch keinen Ablageort. Lege direkt hier einen an.</Alert>
+            )}
+            {locList.length > 0 && (
               <select value={locationId} onChange={(e) => handleLocationChange(e.target.value)} className="input-base">
-                {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                {locList.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
               </select>
+            )}
+
+            {/* Neuen Ablageort direkt hier anlegen */}
+            {newLocOpen ? (
+              <div className="rounded-xl border border-slate-600 p-3 space-y-2" style={{ backgroundColor: "#16202e" }}>
+                <label htmlFor="new-location-name" className="text-xs font-medium text-slate-300">
+                  {locList.length === 0 ? "Erster Ablageort" : "Neuer Ablageort"}
+                </label>
+                <input
+                  id="new-location-name"
+                  value={newLocName}
+                  onChange={(e) => setNewLocName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createLocationInline(); } }}
+                  placeholder="z. B. Keller, Küchenschrank, Garage"
+                  maxLength={100}
+                  autoComplete="off"
+                  className="input-base"
+                />
+                {newLocError && <p className="text-xs text-danger-400">{newLocError}</p>}
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" onClick={createLocationInline} isLoading={newLocBusy}>
+                    <Plus className="h-4 w-4" /> Anlegen
+                  </Button>
+                  {locList.length > 0 && (
+                    <Button type="button" size="sm" variant="secondary" onClick={() => { setNewLocOpen(false); setNewLocError(null); }} disabled={newLocBusy}>
+                      Abbrechen
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500">Farbe, Foto und Beschreibung kannst du später beim Ablageort ergänzen.</p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setNewLocOpen(true)}
+                className="self-start inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 hover:text-brand-300 py-1"
+              >
+                <Plus className="h-4 w-4" /> Neuer Ablageort
+              </button>
             )}
             {errors.location_id && <p className="text-xs text-danger-400">{errors.location_id}</p>}
           </div>
@@ -709,7 +787,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
             <Button type="button" variant="secondary" onClick={handleCancel} disabled={isLoading}>
               Abbrechen
             </Button>
-            <Button type="submit" isLoading={isLoading} disabled={locations.length === 0}>
+            <Button type="submit" isLoading={isLoading} disabled={locList.length === 0}>
               {isEditing ? "Speichern" : "Erstellen"}
             </Button>
           </div>
