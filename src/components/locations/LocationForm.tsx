@@ -205,7 +205,7 @@ export function LocationForm({ location, userId, groupId, initialShelves = [] }:
       await supabase.storage.from(BUCKET).remove([path]);
       const { error } = await supabase.storage
         .from(BUCKET)
-        .upload(path, file, { upsert: true, contentType: "image/jpeg" });
+        .upload(path, file, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
       if (error) throw error;
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
       setImageUrl(`${data.publicUrl}?t=${Date.now()}`);

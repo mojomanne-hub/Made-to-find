@@ -119,7 +119,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         const path = `${user.id}/${photoItemId}.jpg`;
-        const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+        const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
         if (error || cancelled) return;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         setPhotoImageUrl(`${data.publicUrl}?t=${Date.now()}`);
@@ -243,7 +243,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
       await supabase.storage.from(BUCKET).remove([path]);
       const { error } = await supabase.storage
         .from(BUCKET)
-        .upload(path, file, { upsert: true, contentType: "image/jpeg" });
+        .upload(path, file, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
       if (error) throw error;
       const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
       setPhotoImageUrl(`${data.publicUrl}?t=${Date.now()}`);
@@ -328,7 +328,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
           if (payload.image_url) {
             const blob = await (await fetch(payload.image_url)).blob();
             const path = `${user.id}/tpl-${code.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 60)}.jpg`;
-            const up = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+            const up = await supabase.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
             if (!up.error) tplImage = `${supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl}?t=${Date.now()}`;
           }
           const row = {

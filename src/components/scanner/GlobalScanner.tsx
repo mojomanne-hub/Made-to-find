@@ -164,7 +164,7 @@ export function GlobalScanner() {
         try {
           const blob = await (await fetch(src.image_url)).blob();
           const path = `${user.id}/${created.id}.jpg`;
-          const up = await supabase.storage.from("item-images").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+          const up = await supabase.storage.from("item-images").upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
           if (!up.error) {
             const { data: pub } = supabase.storage.from("item-images").getPublicUrl(path);
             await supabase.from("items").update({ image_url: `${pub.publicUrl}?t=${Date.now()}` }).eq("id", created.id);

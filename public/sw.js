@@ -2,6 +2,36 @@
 
 const CACHE_NAME = "made-to-find-v1";
 
+// Fotos (Gegenstände, Ablageorte) – eigener Zwischenspeicher, unabhängig von App-Updates
+const IMAGE_CACHE = "made-to-find-images-v1";
+const IMAGE_CACHE_MAX = 400;   // höchstens so viele Fotos aufheben, älteste fliegen zuerst raus
+
+function isStorageImage(url) {
+  return url.hostname.endsWith(".supabase.co") && url.pathname.startsWith("/storage/v1/object/public/");
+}
+
+/**
+ * Fotos: zuerst aus dem Zwischenspeicher, nur beim ersten Mal aus dem Netz.
+ * Das ist sicher, weil jedes neu hochgeladene Foto eine neue Adresse bekommt (…?t=Zeitstempel):
+ * Ein geändertes Foto wird also automatisch neu geladen, ein unverändertes nie wieder.
+ */
+async function cachedImage(request) {
+  const cache = await caches.open(IMAGE_CACHE);
+  const hit = await cache.match(request.url);
+  if (hit) return hit;
+
+  // Mit CORS laden (Supabase erlaubt das) – sonst wäre die Antwort „undurchsichtig“
+  // und würde im Speicher des Handys ein Vielfaches ihrer Größe belegen.
+  const response = await fetch(request.url, { mode: "cors", credentials: "omit" }).catch(() => null);
+  if (!response) return fetch(request);
+  if (response.ok) {
+    await cache.put(request.url, response.clone());
+    const keys = await cache.keys();
+    for (let i = 0; i < keys.length - IMAGE_CACHE_MAX; i++) await cache.delete(keys[i]);
+  }
+  return response;
+}
+
 const STATIC_ASSETS = [
   "/",
   "/dashboard",
@@ -24,7 +54,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key !== CACHE_NAME && key !== IMAGE_CACHE)
           .map((key) => caches.delete(key))
       )
     )
@@ -37,11 +67,19 @@ self.addEventListener("fetch", (event) => {
   // Nur GET-Requests cachen
   if (event.request.method !== "GET") return;
 
-  // Supabase API-Calls nicht cachen
-  if (event.request.url.includes("supabase.co")) return;
+  const url = new URL(event.request.url);
+
+  // Fotos aus dem Supabase-Speicher: zwischenspeichern
+  if (isStorageImage(url)) {
+    event.respondWith(cachedImage(event.request));
+    return;
+  }
+
+  // Übrige Supabase-Aufrufe (Daten, Anmeldung) nicht cachen
+  if (url.hostname.endsWith("supabase.co")) return;
 
   // Eigene API-Routen nicht cachen
-  if (new URL(event.request.url).pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith("/api/")) return;
 
   event.respondWith(
     fetch(event.request)

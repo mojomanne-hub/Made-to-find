@@ -78,7 +78,7 @@ export function ImageUpload({ currentImageUrl, userId, itemId, onUpload, onDelet
       await supabase.storage.from(BUCKET).remove([path]);
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
+        .upload(path, compressed, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
 
       if (uploadError) throw uploadError;
 
