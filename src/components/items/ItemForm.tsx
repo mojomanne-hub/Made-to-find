@@ -534,7 +534,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
               <button
                 type="button"
                 onClick={() => setNewLocOpen(true)}
-                className="self-start inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 hover:text-brand-300 py-1"
+                className="self-end inline-flex items-center gap-1.5 text-sm font-medium text-brand-400 hover:text-brand-300 py-1"
               >
                 <Plus className="h-4 w-4" /> Neuer Ablageort
               </button>
