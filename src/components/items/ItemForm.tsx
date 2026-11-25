@@ -191,7 +191,7 @@ export function ItemForm({ item, locations, shelves = [], preselectedLocationId,
       handleLocationChange(data.id);
       setNewLocName("");
       setNewLocOpen(false);
-      setErrors((prev) => ({ ...prev, location_id: undefined }));
+      setErrors((prev) => { const next = { ...prev }; delete next.location_id; return next; });
     } catch (e) {
       setNewLocError(e instanceof Error ? e.message : "Ablageort konnte nicht angelegt werden.");
     } finally {

@@ -8,6 +8,7 @@ import { ROUTES } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
+import { clearOfflineData } from "@/lib/offline/snapshot";
 
 export function DeleteAccountCard() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export function DeleteAccountCard() {
         throw new Error(body.error || "Löschen fehlgeschlagen.");
       }
 
+      clearOfflineData();
       await supabase.auth.signOut();
       router.push(ROUTES.login);
       router.refresh();

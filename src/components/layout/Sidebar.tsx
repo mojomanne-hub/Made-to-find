@@ -19,6 +19,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { joinPendingGroup } from "@/lib/utils/invite-token";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { SupportModal } from "@/components/support/SupportModal";
+import { clearOfflineData } from "@/lib/offline/snapshot";
 
 const NAV_ITEMS = [
   { href: ROUTES.dashboard, label: "Übersicht",   icon: LayoutDashboard },
@@ -81,6 +82,7 @@ function SidebarInner({ user, groups, displayName: propDisplayName }: SidebarPro
 
   async function handleLogout() {
     const supabase = createBrowserClient();
+    clearOfflineData();
     await supabase.auth.signOut();
     router.push(ROUTES.login);
     router.refresh();

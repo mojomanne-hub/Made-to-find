@@ -23,6 +23,7 @@ import { joinPendingGroup }       from "@/lib/utils/invite-token";
 import { OnboardingModal }        from "@/components/onboarding/OnboardingModal";
 import { SupportModal }           from "@/components/support/SupportModal";
 import { useState }               from "react";
+import { clearOfflineData } from "@/lib/offline/snapshot";
 
 
 const NAV_ITEMS = [
@@ -94,6 +95,7 @@ export function MobileDrawer({ isOpen, onClose, user, groups, displayName }: Mob
 
   async function handleLogout() {
     const supabase = createBrowserClient();
+    clearOfflineData();
     await supabase.auth.signOut();
     router.push(ROUTES.login);
     router.refresh();
