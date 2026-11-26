@@ -8,7 +8,7 @@ import { ROUTES }             from "@/lib/constants";
 export const metadata: Metadata = { title: "Übersicht" };
 
 type LocationRow = { id: string; name: string; color: string | null; icon: string | null; image_url: string | null; updated_at: string; items?: { count: number }[] };
-type ItemRow = { id: string; name: string; icon: string | null; image_url: string | null; color: string | null; updated_at: string; locations: { name: string; color: string | null } | null };
+type ItemRow = { id: string; name: string; icon: string | null; image_url: string | null; color: string | null; updated_at: string; lent_to: string | null; lent_until: string | null; locations: { name: string; color: string | null } | null };
 type ExpiringItem = { id: string; name: string; expires_at: string };
 
 export default async function DashboardPage() {
@@ -32,8 +32,8 @@ export default async function DashboardPage() {
       : supabase.from("locations").select("id, name, color, icon, image_url, updated_at, items(count)").is("deleted_at", null).eq("user_id", user.id).is("group_id", null).order("updated_at", { ascending: false }).limit(6),
     // Recent items
     groupId
-      ? supabase.from("items").select("id, name, icon, image_url, color, updated_at, locations(name, color)").is("deleted_at", null).eq("group_id", groupId).order("created_at", { ascending: false }).limit(5)
-      : supabase.from("items").select("id, name, icon, image_url, color, updated_at, locations(name, color)").is("deleted_at", null).eq("user_id", user.id).is("group_id", null).order("created_at", { ascending: false }).limit(5),
+      ? supabase.from("items").select("id, name, icon, image_url, color, updated_at, lent_to, lent_until, locations(name, color)").is("deleted_at", null).eq("group_id", groupId).order("created_at", { ascending: false }).limit(5)
+      : supabase.from("items").select("id, name, icon, image_url, color, updated_at, lent_to, lent_until, locations(name, color)").is("deleted_at", null).eq("user_id", user.id).is("group_id", null).order("created_at", { ascending: false }).limit(5),
     // Bald ablaufende Items (nächste 30 Tage + abgelaufene)
     groupId
       ? supabase.from("items").select("id, name, expires_at").is("deleted_at", null).eq("group_id", groupId).not("expires_at", "is", null).lte("expires_at", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]).order("expires_at", { ascending: true }).limit(5)

@@ -9,6 +9,7 @@ import { Card }             from "@/components/ui/Card";
 import { Button }           from "@/components/ui/Button";
 import { ItemDeleteButton } from "@/components/items/ItemDeleteButton";
 import { LendCard }         from "@/components/items/LendCard";
+import { LentRibbon, isLentOverdue } from "@/components/items/LentRibbon";
 import { ROUTES }           from "@/lib/constants";
 
 interface Props { params: Promise<{ id: string }> }
@@ -120,8 +121,9 @@ export default async function ItemDetailPage({ params }: Props) {
       </div>
 
       {/* Hero Banner */}
-      <div className="rounded-2xl overflow-hidden mb-5 w-full"
+      <div className="relative rounded-2xl overflow-hidden mb-5 w-full"
         style={{ backgroundColor: color }}>
+        {item.lent_to && <LentRibbon overdue={isLentOverdue(item.lent_until)} />}
         {item.image_url ? (
           <img src={item.image_url} alt={item.name} className="w-full rounded-2xl object-contain" />
         ) : item.icon ? (

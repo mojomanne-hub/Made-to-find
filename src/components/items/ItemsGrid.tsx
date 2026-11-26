@@ -266,7 +266,8 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
             const color = getItemColor(item, index);
             return (
               <Link key={item.id} href={ROUTES.itemDetail(item.id)}>
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/20 transition-all cursor-pointer" style={{ backgroundColor: "#1a2535" }}>
+                <div className="relative overflow-hidden flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-700/20 transition-all cursor-pointer" style={{ backgroundColor: "#1a2535" }}>
+                  {item.lent_to && <LentRibbon size="sm" overdue={isLentOverdue(item.lent_until)} />}
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color }}>
                     {item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element

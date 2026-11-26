@@ -15,6 +15,7 @@ import { formatRelativeDate }  from "@/lib/utils";
 import { Card }   from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { openScanner } from "@/components/scanner/scanner-events";
+import { LentRibbon, isLentOverdue } from "@/components/items/LentRibbon";
 // import { AdBanner } from "@/components/ads/AdBanner"; // Banner pausiert bis AdSense freigegeben ist
 
 // Dynamisches Icon-Rendering mit Emoji-Unterstützung
@@ -41,6 +42,8 @@ interface Location {
 interface RecentItem {
   id: string; name: string; icon: string | null; image_url: string | null;
   updated_at: string;
+  lent_to?: string | null;
+  lent_until?: string | null;
   locations: { name: string; color: string | null } | null;
 }
 
@@ -345,9 +348,10 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
                 <li key={item.id}>
                   <Link
                     href={ROUTES.itemDetail(item.id)}
-                    className="flex items-center gap-3 rounded-[14px] border border-slate-700 px-3 py-2.5 hover:border-slate-600 transition-colors"
+                    className="relative overflow-hidden flex items-center gap-3 rounded-[14px] border border-slate-700 px-3 py-2.5 hover:border-slate-600 transition-colors"
                     style={{ backgroundColor: "#1a2535" }}
                   >
+                    {item.lent_to && <LentRibbon size="sm" overdue={isLentOverdue(item.lent_until)} />}
                     <div
                       className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
                       style={{ backgroundColor: locColor + "30" }}
@@ -362,6 +366,11 @@ export function DashboardClient({ locationCount, itemCount, locations, recentIte
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-100 truncate">{item.name}</p>
                       {item.locations && <p className="text-xs text-slate-400 truncate">{item.locations.name}</p>}
+                      {item.lent_to && (
+                        <p className={isLentOverdue(item.lent_until) ? "text-[11px] font-medium text-red-400 truncate" : "text-[11px] font-medium text-amber-400 truncate"}>
+                          Verliehen an {item.lent_to}
+                        </p>
+                      )}
                     </div>
                     <span className="text-xs text-slate-500 flex-shrink-0">{formatRelativeDate(item.updated_at)}</span>
                   </Link>

@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/Badge";
 import { Button }     from "@/components/ui/Button";
 import { ROUTES }     from "@/lib/constants";
 import { formatRelativeDate } from "@/lib/utils";
+import { LentRibbon, isLentOverdue } from "@/components/items/LentRibbon";
 
 function DynIcon({ name, className }: { name: string | null; className?: string }) {
   if (!name) return <LucideIcons.Box className={className} />;
@@ -65,7 +66,8 @@ export function ItemList({ items, showLocation = false }: ItemListProps) {
     <div className="space-y-2">
       {items.map((item) => (
         <Link key={item.id} href={ROUTES.itemDetail(item.id)}>
-          <Card hoverable>
+          <Card hoverable className="relative overflow-hidden">
+            {item.lent_to && <LentRibbon size="sm" overdue={isLentOverdue(item.lent_until)} />}
             <div className="flex items-center gap-3">
               {/* Icon oder Foto */}
               <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
