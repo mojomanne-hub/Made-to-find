@@ -112,5 +112,73 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ success: true, items: rows.length, notified, pushed });
+  const lent = await remindLentItems(admin, today);
+  return NextResponse.json({ success: true, items: rows.length, notified, pushed, lent });
+}
+
+/**
+ * Verliehene Gegenstände: Erinnerung am vereinbarten Rückgabetag und, falls noch nicht zurück,
+ * eine Woche später noch einmal. Empfänger: Besitzer bzw. alle Gruppenmitglieder.
+ */
+async function remindLentItems(admin: NonNullable<ReturnType<typeof adminClient>>, today: string) {
+  const weekAgo = berlinDate(-7);
+  const { data, error } = await admin
+    .from("items")
+    .select("id, name, user_id, group_id, lent_to, lent_until")
+    .is("deleted_at", null)
+    .not("lent_to", "is", null)
+    .in("lent_until", [today, weekAgo])
+    .limit(2000);
+  if (error || !data || data.length === 0) return { items: 0, notified: 0, pushed: 0 };
+
+  type LentRow = { id: string; name: string; user_id: string; group_id: string | null; lent_to: string; lent_until: string };
+  const rows = data as LentRow[];
+
+  const groupIds = [...new Set(rows.map((r) => r.group_id).filter((g): g is string => !!g))];
+  const members = new Map<string, string[]>();
+  if (groupIds.length > 0) {
+    const { data: gm } = await admin.from("group_members").select("group_id, user_id").in("group_id", groupIds);
+    for (const m of gm ?? []) members.set(m.group_id, [...(members.get(m.group_id) ?? []), m.user_id]);
+  }
+
+  const perUser = new Map<string, LentRow[]>();
+  for (const r of rows) {
+    const recipients = r.group_id ? new Set([...(members.get(r.group_id) ?? []), r.user_id]) : new Set([r.user_id]);
+    for (const uid of recipients) perUser.set(uid, [...(perUser.get(uid) ?? []), r]);
+  }
+
+  // Wer die Rückgabe-Erinnerung abgeschaltet hat, bekommt keine
+  const { data: ps } = await admin.from("notification_settings").select("user_id, notify_lent_due").in("user_id", [...perUser.keys()]);
+  const off = new Set((ps ?? []).filter((p) => p.notify_lent_due === false).map((p) => p.user_id));
+
+  let notified = 0, pushed = 0;
+  const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+  for (const [uid, list] of perUser) {
+    if (off.has(uid)) continue;
+    const { data: existing } = await admin
+      .from("notifications").select("message")
+      .eq("user_id", uid).eq("type", "item_lent_due").gte("created_at", since);
+    const seen = new Set((existing ?? []).map((n) => n.message));
+    const msg = (r: LentRow) => r.lent_until === today
+      ? `${r.name} sollte heute von ${r.lent_to} zurückkommen.`
+      : `${r.name} ist seit einer Woche überfällig (verliehen an ${r.lent_to}).`;
+    const fresh = list.filter((r) => !seen.has(msg(r)));
+    if (fresh.length === 0) continue;
+
+    await admin.from("notifications").insert(fresh.map((r) => ({
+      user_id: uid, group_id: r.group_id, type: "item_lent_due",
+      title: r.lent_until === today ? "Rückgabe heute" : "Rückgabe überfällig",
+      message: msg(r),
+    })));
+    notified += fresh.length;
+
+    const first = fresh[0];
+    pushed += await sendPushToUser(admin, uid, {
+      title: fresh.length === 1 ? (first.lent_until === today ? "Rückgabe heute" : "Rückgabe überfällig") : "Verliehene Gegenstände",
+      body: fresh.length === 1 ? msg(first) : `${fresh.length} Gegenstände sollten zurückkommen: ${fresh.slice(0, 3).map((r) => r.name).join(", ")}${fresh.length > 3 ? " …" : ""}`,
+      url: fresh.length === 1 ? `/items/${first.id}` : "/items",
+      tag: "lent-due",
+    });
+  }
+  return { items: rows.length, notified, pushed };
 }

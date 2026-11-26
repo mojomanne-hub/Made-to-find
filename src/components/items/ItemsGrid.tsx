@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LentRibbon, isLentOverdue } from "@/components/items/LentRibbon";
 import { confirmDialog } from "@/lib/utils/confirm-dialog";
 import { ROUTES } from "@/lib/constants";
 import { EmptyState } from "@/components/ui/Badge";
@@ -34,6 +35,8 @@ interface Item {
   updated_at:  string;
   created_at:  string;
   expires_at:  string | null;
+  lent_to?:    string | null;
+  lent_until?: string | null;
   locations:   { id: string; name: string; color: string | null } | null;
 }
 
@@ -82,6 +85,7 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
 export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
   const [search,    setSearch]    = useState("");
   const [filterLoc, setFilterLoc] = useState("");
+  const [onlyLent,  setOnlyLent]  = useState(false);
   const [items,     setItems]     = useState(initialItems);
   const [deleting,  setDeleting]  = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -94,10 +98,13 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
         item.name.toLowerCase().includes(search.toLowerCase()) ||
         (item.description ?? "").toLowerCase().includes(search.toLowerCase());
       const matchLoc = !filterLoc || item.location_id === filterLoc;
-      return matchSearch && matchLoc;
+      const matchLent = !onlyLent || !!item.lent_to;
+      return matchSearch && matchLoc && matchLent;
     }),
-    [items, search, filterLoc]
+    [items, search, filterLoc, onlyLent]
   );
+  const lentCount = useMemo(() => items.filter((i) => !!i.lent_to).length, [items]);
+  const overdueCount = useMemo(() => items.filter((i) => !!i.lent_to && isLentOverdue(i.lent_until)).length, [items]);
 
   async function handleDelete(e: React.MouseEvent, item: Item) {
     e.preventDefault();
@@ -171,12 +178,34 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
         </div>
       </div>
 
+      {/* Filter „Verliehen“ – nur sichtbar, wenn etwas verliehen ist */}
+      {(lentCount > 0 || onlyLent) && (
+        <div className="flex">
+          <button
+            type="button"
+            onClick={() => setOnlyLent((v) => !v)}
+            aria-pressed={onlyLent}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              onlyLent ? "border-amber-500 bg-amber-500 text-slate-950" : "border-amber-700/60 bg-amber-950/30 text-amber-300 hover:border-amber-500"
+            )}
+          >
+            <LucideIcons.HandHelping className="h-3.5 w-3.5" aria-hidden="true" />
+            {onlyLent ? "Nur verliehene" : "Verliehen"} ({lentCount})
+            {overdueCount > 0 && (
+              <span className="ml-1 rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">{overdueCount} überfällig</span>
+            )}
+            {onlyLent && <LucideIcons.X className="h-3.5 w-3.5" aria-hidden="true" />}
+          </button>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-slate-700" style={{ backgroundColor: "#1a2535" }}>
           <EmptyState icon={<LucideIcons.Package />}
-            title={search || filterLoc ? "Keine Ergebnisse" : "Noch keine Gegenstände"}
+            title={search || filterLoc || onlyLent ? "Keine Ergebnisse" : "Noch keine Gegenstände"}
             description={search || filterLoc ? "Versuche andere Suchbegriffe oder Filter." : "Füge deinen ersten Gegenstand hinzu."}
-            action={!search && !filterLoc ? <Link href={ROUTES.itemNew}><Button size="sm"><LucideIcons.Plus className="h-4 w-4" /> Ersten Gegenstand erstellen</Button></Link> : undefined} />
+            action={!search && !filterLoc && !onlyLent ? <Link href={ROUTES.itemNew}><Button size="sm"><LucideIcons.Plus className="h-4 w-4" /> Ersten Gegenstand erstellen</Button></Link> : undefined} />
         </div>
       ) : view === "grid" ? (
         /* ── Kachelansicht ── */
@@ -193,6 +222,7 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
                     ) : (
                       <ItemIcon icon={item.icon} className="h-12 w-12 text-white/80" />
                     )}
+                    {item.lent_to && <LentRibbon overdue={isLentOverdue(item.lent_until)} />}
                     {item.quantity > 1 && (
                       <div className="absolute top-2 right-2 bg-black/30 backdrop-blur-sm text-white text-xs font-semibold px-2 py-0.5 rounded-full">
                         {item.quantity}×
@@ -252,6 +282,11 @@ export function ItemsGrid({ items: initialItems, locations }: ItemsGridProps) {
                         <LucideIcons.MapPin className="h-3 w-3 flex-shrink-0" style={{ color: item.locations.color ?? "#6b7280" }} />
                         <span className="text-xs text-slate-500 truncate">{item.locations.name}</span>
                       </div>
+                    )}
+                    {item.lent_to && (
+                      <p className={cn("mt-1 text-[11px] font-medium truncate", isLentOverdue(item.lent_until) ? "text-red-400" : "text-amber-400")}>
+                        Verliehen an {item.lent_to}
+                      </p>
                     )}
                     {item.expires_at && (
                       <div className="mt-1">

@@ -31,6 +31,8 @@ interface ItemWithLocation {
   icon?:       string | null;
   image_url?:  string | null;
   color?:      string | null;   // ← NEU
+  lent_to?:    string | null;
+  lent_until?: string | null;
   locations?:  { id: string; name: string; color: string | null } | null;
 }
 
@@ -88,6 +90,11 @@ export function ItemList({ items, showLocation = false }: ItemListProps) {
                 )}
                 {item.description && !showLocation && (
                   <p className="text-xs text-slate-500 truncate mt-0.5">{item.description}</p>
+                )}
+                {item.lent_to && (
+                  <p className={(item.lent_until && item.lent_until < new Date().toISOString().slice(0, 10)) ? "text-[11px] font-medium text-red-400 truncate mt-0.5" : "text-[11px] font-medium text-amber-400 truncate mt-0.5"}>
+                    Verliehen an {item.lent_to}
+                  </p>
                 )}
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">

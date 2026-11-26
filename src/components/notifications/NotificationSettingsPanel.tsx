@@ -11,13 +11,14 @@ const LEAD_DAYS = [1, 3, 7, 14, 30];
 // Meldungsarten, die man einzeln ein- und ausschalten kann (Spaltenname in notification_settings)
 const TOGGLES = [
   { key: "notify_expiring",       label: "Ablaufende Gegenstände" },
+  { key: "notify_lent_due",       label: "Rückgabe verliehener Gegenstände" },
   { key: "notify_item_added",     label: "Neuer Gegenstand in der Gruppe" },
   { key: "notify_location_added", label: "Neuer Ablageort in der Gruppe" },
   { key: "notify_member_joined",  label: "Neues Mitglied in der Gruppe" },
 ] as const;
 type ToggleKey = typeof TOGGLES[number]["key"];
 const ALL_ON: Record<ToggleKey, boolean> = {
-  notify_expiring: true, notify_item_added: true, notify_location_added: true, notify_member_joined: true,
+  notify_expiring: true, notify_lent_due: true, notify_item_added: true, notify_location_added: true, notify_member_joined: true,
 };
 
 /**
@@ -40,6 +41,7 @@ export function NotificationSettingsPanel() {
         setOnDay(data.expiry_on_day ?? true);
         setToggles({
           notify_expiring:       data.notify_expiring       ?? true,
+          notify_lent_due:       data.notify_lent_due       ?? true,
           notify_item_added:     data.notify_item_added     ?? true,
           notify_location_added: data.notify_location_added ?? true,
           notify_member_joined:  data.notify_member_joined  ?? true,

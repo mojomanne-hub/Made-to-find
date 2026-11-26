@@ -8,6 +8,7 @@ import { Badge }            from "@/components/ui/Badge";
 import { Card }             from "@/components/ui/Card";
 import { Button }           from "@/components/ui/Button";
 import { ItemDeleteButton } from "@/components/items/ItemDeleteButton";
+import { LendCard }         from "@/components/items/LendCard";
 import { ROUTES }           from "@/lib/constants";
 
 interface Props { params: Promise<{ id: string }> }
@@ -85,6 +86,7 @@ export default async function ItemDetailPage({ params }: Props) {
     quantity: number; updated_at: string; location_id: string;
     image_url: string | null; icon: string | null; color: string | null;
     expires_at: string | null; shelf_id: string | null; barcode: string | null;
+    lent_to?: string | null; lent_at?: string | null; lent_until?: string | null;
     locations: { id: string; name: string; color: string | null } | null;
   };
 
@@ -165,6 +167,9 @@ export default async function ItemDetailPage({ params }: Props) {
 
       {/* Details */}
       <div className="space-y-3 max-w-lg">
+        {/* Verleihen */}
+        <LendCard itemId={id} lentTo={item.lent_to ?? null} lentAt={item.lent_at ?? null} lentUntil={item.lent_until ?? null} />
+
         {/* Ablaufdatum */}
         {item.expires_at && (
           <ExpiryInfo expiresAt={item.expires_at} />
